@@ -239,12 +239,12 @@ class ParticleMonitor(Monitor):
             h5group.create_dataset("dz", dims, compression="gzip", compression_opts=9)
             h5group.create_dataset("dp", dims, compression="gzip", compression_opts=9)
         else:
-            h5group.create_dataset("x1", dims, compression="gzip", compression_opts=9)
-            h5group.create_dataset("v1", dims, compression="gzip", compression_opts=9)
-            h5group.create_dataset("x2", dims, compression="gzip", compression_opts=9)
-            h5group.create_dataset("v2", dims, compression="gzip", compression_opts=9)
-            h5group.create_dataset("x3", dims, compression="gzip", compression_opts=9)
-            h5group.create_dataset("v3", dims, compression="gzip", compression_opts=9)
+            h5group.create_dataset("x_0", dims, compression="gzip", compression_opts=9)
+            h5group.create_dataset("v_0", dims, compression="gzip", compression_opts=9)
+            h5group.create_dataset("x_1", dims, compression="gzip", compression_opts=9)
+            h5group.create_dataset("v_1", dims, compression="gzip", compression_opts=9)
+            h5group.create_dataset("x_2", dims, compression="gzip", compression_opts=9)
+            h5group.create_dataset("v_2", dims, compression="gzip", compression_opts=9)
 
         # Do we need/want this here?
         h5group.create_dataset("id", dims, dtype=np.int, compression="gzip", compression_opts=9)
@@ -265,12 +265,12 @@ class ParticleMonitor(Monitor):
             self.h5file['id'][:,h5group] = bunch.id.take(resorting_indices)
             self.h5file['c'][:,h5group] = self.z0
         else:
-            h5group["x"][:] = bunch.x[resorting_indices]
-            h5group["xp"][:] = bunch.yp[resorting_indices]
-            h5group["y"][:] = bunch.y[resorting_indices]
-            h5group["yp"][:] = bunch.yp[resorting_indices]
-            h5group["dz"][:] = bunch.dz[resorting_indices]
-            h5group["dp"][:] = bunch.dp[resorting_indices]
+            h5group["x_0"][:] = bunch.x[resorting_indices]
+            h5group["v_0"][:] = bunch.yp[resorting_indices]
+            h5group["x_1"][:] = bunch.y[resorting_indices]
+            h5group["v_1"][:] = bunch.yp[resorting_indices]
+            h5group["x_2"][:] = bunch.dz[resorting_indices]
+            h5group["v_2"][:] = bunch.dp[resorting_indices]
 
             # Do we need/want this here?
             h5group["id"][:] = bunch.id[resorting_indices]
