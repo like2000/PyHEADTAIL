@@ -81,17 +81,21 @@ def longitudinal_gaussian_matched(beam, four_sigma_bunch_length, unit=None):
     
     beam.sigma_theta = sigma_theta
     beam.sigma_dE = sigma_dE
+    
+    beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
+                        + phi_s/beam.ring.harmonic[0]
+    beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
 
-    for i in xrange(beam.n_macroparticles):
-        beam.theta[i] = sigma_theta * np.random.randn() \
-                        + phi_s/beam.ring.harmonic[0]
-        beam.dE[i] = sigma_dE * np.random.randn()
-        
-        if not beam.ring.is_in_separatrix(beam, beam.theta[i], beam.dE[i], beam.delta[i]): 
-            while not beam.ring.is_in_separatrix(beam, beam.theta[i], beam.dE[i], beam.delta[i]):
-                beam.theta[i] = sigma_theta * np.random.randn() \
-                        + phi_s/beam.ring.harmonic[0]
-                beam.dE[i] = sigma_dE * np.random.randn()
+#     for i in xrange(beam.n_macroparticles):
+#         beam.theta[i] = sigma_theta * np.random.randn() \
+#                         + phi_s/beam.ring.harmonic[0]
+#         beam.dE[i] = sigma_dE * np.random.randn()
+#         
+#         if not beam.ring.is_in_separatrix(beam, beam.theta[i], beam.dE[i], beam.delta[i]): 
+#             while not beam.ring.is_in_separatrix(beam, beam.theta[i], beam.dE[i], beam.delta[i]):
+#                 beam.theta[i] = sigma_theta * np.random.randn() \
+#                         + phi_s/beam.ring.harmonic[0]
+#                 beam.dE[i] = sigma_dE * np.random.randn()
     
     
 
