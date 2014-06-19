@@ -1,26 +1,16 @@
 '''
 Created on 12.06.2014
 
-@author: Danilo Quartullo, Helga Timko
+@author: Danilo Quartullo, Helga Timko, Alexandre Lasheen
 '''
 
 from __future__ import division
 import numpy as np
 from warnings import filterwarnings
 from scipy.constants import c, e
-
-
-class Ring(object):
-    
-    def __init__(self, circumference, momentum_program, alpha_array):
-        
-        self.circumference = circumference # in m
-        self.radius = circumference / 2 / np.pi # in m
-        self.alpha_array = alpha_array
-        self.momentum_program = momentum_program # in eV
         
 
-class Ring_and_RFstation(Ring):
+class Ring_and_RFstation(object):
     '''
     Definition of an RF station and part of the ring until the next station, see figure.
     
@@ -39,10 +29,11 @@ class Ring_and_RFstation(Ring):
     station is not necessary. 
     '''
     
-    def __init__(self, circumference, momentum_program, alpha_array, length=None, 
+    def __init__(self, Global_parameters, length=None, 
                  harmonic_list=None, voltage_list=None, phi_offset_list=None):
                     
-        Ring.__init__(self, circumference, momentum_program, alpha_array)
+        alpha_array = Global_parameters.momentum_compaction_array
+        circumference = Global_parameters.ring_circumference
         
         if alpha_array != None and len(alpha_array) > 3:
             print "WARNING: Slippage factor implemented only till second order. Higher orders in alpha ignored. "
