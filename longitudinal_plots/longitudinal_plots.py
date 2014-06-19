@@ -159,7 +159,9 @@ def plot_bunch_length_evol(bunch, h5file, nturns, unit=None):
         ax.set_ylabel (r"Bunch length, $4\sigma$ r.m.s. [m]")
     elif unit == 'ns':
         ax.set_ylabel (r"Bunch length, $4\sigma$ r.m.s. [ns]")
-    fign = "fig/bunch_length_evolution.png"
+    
+    # Save plot
+    fign = 'fig/bunch_length_evolution_' "%d" %nturns + '.png'
     plt.savefig(fign)
     plt.clf()
 
@@ -178,13 +180,15 @@ def plot_bunch_length_evol_gaussian(bunch, h5file, nturns, unit=None):
 
     # Plot
     plt.figure(1, figsize=(8,6))
-    ax = plt.axes([0.0, 0.1, 0.82, 0.8])
+    ax = plt.axes([0.12, 0.1, 0.82, 0.8])
     ax.plot(t, bl[0:nturns], '.')
     ax.set_xlabel(r"No. turns [T$_0$]")
     if unit == None or unit == 'm':
         ax.set_ylabel (r"Bunch length, $4\sigma$ Gaussian fit [m]")
     elif unit == 'ns':
         ax.set_ylabel (r"Bunch length, $4\sigma$ Gaussian fit [ns]")
-    fign = "fig/bunch_length_evolution_Gaussian.png"
+    
+    # Save plot    
+    fign = 'fig/bunch_length_evolution_Gaussian_' "%d" %nturns + '.png'
     plt.savefig(fign)
     plt.clf()

@@ -47,7 +47,6 @@ class Beam(object):
         self.epsn_y = 0
         self.sigma_theta = 0
         self.sigma_dE = 0
-        #self.epsn_z = 0
         
         # Particle/loss counts
         self.n_macroparticles = n_macroparticles
@@ -131,7 +130,7 @@ class Beam(object):
         self.sigma_dE = value * self.ring.beta_i(self)**2 * self.ring.energy_i(self)
 
     
-    def longit_statistics(self):
+    def longit_statistics(self, gaussian_fit):
         
         self.mean_theta = cp.mean(self.theta)
         self.mean_dE = cp.mean(self.dE)
@@ -143,7 +142,7 @@ class Beam(object):
                         * self.ring.radius / (self.ring.beta_i(self) * c) # in eVs
 
         ##### Gaussian fit to theta-profile
-        if self.beam_is_sliced == True:
+        if self.beam_is_sliced == True and gaussian_fit == "On":
             self.slicing.compute_statistics(self)
             p0 = [max(self.slicing.n_macroparticles), self.mean_theta, self.sigma_theta] 
             def gauss(x, *p):

@@ -32,9 +32,9 @@ V_rf.append(6.e6)    # RF voltage [eV]
 dphi.append(0)      # Phase modulation/offset
 
 # Tracking details
-N_t = 2000            # Number of turns to track
+N_t = 200            # Number of turns to track
 dt_out = 20          # Time steps between output
-dt_plt = 200          # Time steps between plots
+dt_plt = 20          # Time steps between plots
 
 # Derived parameters
 #m_p *= c**2/e
@@ -49,7 +49,7 @@ alpha.append(1./gamma_t/gamma_t)        # First order mom. comp. factor
 
 
 # Monitors
-bunchmonitor = BunchMonitor('bunch', N_t+1)
+bunchmonitor = BunchMonitor('bunch', N_t+1, long_gaussian_fit = "On")
 
 
 # Simulation setup -------------------------------------------------------------
@@ -127,9 +127,9 @@ for i in range(N_t):
     if (i % dt_plt) == 0:
         #plot_long_phase_space(ring, beam, i, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
         #plot_long_phase_space(ring, beam, i, 0, 2.5, -.5e3, .5e3, xunit='ns', yunit='MeV')
-        plot_long_phase_space(beam, i, 0, 0.0001763, -450, 450)
+#        plot_long_phase_space(beam, i, 0, 0.0001763, -450, 450)
 #        plot_bunch_length_evol(beam, 'bunch', i, unit='ns')
-#       plot_bunch_length_evol_gaussian(beam, 'bunch', i, unit='ns')
+        plot_bunch_length_evol_gaussian(beam, 'bunch', i, unit='ns')
 
 
 
