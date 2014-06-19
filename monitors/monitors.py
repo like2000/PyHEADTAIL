@@ -3,7 +3,6 @@
 @date: 11.02.2014
 '''
 
-
 import h5py as hp
 import numpy as np
 
@@ -14,13 +13,13 @@ from abc import ABCMeta, abstractmethod
 class Monitor(object):
 
     @abstractmethod
-    def dump(bunch):
+    def dump(self, bunch):
         pass
 
 
 class BunchMonitor(Monitor):
 
-    def __init__(self, filename, n_steps, dictionary=None):
+    def __init__(self, filename, n_steps, dictionary = None):
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
         self.i_steps = 0
@@ -33,7 +32,8 @@ class BunchMonitor(Monitor):
 
     def dump(self, bunch):
         # This method may be called several times in different places of the code. Ok. for now.
-        bunch.compute_statistics()
+        bunch.longit_statistics()
+        bunch.transv_statistics()
 
         if not self.i_steps:
             n_steps = self.n_steps
@@ -50,15 +50,20 @@ class BunchMonitor(Monitor):
         h5group.create_dataset("mean_y",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_yp",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_z",   dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("mean_dp",  dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("mean_delta",  dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("mean_theta",   dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("mean_dE",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("sigma_x",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("sigma_y",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("sigma_z",  dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("sigma_dp", dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("sigma_delta", dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("sigma_theta",  dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("sigma_dE", dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("epsn_x",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("epsn_y",   dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("epsn_z",   dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("epsn_rms_l",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("bunch_length_gauss_theta", dims, compression="gzip", compression_opts=9)
 
     def write_data(self, bunch, h5group, i_steps):
         h5group["mean_x"][i_steps]   = bunch.mean_x
@@ -66,15 +71,20 @@ class BunchMonitor(Monitor):
         h5group["mean_y"][i_steps]   = bunch.mean_y
         h5group["mean_yp"][i_steps]  = bunch.mean_yp
         h5group["mean_z"][i_steps]   = bunch.mean_z
-        h5group["mean_dp"][i_steps]  = bunch.mean_dp
+        h5group["mean_delta"][i_steps]  = bunch.mean_delta
+        h5group["mean_theta"][i_steps]   = bunch.mean_theta
+        h5group["mean_dE"][i_steps]  = bunch.mean_dE
         h5group["sigma_x"][i_steps]  = bunch.sigma_x
         h5group["sigma_y"][i_steps]  = bunch.sigma_y
         h5group["sigma_z"][i_steps]  = bunch.sigma_z
-        h5group["sigma_dp"][i_steps] = bunch.sigma_dp
+        h5group["sigma_delta"][i_steps] = bunch.sigma_delta
+        h5group["sigma_theta"][i_steps]  = bunch.sigma_theta
+        h5group["sigma_dE"][i_steps] = bunch.sigma_dE
         h5group["epsn_x"][i_steps]   = bunch.epsn_x
         h5group["epsn_y"][i_steps]   = bunch.epsn_y
-        h5group["epsn_z"][i_steps]   = bunch.epsn_z
+        h5group["epsn_rms_l"][i_steps]   = bunch.epsn_rms_l
         h5group["n_macroparticles"][i_steps] = bunch.n_macroparticles
+        h5group["bunch_length_gauss_theta"][i_steps] = bunch.bl_gauss
 
     def close(self):
         self.h5file.close()
@@ -125,11 +135,11 @@ class SliceMonitor(Monitor):
         h5group.create_dataset("mean_y",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_yp",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_z",   dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("mean_dp",  dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("mean_delta",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("sigma_x",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("sigma_y",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("sigma_z",  dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("sigma_dp", dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("sigma_delta", dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("epsn_x",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("epsn_y",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("epsn_z",   dims, compression="gzip", compression_opts=9)
@@ -142,11 +152,11 @@ class SliceMonitor(Monitor):
             h5group["mean_y"][i_steps]   = data.mean_y
             h5group["mean_yp"][i_steps]  = data.mean_yp
             h5group["mean_z"][i_steps]   = data.mean_z
-            h5group["mean_dp"][i_steps]  = data.mean_dp
+            h5group["mean_delta"][i_steps]  = data.mean_delta
             h5group["sigma_x"][i_steps]  = data.sigma_x
             h5group["sigma_y"][i_steps]  = data.sigma_y
             h5group["sigma_z"][i_steps]  = data.sigma_z
-            h5group["sigma_dp"][i_steps] = data.sigma_dp
+            h5group["sigma_delta"][i_steps] = data.sigma_delta
             h5group["epsn_x"][i_steps]   = data.epsn_x
             h5group["epsn_y"][i_steps]   = data.epsn_y
             h5group["epsn_z"][i_steps]   = data.epsn_z
@@ -157,11 +167,11 @@ class SliceMonitor(Monitor):
             h5group["mean_y"][:,i_steps]   = data.mean_y
             h5group["mean_yp"][:,i_steps]  = data.mean_yp
             h5group["mean_z"][:,i_steps]   = data.mean_z
-            h5group["mean_dp"][:,i_steps]  = data.mean_dp
+            h5group["mean_delta"][:,i_steps]  = data.mean_delta
             h5group["sigma_x"][:,i_steps]  = data.sigma_x
             h5group["sigma_y"][:,i_steps]  = data.sigma_y
             h5group["sigma_z"][:,i_steps]  = data.sigma_z
-            h5group["sigma_dp"][:,i_steps] = data.sigma_dp
+            h5group["sigma_delta"][:,i_steps] = data.sigma_delta
             h5group["epsn_x"][:,i_steps]   = data.epsn_x
             h5group["epsn_y"][:,i_steps]   = data.epsn_y
             h5group["epsn_z"][:,i_steps]   = data.epsn_z
@@ -205,7 +215,7 @@ class ParticleMonitor(Monitor):
         h5group.create_dataset("y",  dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("yp", dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("z",  dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("dp", dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("delta", dims, compression="gzip", compression_opts=9)
 
         # Do we need/want this here?
         h5group.create_dataset("id", dims, dtype=np.int)
@@ -221,7 +231,7 @@ class ParticleMonitor(Monitor):
         h5group["y"][:]  = bunch.y[resorting_indices]
         h5group["yp"][:] = bunch.yp[resorting_indices]
         h5group["z"][:]  = bunch.z[resorting_indices]
-        h5group["dp"][:] = bunch.dp[resorting_indices]
+        h5group["delta"][:] = bunch.delta[resorting_indices]
 
         # Do we need/want this here?
         h5group["id"][:] = bunch.id[resorting_indices]

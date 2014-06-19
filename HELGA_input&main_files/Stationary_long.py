@@ -10,7 +10,8 @@ from trackers.longitudinal_tracker import *
 from beams.beams import *
 from beams.longitudinal_distributions import *
 from longitudinal_plots.longitudinal_plots import *
-
+from monitors.monitors import *
+from beams.slices import *
 
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
@@ -47,6 +48,8 @@ alpha = []
 alpha.append(1./gamma_t/gamma_t)        # First order mom. comp. factor
 
 
+# Monitors
+bunchmonitor = BunchMonitor('bunch', N_t+1)
 
 
 # Simulation setup -------------------------------------------------------------
@@ -79,15 +82,17 @@ print "RF station set"
 distribution = longitudinal_gaussian_matched(beam, sigma_theta*2)
 print "Initial distribution set"
 
-
-beam.longit_statistics()
+number_slices = 200
+slice_beam = Slices(number_slices, cut_left = 0, cut_right = 0.0001763, unit = "theta")
+slice_beam.track(beam)
+bunchmonitor.dump(beam)
 print "Sigma dE %.2f MeV" %(beam.sigma_dE*1e-6)
 print "Sigma theta %.4e rad" %beam.sigma_theta
-print "RMS emittance %.4f eVs" %beam.eps_rms_l
+print "RMS emittance %.4f eVs" %beam.epsn_rms_l
 
 
 # Accelerator map
-map_ = [long_tracker] # No intensity effects, no aperture limitations
+map_ = [long_tracker] + [slice_beam] # No intensity effects, no aperture limitations
 print "Map set"
 print ""
 
@@ -105,7 +110,7 @@ for i in range(N_t):
     # Track
     for m in map_:
         m.track(beam)
-    
+    bunchmonitor.dump(beam)
 #     print "Momentumi %.6e eV" %beam.p0_i()
 #     print "Particle energy, theta %.6e %.6e" %(beam.dE[0], beam.theta[0])
     # Output data
@@ -123,8 +128,8 @@ for i in range(N_t):
         #plot_long_phase_space(ring, beam, i, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
         #plot_long_phase_space(ring, beam, i, 0, 2.5, -.5e3, .5e3, xunit='ns', yunit='MeV')
         plot_long_phase_space(beam, i, 0, 0.0001763, -450, 450)
-#        plot_bunch_length_evol(bunch, 'bunch', i, unit='ns')
-#        plot_bunch_length_evol_gaussian(bunch, 'bunch', i, unit='ns')
+#        plot_bunch_length_evol(beam, 'bunch', i, unit='ns')
+#       plot_bunch_length_evol_gaussian(beam, 'bunch', i, unit='ns')
 
 
 
@@ -132,3 +137,4 @@ print "Done!"
 print ""
 
 
+bunchmonitor.h5file.close()

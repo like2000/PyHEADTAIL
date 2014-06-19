@@ -34,7 +34,7 @@ def plot_long_phase_space(beam, nturns, xmin, xmax, ymin, ymax,
 
     # Conversion from metres to nanoseconds
     if xunit == 'ns':
-        coeff = 1.e9 * beam.ring.radius / (beam.beta_i() * c)
+        coeff = 1.e9 * beam.ring.radius / (beam.ring.beta_i(beam) * c)
     elif xunit == 'm':
         coeff = - beam.ring.radius
     ycoeff = beam.ring.beta_i(beam)**2 * beam.ring.energy_i(beam)
@@ -144,11 +144,11 @@ def plot_bunch_length_evol(bunch, h5file, nturns, unit=None):
     # Get bunch length data in metres or nanoseconds
     t = range(1, nturns + 1) 
     storeddata = h5py.File(h5file + '.h5', 'r')
-    bl = np.array(storeddata["/Bunch/sigma_dz"], dtype=np.double)
+    bl = np.array(storeddata["/Bunch/sigma_z"], dtype = np.double)
     if unit == None or unit == 'm':
         bl *= 4. # 4-sigma bunch length
     elif unit == 'ns':
-        bl *= 4.e9/c/bunch.beta # 4-sigma bunch length
+        bl *= 4.e9/c/bunch.ring.beta_i(bunch) # 4-sigma bunch length
 
     # Plot
     plt.figure(1, figsize=(8,6))
@@ -172,13 +172,13 @@ def plot_bunch_length_evol_gaussian(bunch, h5file, nturns, unit=None):
     # Get bunch length data in metres or nanoseconds
     t = range(1, nturns + 1) 
     storeddata = h5py.File(h5file + '.h5', 'r')
-    bl = np.array(storeddata["/Bunch/bl_gauss"], dtype=np.double)
+    bl = np.array(storeddata["/Bunch/bunch_length_gauss_theta"], dtype=np.double)
     if unit == 'ns':
-        bl *= 1.e9/c/bunch.beta # 4-sigma bunch length
+        bl *= 1.e9/c/bunch.ring.beta_i(bunch) * bunch.ring.radius # 4-sigma bunch length
 
     # Plot
     plt.figure(1, figsize=(8,6))
-    ax = plt.axes([0.12, 0.1, 0.82, 0.8])
+    ax = plt.axes([0.0, 0.1, 0.82, 0.8])
     ax.plot(t, bl[0:nturns], '.')
     ax.set_xlabel(r"No. turns [T$_0$]")
     if unit == None or unit == 'm':
