@@ -8,6 +8,8 @@ from __future__ import division
 import numpy as np
 from warnings import filterwarnings
 from scipy.constants import c, e
+
+# from input_parameters.simulation_parameters.Global_parameters import eta, _eta0, _eta1, _eta2
         
 
 class Ring_and_RFstation(object):
@@ -29,64 +31,55 @@ class Ring_and_RFstation(object):
     station is not necessary. 
     '''
     
-    def __init__(self, Global_parameters, length=None, 
-                 harmonic_list=None, voltage_list=None, phi_offset_list=None):
+    def __init__(self, Global_parameters, momentum_program, length, 
+                 harmonic_list, voltage_list, phi_offset_list = 0):
                     
-        alpha_array = Global_parameters.momentum_compaction_array
-        circumference = Global_parameters.ring_circumference
+                    
+        self.length = length #: arc length in [m] for the drift 
+        self.ring_circumference = Global_parameters.ring_circumference #: Total ring circumference in [m]
+        self.momentum_program = momentum_program #: Momentum program for this Ring_and_RFstation in [eV/c]        
+        self.harmonic = harmonic_list #: harmonic number list for the RF station
+        self.voltage = voltage_list #: RF voltage programs in [V] for the RF station
+        self.phi_offset = phi_offset_list #: phase offset for the RF voltage in [rad] for the RF station
+        self.alpha_array = Global_parameters.alpha_array #: Momentum compaction array
+        self.n_turns = Global_parameters.n_turns #: Momentum compaction array
         
-        if alpha_array != None and len(alpha_array) > 3:
+        # Tests and warnings
+        if self.alpha_array.size > 3:
             print "WARNING: Slippage factor implemented only till second order. Higher orders in alpha ignored. "
-        self.counter = 0 # To step in the momentum program  
                       
-        # Optional parameters
-        if length != None and circumference != length:
+        if self.ring_circumference != self.length:
             print "ATTENTION: The total length of RF stations should sum up to the circumference."
-        self.length = length # in m              
-        self.harmonic = harmonic_list
-        self.voltage = voltage_list # in V
-        self.phi_offset = phi_offset_list # in rad
 
-    # Derived energy-related properties 
-    # Energy and momentum in units of eV   
-    '''The relativistic beta, gamma, and energy of the synchronous particle are
-    derived from the synchronous momentum provided by the user.
-    Energy and momentum are in units of eV, while all other quantities are SI.'''
-    def p0_i(self):
-        return self.momentum_program[self.counter]
-    
-    def p0_f(self):
-        return self.momentum_program[self.counter + 1]
-
-    def p0(self):
-        return (self.p0_i() + self.p0_f()) / 2   
+        # Derived energy-related properties 
+        # Energy and momentum in units of eV   
+        '''The relativistic beta, gamma, and energy of the synchronous particle are
+        derived from the synchronous momentum provided by the user.
+        Energy and momentum are in units of eV, while all other quantities are SI.'''
+            
+        if type(momentum_program) is float:
+            self.momentum_program = momentum_program * np.ones(self.n_turns + 1) #: Momentum program in [eV/c], if length is 1 : constant value
+        else:
+            assert len(momentum_program) == self.n_turns + 1
+            
+        self.beta_rel_program = np.sqrt( 1 / (1 + (Global_parameters.mass * c**2)**2 / (self.momentum_program * e)**2) ) #: Relativistic beta program
         
-    def beta_i(self, beam):
-        return np.sqrt( 1 / (1 + (beam.mass * c**2)**2 / (self.p0_i() * e)**2) )
+        self.gamma_rel_program = np.sqrt( 1 + (self.momentum_program * e)**2 / (Global_parameters.mass * c**2)**2 ) #: Relativistic gamma program
         
-    def beta_f(self, beam):
-        return np.sqrt( 1 / (1 + (beam.mass * c**2)**2 / (self.p0_f() * e)**2) )
- 
-    def beta(self, beam):
-        return (self.beta_i(beam) + self.beta_f(beam)) / 2
+        self.energy_program = np.sqrt( self.momentum_program**2 + (Global_parameters.mass * c**2 / e)**2 ) #: Energy program in [eV]
         
-    def gamma_i(self, beam):
-        return np.sqrt( 1 + (self.p0_i() * e)**2 / (beam.mass * c**2)**2 )
-    
-    def gamma_f(self, beam):
-        return np.sqrt( 1 + (self.p0_f() * e)**2 / (beam.mass * c**2)**2 )
-    
-    def gamma(self, beam):
-        return (self.gamma_i(beam) + self.gamma_f(beam)) / 2
-    
-    def energy_i(self, beam):
-        return np.sqrt( self.p0_i()**2 + (beam.mass * c**2 / e)**2 )
-    
-    def energy_f(self, beam):
-        return np.sqrt( self.p0_f()**2 + (beam.mass * c**2 / e)**2 )
-
-    def energy(self, beam):
-        return (self.energy_i(beam) + self.energy_f(beam)) / 2    
+#         self.eta0 = self.alpha_array[0] - self.gamma_rel_program**-2 #: Slippage factor (order 0)
+#         
+#         if len(self.alpha_array) == 2:
+#             #: Slippage factor (order 1)
+#             self.eta1 = 3 * self.beta_rel_program**2 / (2 * self.gamma_rel_program**2) + self.alpha_array[1] - self.alpha_array[0] * (self.alpha_array[0] - self.gamma_rel_program**-2)
+#             
+#             if len(self.alpha_array) == 3:
+#                 #: Slippage factor (order 2)
+#                 self.eta2 = - self.beta_rel_program**2 * (5 * self.beta_rel_program**2 - 1) / (2 * self.gamma_rel_program**2) \
+#                     + self.alpha_array[2] - 2 * self.alpha_array[0] * self.alpha_array[1] + self.alpha_array[1] \
+#                     / self.gamma_rel_program**2 + self.alpha_array[0]**2 * (self.alpha_array[0] - self.gamma_rel_program**-2) \
+#                     - 3 * self.beta_rel_program**2 * self.alpha_array[0] / (2 * self.gamma_rel_program**2)
  
     
 #    def potential(self, z, beam):
@@ -169,28 +162,32 @@ class Ring_and_RFstation(object):
         at that time step, and the corresponding relativistic beta and gamma.
         For eta coefficients, see Lee: Accelerator Physics (Wiley)."""
         eta = 0
-        for i in xrange( len(self.alpha_array) ):   # order = len - 1
-            eta_i = getattr(self, '_eta' + str(i))(beam, self.alpha_array)
+        for i in xrange( self.alpha_array.size ):   # order = len - 1
+            eta_i = getattr(self, '_eta' + str(i))()
             eta  += eta_i * (delta**i)
         return eta
 
     
-    def _eta0(self, beam, alpha_array):
+    def _eta0(self):
         
-        return alpha_array[0] - self.gamma_i(beam)**-2
+        if self.alpha_array.size == 1:
+            return self.alpha_array - self.gamma_rel_program**-2 #: Slippage factor (order 0)
+        else:
+            return self.alpha_array[0] - self.gamma_rel_program**-2 #: Slippage factor (order 0)
    
     
-    def _eta1(self, beam, alpha_array):
+    def _eta1(self):
         
-        return 3 * self.beta_i(beam)**2 / (2 * self.gamma_i(beam)**2) + alpha_array[1] \
-            - alpha_array[0] * (alpha_array[0] - self.gamma_i(beam)**-2)
+        return 3 * self.beta_rel_program**2 / (2 * self.gamma_rel_program**2)  \
+                + self.alpha_array[1] - self.alpha_array[0] * (self.alpha_array[0] - self.gamma_rel_program**-2)
     
     
-    def _eta2(self, beam, alpha_array):
+    def _eta2(self):
         
-        return - self.beta_i(beam)**2 * (5 * self.beta_i(beam)**2 - 1) / (2 * self.gamma_i(beam)**2) \
-            + alpha_array[2] - 2 * alpha_array[0] * alpha_array[1] + alpha_array[1] \
-            / self.gamma_i(beam)**2 + alpha_array[0]**2 * (alpha_array[0] - self.gamma_i(beam)**-2) \
-            - 3 * self.beta_i(beam)**2 * alpha_array[0] / (2 * self.gamma_i(beam)**2)
+        return - self.beta_rel_program**2 * (5 * self.beta_rel_program**2 - 1) / (2 * self.gamma_rel_program**2) \
+                    + self.alpha_array[2] - 2 * self.alpha_array[0] * self.alpha_array[1] + self.alpha_array[1] \
+                    / self.gamma_rel_program**2 + self.alpha_array[0]**2 * (self.alpha_array[0] - self.gamma_rel_program**-2) \
+                    - 3 * self.beta_rel_program**2 * self.alpha_array[0] / (2 * self.gamma_rel_program**2)
+
     
     
