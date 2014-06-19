@@ -27,6 +27,7 @@ class Global_parameters(object):
         self.n_turns = n_turns #: Number of turns of the simulation
         
         self.ring_circumference = ring_circumference #: Ring circumference in [m]
+        self.ring_radius = self.ring_circumference / (2*np.pi) #: Ring circumference in [m]
         
         self.momentum_compaction_array = momentum_compaction_array #: Momentum compation (up to 2nd order)
         
