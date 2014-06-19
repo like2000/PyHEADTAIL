@@ -90,7 +90,7 @@ class Global_parameters(object):
             self.eta0 = self.alpha_array - self.gamma_rel_program**-2 #: Slippage factor (order 0)
             return self.eta0
         else:
-            self.eta0 = self.alpha_array - self.gamma_rel_program**-2 #: Slippage factor (order 0)
+            self.eta0 = self.alpha_array[0] - self.gamma_rel_program**-2 #: Slippage factor (order 0)
             return self.eta0
    
     
