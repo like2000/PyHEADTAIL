@@ -1,7 +1,7 @@
 '''
 Created on 19 juin 2014
 
-Module gathering all the global parameters to be called and used for the simulation
+Module gathering all the global input parameters to be called and used in other modules for the simulation
 
 @author: Alexandre Lasheen
 '''
@@ -16,7 +16,8 @@ class Global_parameters(object):
 
     def __init__(self, particle_type, n_turns, ring_circumference, momentum_compaction_array, momentum_program):
         
-        if particle_type is 'proton':
+        self.particle_type = particle_type #: Defining particle type (mass in [kg] and charge in [C])
+        if self.particle_type is 'proton':
             self.mass = m_p
             self.charge = e
         else:
@@ -39,8 +40,7 @@ class Global_parameters(object):
         self.gamma_rel_program = np.sqrt( 1 + (self.momentum_program * e)**2 / (self.mass * c**2)**2 ) #: Relativistic gamma program
         
         self.energy_program = np.sqrt( self.momentum_program**2 + (self.mass * c**2 / e)**2 ) #: Energy program in [eV]
-            
-            
-            
-            
-            
+        
+        self.eta0 = self.momentum_compaction_array[0] - self.gamma_rel_program**-2 #: Slippage factor (order 0)
+        
+        
