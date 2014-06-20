@@ -4,92 +4,50 @@ Test main file
 
 from __future__ import division
 import numpy as np
-import time
-from scipy.constants import m_p, e
 
-from trackers.ring_and_RFstation import Ring_and_RFstation
-from beams.beams import Beam
+from input_parameters.simulation_parameters import General_parameters
+from input_parameters.rf_parameters import RF_section_parameters, sum_RF_section_parameters
+from trackers.ring_and_RFstation import Full_Ring_and_RF
 from trackers.longitudinal_tracker import Longitudinal_tracker
-from beams.longitudinal_distributions import longitudinal_gaussian_matched
-from longitudinal_plots.longitudinal_plots import plot_long_phase_space
+
+from os import chdir
+chdir('C:/work/git/PyHEADTAIL/ALEX_input&main_files')
 
 
 # Simulation parameters --------------------------------------------------------
-# Tracking details
-n_turns = 2000      # Number of turns to track
-plot_step = 10      # Time steps between plots
-output_step = 100     # Time steps between outputs
+# Simulation parameters
+n_turns = 1000000                                    # Number of turns to track
 
-# Bunch parameters
-intensity = 1.e10           # Intensity
-n_macroparticles = 100001    # Macro-particles
-tau_0 = 2.                  # Initial bunch length, 4 sigma [ns]
-
-# Machine and RF parameters
-harmonic_number_array = np.array([4620])    # Harmonic number
-voltage_program = np.array([0.9e6])         # RF voltage [V]
-gamma_transition = 1/np.sqrt(0.00192)       # Transition gamma
-circumference = 6911.56                     # Machine circumference [m]
-sync_momentum = 25.92e9                     # Synchronous momentum [eV]
-
-# Derived parameters
-momentum_program = sync_momentum * np.ones(n_turns+1)
-momentum_compaction = np.array([1./gamma_transition**2])
-
-
-# Simulation setup -------------------------------------------------------------
-print "Setting up the simulation..."
-print ""
-
-# Define Ring and RF Station
-SPS_ring = Ring_and_RFstation(circumference, momentum_program, momentum_compaction, circumference, harmonic_number_array, np.array([0.4e6]))
-print "Ring and RF are set..."
-print ""
-
-# Define Beam
-SPS_bunch = Beam(SPS_ring, m_p, n_macroparticles, e, intensity)
-longitudinal_gaussian_matched(SPS_bunch, tau_0, unit='ns')
-print "Beam is set..."
-print ""
+# Global parameters
+particle_type = 'proton'
+circumference = 6911.56                         # Machine circumference [m]
+gamma_transition = 1/np.sqrt(0.00192)           # Transition gamma
+momentum_compaction = 1./gamma_transition**2    # Momentum compaction array
  
-SPS_ring.voltage =  np.array([0.9e6])
-# SPS_bunch.ring = SPS_ring
- 
-print SPS_bunch.ring.voltage
- 
-# Define RF
-SPS_long_tracker = Longitudinal_tracker(SPS_ring)
-print "Longitudinal tracker is set..."
-print ""
-   
-# Accelerator map
-map_ = [SPS_long_tracker]
-print "Map is set..."
-print ""
-   
-  
-# Tracking ---------------------------------------------------------------------
-for i in range(n_turns):
-    t0 = time.clock()
-       
-    # Track
-    for m in map_:
-        m.track(SPS_bunch)
-         
-    t1 = time.clock()
-     
-    # Output
-    if (i % output_step) == 0:
-        print t1-t0
-         
-    # Plot
-    if (i % plot_step) == 0:
-        plot_long_phase_space(SPS_bunch, i, 0, 5, -75, 75, xunit = 'ns')
 
+# RF parameters
+n_rf_systems_1 = 2                                      # Number of rf systems first section
+harmonic_numbers_1_1 = np.array([4620])           # Harmonic number first section, first RF system
+harmonic_numbers_1_2 = np.array([4620*4])           # Harmonic number first section, second RF system
+harmonic_numbers_1_list = [harmonic_numbers_1_1, harmonic_numbers_1_2]
+voltage_program_1_1 = 0.9e6 * np.ones([n_turns])        # RF voltage [V] first section, first RF system
+voltage_program_1_2 = np.array([0.e6])                  # RF voltage [V] first section, second RF system
+voltage_program_1_list = [voltage_program_1_1, voltage_program_1_2]
+phi_offset_1_1 = 0 * np.ones([n_turns])                 # Phase offset first section, first RF system
+phi_offset_1_2 = 0 * np.ones([n_turns])                 # Phase offset first section, second RF system
+phi_offset_1_list = [phi_offset_1_1, phi_offset_1_2]
+sync_momentum_1 = 25.92e9                               # Synchronous momentum [eV/c] first section
+section_1_params = RF_section_parameters(n_turns, n_rf_systems_1, circumference/2, harmonic_numbers_1_list, voltage_program_1_list, phi_offset_1_list, sync_momentum_1)
+    
+n_rf_systems_2 = 1                                      # Number of rf systems second section
+harmonic_numbers_2 = 4620                               # Harmonic number second section
+voltage_program_2 = 0.9e6                               # RF voltage [V] second section
+sync_momentum_2 = 25.92e9 * np.ones(n_turns+1)          # Synchronous momentum program [eV/c] second section
+phi_offset_2 = 0
+section_2_params = RF_section_parameters(n_turns, n_rf_systems_2, circumference/2, harmonic_numbers_2, voltage_program_2, phi_offset_2, sync_momentum_2)
 
-
-
-
+rf_params = sum_RF_section_parameters([section_1_params, section_2_params])
+global_params = General_parameters(particle_type, n_turns, circumference, momentum_compaction, rf_params.momentum_program_matrix)
 
 
 

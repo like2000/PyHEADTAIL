@@ -7,8 +7,6 @@ Module gathering and processing all the RF parameters to be given to the other m
 '''
 
 import numpy as np
-import copy
-
 
 def input_check(input_value, expected_length):
     '''
@@ -26,7 +24,24 @@ def input_check(input_value, expected_length):
     elif len(input_value) == expected_length:
         return input_value
     else:
-        raise RuntimeError(str(input_value) + ' does not match ' + str(expected_length))   
+        raise RuntimeError(str(input_value) + ' does not match ' + str(expected_length))
+    
+    
+class sum_RF_section_parameters(object):
+    '''
+    Method to add sections together
+    '''
+    
+    def __init__(self, RF_section_parameters_list):
+        
+        self.RF_section_parameters_list = RF_section_parameters_list
+        self.section_length_sum = 0
+        self.total_n_sections = len(RF_section_parameters_list)
+        self.momentum_program_matrix = np.zeros((self.total_n_sections, RF_section_parameters_list[0].n_turns + 1))
+
+        for i in range(len(RF_section_parameters_list)):
+            self.section_length_sum += RF_section_parameters_list[i].section_length
+            self.momentum_program_matrix[i,:] = RF_section_parameters_list[i].momentum_program
 
 
 class RF_section_parameters(object):
@@ -38,7 +53,7 @@ class RF_section_parameters(object):
     
     def __init__(self, n_turns, n_rf_systems, section_length, harmonic_numbers_list, voltage_program_list, phi_offset_list, momentum_program):
         
-        self.n_sections = 1 #: 1 section at initialisation
+        self.n_sections = 1
         self.n_turns = n_turns
         self.section_length = section_length #: Length of the section in [m]
         self.n_rf_systems = n_rf_systems #: Number of RF systems in the section
@@ -62,50 +77,5 @@ class RF_section_parameters(object):
             self.voltage_program_list[i] = input_check(self.voltage_program_list[i], n_turns)
             self.phi_offset_list[i] = input_check(self.phi_offset_list[i], n_turns)
             
-    def __add__(self, Added_RF_section_parameters):
-        '''
-        Method to add one section to another
-        '''
-        
-        new_RF_section_parameters = copy.deepcopy(self)
-        
-        assert new_RF_section_parameters.n_turns == Added_RF_section_parameters.n_turns
-        
-        new_RF_section_parameters.section_length += Added_RF_section_parameters.section_length
-
-        new_number_of_sections = new_RF_section_parameters.n_sections +  Added_RF_section_parameters.n_sections
-        
-        temp_momentum = np.zeros((new_number_of_sections, new_RF_section_parameters.n_turns + 1))
-        temp_momentum[range(new_RF_section_parameters.n_sections),:] = new_RF_section_parameters.momentum_program
-        temp_momentum[range(new_number_of_sections-Added_RF_section_parameters.n_sections, new_number_of_sections),:] = Added_RF_section_parameters.momentum_program
-
-        new_RF_section_parameters.n_sections = new_number_of_sections
-        new_RF_section_parameters.momentum_program = temp_momentum
-        
-        temp_n_rf_systems = []
-        temp_n_rf_systems.append(new_RF_section_parameters.n_rf_systems)
-        temp_n_rf_systems.append(Added_RF_section_parameters.n_rf_systems)
-        
-        new_RF_section_parameters.n_rf_systems = temp_n_rf_systems
-
-        temp_harmonic_numbers_list = []
-        temp_harmonic_numbers_list.append(new_RF_section_parameters.harmonic_numbers_list)
-        temp_harmonic_numbers_list.append(Added_RF_section_parameters.harmonic_numbers_list)
-        new_RF_section_parameters.harmonic_numbers_list = temp_harmonic_numbers_list
-        
-        temp_voltage_program_list = []
-        temp_voltage_program_list.append(new_RF_section_parameters.voltage_program_list)
-        temp_voltage_program_list.append(Added_RF_section_parameters.voltage_program_list)
-        new_RF_section_parameters.voltage_program_list = temp_voltage_program_list
-
-        
-        temp_phi_offset_list = []
-        temp_phi_offset_list.append(new_RF_section_parameters.phi_offset_list)
-        temp_phi_offset_list.append(Added_RF_section_parameters.phi_offset_list)
-        new_RF_section_parameters.phi_offset_list = temp_phi_offset_list
-         
-        return new_RF_section_parameters
             
-
-
-  
+    

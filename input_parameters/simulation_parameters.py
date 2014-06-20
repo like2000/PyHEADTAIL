@@ -10,7 +10,7 @@ from scipy.constants import m_p, e, c
 import numpy as np
 
 
-class Global_parameters(object):
+class General_parameters(object):
     '''
     Object containing all the global parameters
     '''
@@ -85,7 +85,7 @@ class Global_parameters(object):
         """
         eta = 0
         for i in xrange( self.alpha_array.size ):   # order = len - 1
-            eta_i = getattr(self, 'eta' + str(i))[Global_parameters.counter]
+            eta_i = getattr(self, 'eta' + str(i))[self.counter]
             eta  += eta_i * (delta**i)
         return eta
 
