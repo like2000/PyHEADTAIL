@@ -6,6 +6,7 @@ Module gathering and processing all the RF parameters to be given to the other m
 @author: Alexandre Lasheen
 '''
 
+from __future__ import division
 import numpy as np
 
 def input_check(input_value, expected_length):

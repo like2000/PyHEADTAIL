@@ -6,6 +6,7 @@ Module gathering all the global input parameters to be called and used in other 
 @author: Alexandre Lasheen
 '''
 
+from __future__ import division
 from scipy.constants import m_p, e, c
 import numpy as np
 
