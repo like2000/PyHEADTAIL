@@ -30,6 +30,8 @@ class Global_parameters(object):
         self.ring_circumference = ring_circumference #: Ring circumference in [m]
         self.ring_radius = self.ring_circumference / (2*np.pi) #: Ring circumference in [m]
         
+        self.momentum_program = momentum_program #: Momentum program in [eV/c]
+        
         self.alpha_array = np.array(alpha_array) #: Momentum compation (up to 2nd order)
         
         '''
@@ -38,10 +40,14 @@ class Global_parameters(object):
         For several RF sections, this program has to be redefined for each ones and only the initial
         momentum is needed here
         '''
-        if type(momentum_program) is float:
-            self.momentum_program = momentum_program * np.ones(self.n_turns + 1) #: Momentum program in [eV/c], if length is 1 : constant value
-        else:
-            assert len(momentum_program) == self.n_turns + 1
+        if type(self.momentum_program) is float:
+            self.momentum_program = self.momentum_program * np.ones(self.n_turns + 1) #: Momentum program in [eV/c], if length is 1 : constant value
+        elif type(self.momentum_program) is np.ndarray:
+            try:
+                assert self.momentum_program.shape[1] == self.n_turns + 1
+            except IndexError:
+                assert self.momentum_program.shape[0] == self.n_turns + 1
+            
             
         self.beta_rel_program = np.sqrt( 1 / (1 + (self.mass * c**2)**2 / (self.momentum_program * e)**2) ) #: Relativistic beta program
         
