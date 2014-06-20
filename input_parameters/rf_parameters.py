@@ -28,7 +28,7 @@ def input_check(input_value, expected_length):
         raise RuntimeError(str(input_value) + ' does not match ' + str(expected_length))
     
     
-class sum_RF_section_parameters(object):
+class Sum_RF_section_parameters(object):
     '''
     Method to add sections together
     '''

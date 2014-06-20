@@ -9,10 +9,7 @@ from __future__ import division
 import numpy as np
 import math
 import sys
-from abc import ABCMeta, abstractmethod 
-from scipy.constants import c, e
-from trackers.ring_and_RFstation import *
-
+from scipy.constants import c
 
 class Kick(object):
     
@@ -22,20 +19,17 @@ class Kick(object):
 
     The cavity phase can be shifted by the user via phi_offset."""
 
-    def __init__(self, ring, i):
+    def __init__(self, n_rf_systems, harmonic_numbers_list, voltage_program_list, phi_offset_list):
         
-        self.harmonic = ring.harmonic[i]
-        self.voltage = ring.voltage[i]
-        
-        if ring.phi_offset is not None:
-            self.phi_offset = ring.phi_offset[i]
-        else:
-            self.phi_offset = 0
+        self.n_rf_systems = n_rf_systems
+        self.harmonic = harmonic_numbers_list
+        self.voltage = voltage_program_list
+        self.phi_offset = phi_offset_list
         
     def track(self, beam):
-       
-        beam.dE += self.voltage * np.sin(self.harmonic * beam.theta + 
-                                         self.phi_offset) # in eV
+        for i in range(self.n_rf_systems):
+            beam.dE += self.voltage[i] * np.sin(self.harmonic[i] * beam.theta + 
+                                             self.phi_offset[i]) # in eV
     
     
 class Kick_acceleration(object):
@@ -89,58 +83,116 @@ class Drift(object):
             sys.exit()
         
         self.ring.counter += 1
+
+
+class Ring_and_RFstation(object):
+    '''
+    Definition of an RF station and part of the ring until the next station, see figure.
     
+    .. image:: https://raw.githubusercontent.com/like2000/PyHEADTAIL/PYlongitudinal/doc/source/ring_and_RFstation.png
+        :align: center
+        :width: 600
+        :height: 600
         
-class Longitudinal_tracker(object):
+    The time step is fixed to be one turn, but the tracking can consist of multiple
+    ring_and_RFstation objects. In this case, the user should make sure that the lengths
+    of the stations sum up exactly to the circumference.
+    Each RF station may contain several RF harmonic systems which are considered to be
+    in the same location. First, a kick from the cavity voltage(s) is applied, then a
+    kick from the accelerating magnets, and finally a drift. 
+    If one wants to do minimal longitudinal tracking, defining the RF systems in the 
+    station is not necessary. 
+    '''
     
-    """
-        The Longitudinal_tracker tracks the bunch through a given RF station
-        and takes care that kicks and the drift are done in correct order.
+    def __init__(self, Global_parameters, RF_parameters_section):
         
-        Different solvers can be used:
+#         self.n_rf_systems = RF_parameters_section.n_rf_systems      
+#         self.Global_parameters = Global_parameters
+#         self.RF_parameters_section = RF_parameters_section 
+                
+        self.kicks = Kick(RF_parameters_section.n_rf_systems, RF_parameters_section.harmonic_numbers_list, RF_parameters_section.voltage_program_list, RF_parameters_section.phi_offset_list)            
+        self.kick_acceleration = Kick_acceleration()
+        self.drift = Drift()
         
-        'full' -- accurate solution of the drift
-        
-        'simple' -- drift with no correction for low energy/large energy range and zeroth order in the slippage factor
-        
-        For de-bunching, simply pass zero voltage.
-        For synchrotron radiation, energy loss term yet to be implemented.
-    """
-
-    def __init__(self, ring, solver='full'): 
-        
-        """self.p_increment is the momentum step per turn of the synchronous 
-        particle (defined via user input, see ring_and_RFstation).
-        See the Kick_acceleration class for further details."""
-        
-        self.solver = solver
-        self.ring = ring
-        self.harmonic_list = ring.harmonic
-        self.voltage_list = ring.voltage
-        self.circumference = ring.circumference
-        
-        if ring.phi_offset is not None:
-            if not len(ring.harmonic) == len(ring.voltage) == len(ring.phi_offset):
-                print ("Warning: parameter lists for RFSystems do not have the same length!")
-
-
-        """Separating the kicks from the RF and the magnets.
-        kick can contain multiple contributions:
-        self.kicks -- kick due to RF station passage
-        self.kick_acceleration -- kick due to acceleration
-        self.elements contains the full map of kicks and drift in the RF station."""
-        self.kicks = []
-        for i in xrange(len(ring.harmonic)):
-            kick = Kick(ring, i)
-            self.kicks.append(kick)
-        self.kick_acceleration = Kick_acceleration(ring, 0)
-        self.elements = self.kicks + [self.kick_acceleration] + [Drift(ring, solver)]
+        self.elements = self.kicks + [self.kick_acceleration] + [self.drift]
         
     def track(self, beam):
-        
-        self.kick_acceleration.p_increment = self.ring.p0_f() - self.ring.p0_i()
         for longMap in self.elements:
             longMap.track(beam)
+    
+    
+class Full_Ring_and_RF(object):
+    '''
+    Full ring object, containing the total map of Ring_and_RFstation
+    '''
+    
+    def __init__(self, Global_parameters, sum_RF_section_parameters):
+        
+        assert Global_parameters.ring_circumference == sum_RF_section_parameters.section_length_sum
+        
+        self.n_sections = sum_RF_section_parameters.total_n_sections #: Passing the number of sections
+        
+        self.Ring_and_RFstation_list = [] #: List of ring and RF stations
+         
+        for i in range(self.n_sections):
+            self.Ring_and_RFstation_list.append(Ring_and_RFstation(Global_parameters, sum_RF_section_parameters.RF_section_parameters_list[i]))
+            
+    def track(self, beam):
+        
+        for i in range(self.n_sections):
+            self.Ring_and_RFstation_list[i].track(beam)
+    
+        
+# class Longitudinal_tracker(object):
+#     
+#     """
+#         The Longitudinal_tracker tracks the bunch through a given RF station
+#         and takes care that kicks and the drift are done in correct order.
+#         
+#         Different solvers can be used:
+#         
+#         'full' -- accurate solution of the drift
+#         
+#         'simple' -- drift with no correction for low energy/large energy range and zeroth order in the slippage factor
+#         
+#         For de-bunching, simply pass zero voltage.
+#         For synchrotron radiation, energy loss term yet to be implemented.
+#     """
+# 
+#     def __init__(self, ring, solver='full'): 
+#         
+#         """self.p_increment is the momentum step per turn of the synchronous 
+#         particle (defined via user input, see ring_and_RFstation).
+#         See the Kick_acceleration class for further details."""
+#         
+#         self.solver = solver
+#         self.ring = ring
+#         self.harmonic_list = ring.harmonic
+#         self.voltage_list = ring.voltage
+#         self.circumference = ring.circumference
+#         
+#         if ring.phi_offset is not None:
+#             if not len(ring.harmonic) == len(ring.voltage) == len(ring.phi_offset):
+#                 print ("Warning: parameter lists for RFSystems do not have the same length!")
+# 
+# 
+#         """Separating the kicks from the RF and the magnets.
+#         kick can contain multiple contributions:
+#         self.kicks -- kick due to RF station passage
+#         self.kick_acceleration -- kick due to acceleration
+#         self.elements contains the full map of kicks and drift in the RF station."""
+#         self.kicks = []
+#         for i in xrange(len(ring.harmonic)):
+#             kick = Kick(ring, i)
+#             self.kicks.append(kick)
+#         self.kick_acceleration = Kick_acceleration(ring, 0)
+#         self.elements = self.kicks + [self.kick_acceleration] + [Drift(ring, solver)]
+#         
+#     def track(self, beam):
+#         
+#         self.kick_acceleration.p_increment = self.ring.p0_f() - self.ring.p0_i()
+#         for longMap in self.elements:
+#             longMap.track(beam)
         
     
 class LinearMap(object):
