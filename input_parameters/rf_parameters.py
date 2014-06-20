@@ -63,6 +63,7 @@ class RF_parameters(object):
     def __init__(self, n_turns, n_sections, RF_section_parameters_list):
 
         self.n_sections = n_sections #: Number of sections of the ring
+        self.n_turns = n_turns #: Number of turns for the simulation
         
         # Checking the validity of the input and warning
         if len(RF_section_parameters_list) != n_sections:
