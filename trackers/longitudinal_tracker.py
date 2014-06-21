@@ -1,7 +1,7 @@
 '''
 Created on 12.06.2014
 
-@author: Danilo Quartullo, Helga Timko
+@author: Danilo Quartullo, Helga Timko, Adrian Oeftiger, Alexandre Lasheen
 '''
 
 
@@ -11,6 +11,23 @@ import math
 import sys
 from scipy.constants import c
 
+
+def eta_tracking(self, General_parameters, delta, counter):
+    
+    """
+    Depending on the number of entries in self.alpha_array, the slippage factor
+    \eta = \sum_i \eta_i * \delta^i is calculated to the corresponding order.
+
+    As eta is used in the tracker, it is calculated with the initial momentum
+    at that time step, and the corresponding relativistic beta and gamma.
+    """
+    eta = 0
+    for i in xrange( General_parameters.alpha_array.size ):   # order = len - 1
+        eta_i = getattr(General_parameters, 'eta' + str(i))[counter[0]]
+        eta  += eta_i * (delta**i)
+    return eta
+
+
 class Kick(object):
     
     """The Kick represents the kick(s) by an RF station at a certain position 
@@ -19,8 +36,9 @@ class Kick(object):
 
     The cavity phase can be shifted by the user via phi_offset."""
 
-    def __init__(self, n_rf_systems, harmonic_numbers_list, voltage_program_list, phi_offset_list):
+    def __init__(self, n_rf_systems, harmonic_numbers_list, voltage_program_list, phi_offset_list, counter):
         
+        self.counter = counter
         self.n_rf_systems = n_rf_systems
         self.harmonic = harmonic_numbers_list
         self.voltage = voltage_program_list
@@ -28,8 +46,8 @@ class Kick(object):
         
     def track(self, beam):
         for i in range(self.n_rf_systems):
-            beam.dE += self.voltage[i] * np.sin(self.harmonic[i] * beam.theta + 
-                                             self.phi_offset[i]) # in eV
+            beam.dE += self.voltage[i][self.counter[0]] * np.sin(self.harmonic[i][self.counter[0]] * beam.theta + 
+                                             self.phi_offset[i][self.counter[0]]) # in eV
     
     
 class Kick_acceleration(object):
@@ -41,16 +59,18 @@ class Kick_acceleration(object):
     The acceleration is assumed to be distributed over the length of the 
     RF station, so the average beta is used in the calculation of the kick."""
     
-    def __init__(self, ring, p_increment):
+    def __init__(self, beta_rel_program, p_increment, counter):
         
-        self.ring = ring
+        self.counter = counter
+        self.beta = beta_rel_program
         self.p_increment = p_increment
         
     def track(self, beam):
         
-        beam.dE += - self.ring.beta(beam) * self.p_increment # in eV
-        # Update momentum in ring_and_RFstation
-        
+        beam.dE += - self.beta_rel_program[self.counter[0]] * self.p_increment[self.counter[0]] # in eV
+#         beam.beta_rel
+#         beam.gamma_rel
+#         beam.energy
         
 
 class Drift(object):
@@ -62,28 +82,28 @@ class Drift(object):
     synchronous energy is low and the range is synchronous energy is large,
     to avoid a shrinking phase space."""
 
-    def __init__(self, ring, solver):
+    def __init__(self, drift_length, General_parameters, solver):
         
-        self.ring = ring
+        self.drift_length = drift_length
+        self.General_parameters = General_parameters
+        self.ring_circumference = General_parameters.ring_circumference
+        self.counter = General_parameters.counter
+        self.beta_rel_program = General_parameters.beta_rel_program
         self.solver = solver
-            
-        
+                
     def track(self, beam):  
         try: 
             beam.theta = \
-            {'full' : self.ring.beta_f(beam) / self.ring.beta_i(beam) * beam.theta \
-                    + 2 * np.pi * (1 / (1 - self.ring.eta(beam, beam.delta) \
-                    * beam.delta) - 1) * self.ring.length / self.ring.circumference,
-             'simple' : beam.theta + 2 * np.pi * self.ring.
-                    _eta0(beam, self.ring.alpha_array) * beam.delta * \
-                    self.ring.length / self.ring.circumference
+            {'full' : self.beta_rel_program[self.counter[0] + 1] / self.beta_rel_program[self.counter[0]] * beam.theta \
+                    + 2 * np.pi * (1 / (1 - eta_tracking(self.General_parameters, beam.delta, self.counter) \
+                    * beam.delta) - 1) * self.drift_length / self.ring_circumference,
+             'simple' : beam.theta + 2 * np.pi * self.General_parameters.eta0 * beam.delta * \
+                    self.drift_length / self.ring_circumference
             }[self.solver]
         except KeyError:
             print "ERROR: Choice of longitudinal solver not recognized! Aborting..."
             sys.exit()
         
-        self.ring.counter += 1
-
 
 class Ring_and_RFstation(object):
     '''
@@ -104,17 +124,20 @@ class Ring_and_RFstation(object):
     station is not necessary. 
     '''
     
-    def __init__(self, Global_parameters, RF_parameters_section):
+    def __init__(self, General_parameters, RF_parameters_section):
         
-#         self.n_rf_systems = RF_parameters_section.n_rf_systems      
-#         self.Global_parameters = Global_parameters
-#         self.RF_parameters_section = RF_parameters_section 
-                
-        self.kicks = Kick(RF_parameters_section.n_rf_systems, RF_parameters_section.harmonic_numbers_list, RF_parameters_section.voltage_program_list, RF_parameters_section.phi_offset_list)            
-        self.kick_acceleration = Kick_acceleration()
-        self.drift = Drift()
+        self.kick = Kick(RF_parameters_section.n_rf_systems, 
+                          RF_parameters_section.harmonic_numbers_list, RF_parameters_section.voltage_program_list, 
+                          RF_parameters_section.phi_offset_list, General_parameters.counter)
         
-        self.elements = self.kicks + [self.kick_acceleration] + [self.drift]
+        p_increment = RF_parameters_section.momentum_program[1:] - RF_parameters_section.momentum_program[1:]
+                    
+        self.kick_acceleration = Kick_acceleration(General_parameters.beta_rel_program, p_increment, General_parameters.counter)
+        
+        solver = 'full' # TODO : put this as a paramter
+        self.drift = Drift(RF_parameters_section.section_length, General_parameters, solver)
+        
+        self.elements = [self.kick] + [self.kick_acceleration] + [self.drift]
         
     def track(self, beam):
         for longMap in self.elements:
@@ -126,16 +149,16 @@ class Full_Ring_and_RF(object):
     Full ring object, containing the total map of Ring_and_RFstation
     '''
     
-    def __init__(self, Global_parameters, sum_RF_section_parameters):
+    def __init__(self, General_parameters, sum_RF_section_parameters):
         
-        assert Global_parameters.ring_circumference == sum_RF_section_parameters.section_length_sum
+        assert General_parameters.ring_circumference == sum_RF_section_parameters.section_length_sum
         
         self.n_sections = sum_RF_section_parameters.total_n_sections #: Passing the number of sections
         
         self.Ring_and_RFstation_list = [] #: List of ring and RF stations
          
         for i in range(self.n_sections):
-            self.Ring_and_RFstation_list.append(Ring_and_RFstation(Global_parameters, sum_RF_section_parameters.RF_section_parameters_list[i]))
+            self.Ring_and_RFstation_list.append(Ring_and_RFstation(General_parameters, sum_RF_section_parameters.RF_section_parameters_list[i]))
             
     def track(self, beam):
         

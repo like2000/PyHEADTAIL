@@ -3,7 +3,7 @@ Created on 19 juin 2014
 
 Module gathering all the global input parameters to be called and used in other modules for the simulation
 
-@author: Alexandre Lasheen
+@author: Alexandre Lasheen, Danilo Quartullo
 '''
 
 from __future__ import division
@@ -25,7 +25,7 @@ class General_parameters(object):
         else:
             raise RuntimeError('Particle type not recognized')
         
-        self.counter = 0 #: Counter to be incremented every turn
+        self.counter = [0] #: Counter to be incremented every turn (initiated as a list to be called as a pointer)
         self.n_turns = n_turns #: Number of turns of the simulation
         
         self.ring_circumference = ring_circumference #: Ring circumference in [m]
@@ -73,22 +73,6 @@ class General_parameters(object):
 
         for i in xrange( self.alpha_array.size ):   # order = len - 1
             getattr(self, '_eta' + str(i))()
-
-    
-    def eta_tracking(self, delta):
-        
-        """
-        Depending on the number of entries in self.alpha_array, the slippage factor
-        \eta = \sum_i \eta_i * \delta^i is calculated to the corresponding order.
-
-        As eta is used in the tracker, it is calculated with the initial momentum
-        at that time step, and the corresponding relativistic beta and gamma.
-        """
-        eta = 0
-        for i in xrange( self.alpha_array.size ):   # order = len - 1
-            eta_i = getattr(self, 'eta' + str(i))[self.counter]
-            eta  += eta_i * (delta**i)
-        return eta
 
     
     def _eta0(self):
