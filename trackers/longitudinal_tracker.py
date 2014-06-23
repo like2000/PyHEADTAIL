@@ -226,30 +226,30 @@ class LinearMap(object):
     Qs is forced to be constant.
     '''
 
-    def __init__(self, ring, Qs):
+    def __init__(self, General_parameters, Qs):
 
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         
-        self.circumference = ring.circumference
-        self.alpha = ring.alpha_array[0]
+        self.ring_circumference = General_parameters.ring_circumference
+        self.alpha = General_parameters.alpha_array[0]
+        self.eta = General_parameters._eta0
         self.Qs = Qs
+        self.omega_0 = 2 * np.pi * General_parameters.beta_rel_program * c / self.circumference
+        self.omega_s = self.Qs * self.omega_0
+        
+        self.dQs = 2 * np.pi * self.Qs
+        self.cosdQs = np.cos(self.dQs)
+        self.sindQs = np.sin(self.dQs)
+        
+        self.counter = General_parameters.counter
 
     def track(self, beam):
-
-        eta = self.alpha - 1 / beam.ring.gamma_i(beam)**2
-
-        omega_0 = 2 * np.pi * beam.ring.beta_i(beam) * c / self.circumference
-        omega_s = self.Qs * omega_0
-
-        dQs = 2 * np.pi * self.Qs
-        cosdQs = np.cos(dQs)
-        sindQs = np.sin(dQs)
 
         z0 = beam.z
         delta0 = beam.delta
 
-        beam.z = z0 * cosdQs - eta * c / omega_s * delta0 * sindQs
-        beam.delta = delta0 * cosdQs + omega_s / eta / c * z0 * sindQs
+        beam.z = z0 * self.cosdQs - self.eta[self.counter[0]] * c / self.omega_s[self.counter[0]] * delta0 * self.sindQs
+        beam.delta = delta0 * self.cosdQs + self.omega_s[self.counter[0]] / self.eta[self.counter[0]] / c * z0 * self.sindQs
 
 
