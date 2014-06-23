@@ -1,7 +1,7 @@
 '''
 Created on 12.06.2014
 
-@author: Kevin Li, Danilo Quartullo, Helga Timko
+@author: Kevin Li, Danilo Quartullo, Helga Timko, ALexandre Lasheen
 '''
 
 import numpy as np
@@ -22,10 +22,10 @@ class Beam(object):
         self.charge = General_parameters.charge # in C
         self.intensity = intensity # total no of particles
         
-        self.beta_rel = General_parameters.beta_rel_program[0] #: Relativistic beta of the synchronous particle
-        self.gamma_rel = General_parameters.gamma_rel_program[0] #: Relativistic gamma of the synchronous particle
-        self.energy = General_parameters.energy_program[0] #: Energy of the synchronous particle [eV]
-        self.momentum = General_parameters.momentum_program[0] #: Momentum of the synchronous particle [eV/c]
+        self.beta_rel = General_parameters.beta_rel_program[0][0] #: Relativistic beta of the synchronous particle
+        self.gamma_rel = General_parameters.gamma_rel_program[0][0] #: Relativistic gamma of the synchronous particle
+        self.energy = General_parameters.energy_program[0][0] #: Energy of the synchronous particle [eV]
+        self.momentum = General_parameters.momentum_program[0][0] #: Momentum of the synchronous particle [eV/c]
 
         # Beam coordinates
         self.x = np.empty([n_macroparticles])
@@ -74,11 +74,11 @@ class Beam(object):
     
     @property
     def delta(self):
-        return self.dE / (self.beta_rel**2 * self.ring.energy_i(self))
+        return self.dE / (self.beta_rel**2 * self.energy)
 
     @delta.setter
     def delta(self, value):
-        self.dE = value * self.beta_rel**2 * self.ring.energy_i(self)
+        self.dE = value * self.beta_rel**2 * self.energy
 
     @property
     def z0(self):
@@ -89,10 +89,10 @@ class Beam(object):
     
     @property
     def delta0(self):
-        return self.dE0 / (self.beta_rel**2 * self.ring.energy_i(self))
+        return self.dE0 / (self.beta_rel**2 * self.energy)
     @delta0.setter
     def delta0(self, value):
-        self.dE0 = value * self.beta_rel**2 * self.ring.energy_i(self)
+        self.dE0 = value * self.beta_rel**2 * self.energy
 
     def reinit(self):
 
@@ -172,6 +172,10 @@ class Beam(object):
                         * self.beta_rel * 1e6
     
     def losses(self, ring):
+        
+        '''
+        To be corrected with the proper variable names
+        '''
          
         for i in xrange(self.n_macroparticles):
             if not ring.is_in_separatrix(ring, self, self.theta[i], self.dE[i], self.delta[i]):

@@ -13,7 +13,7 @@ from scipy.constants import c
 from warnings import filterwarnings
 
 
-def eta_tracking(self, General_parameters, delta, counter):
+def eta_tracking(General_parameters, delta, counter, index_section = 0):
     
     """
     Depending on the number of entries in self.alpha_array, the slippage factor
@@ -24,7 +24,7 @@ def eta_tracking(self, General_parameters, delta, counter):
     """
     eta = 0
     for i in xrange( General_parameters.alpha_array.size ):   # order = len - 1
-        eta_i = getattr(General_parameters, 'eta' + str(i))[counter[0]]
+        eta_i = getattr(General_parameters, 'eta' + str(i))[index_section][counter[0]]
         eta  += eta_i * (delta**i)
     return eta
 
@@ -104,25 +104,20 @@ class Drift(object):
         self.ring_circumference = General_parameters.ring_circumference
         self.counter = General_parameters.counter
         self.solver = solver
-        
-        if General_parameters.beta_rel_program.size == General_parameters.n_turns + 1:
-            self.beta_rel_program = General_parameters.beta_rel_program
-        else:
-            self.beta_rel_program = General_parameters.beta_rel_program[index_section]
+        self.beta_rel_program = General_parameters.beta_rel_program[index_section]
 
                 
     def track(self, beam):  
-        try: 
-            beam.theta = \
-            {'full' : self.beta_rel_program[self.counter[0] + 1] / self.beta_rel_program[self.counter[0]] * beam.theta \
-                    + 2 * np.pi * (1 / (1 - eta_tracking(self.General_parameters, beam.delta, self.counter) \
-                    * beam.delta) - 1) * self.drift_length / self.ring_circumference,
-             'simple' : beam.theta + 2 * np.pi * self.General_parameters.eta0 * beam.delta * \
+
+        if self.solver == 'full': 
+            beam.theta = self.beta_rel_program[self.counter[0] + 1] / self.beta_rel_program[self.counter[0]] * beam.theta \
+                    + 2 * np.pi * (1 / (1 - eta_tracking(self.General_parameters, beam.delta, self.counter, self.index_section) \
+                    * beam.delta) - 1) * self.drift_length / self.ring_circumference
+        elif self.solver == 'simple':
+            beam.theta = beam.theta + 2 * np.pi * self.General_parameters.eta0[self.index_section][self.counter[0]] * beam.delta * \
                     self.drift_length / self.ring_circumference
-            }[self.solver]
-        except KeyError:
-            print "ERROR: Choice of longitudinal solver not recognized! Aborting..."
-            sys.exit()
+        else:
+            raise RuntimeError("ERROR: Choice of longitudinal solver not recognized! Aborting...")
         
 
 class Ring_and_RFstation(object):
@@ -152,7 +147,7 @@ class Ring_and_RFstation(object):
                           RF_parameters_section.harmonic_numbers_list, RF_parameters_section.voltage_program_list, 
                           RF_parameters_section.phi_offset_list, General_parameters.counter)
         
-        solver = 'full' # TODO : put this as a parameter
+        solver = 'simple' # TODO : put this as a parameter
         self.drift = Drift(RF_parameters_section.section_length, General_parameters, solver, index_section)
         
         if np.sum(RF_parameters_section.p_increment) == 0:
@@ -200,18 +195,18 @@ def calc_phi_s(General_parameters, RF_parameters_section, accelerating_systems =
     The synchronous phase is calculated at a certain moment.
     Uses beta, energy averaged over the turn."""
     
-    if General_parameters.beta_rel_program.size == General_parameters.n_turns + 1:
-        beta_rel_program = General_parameters.beta_rel_program
-        eta0 = General_parameters.eta0
-    else:
-        beta_rel_program = General_parameters.beta_rel_program[index_section]
-        eta0 = General_parameters.eta0[index_section]
+#     if General_parameters.beta_rel_program.size == General_parameters.n_turns + 1:
+#         beta_rel_program = General_parameters.beta_rel_program
+#         eta0 = General_parameters.eta0
+#     else:
+    beta_rel_program = General_parameters.beta_rel_program[index_section]
+    eta0 = General_parameters.eta0[index_section]
         
             
     if RF_parameters_section.n_rf_systems == 1:
         V0 = RF_parameters_section.voltage_program_list[0]
         average_beta = (beta_rel_program[1:] + beta_rel_program[0:-1])/2
-
+        
         phi_s = np.arcsin(average_beta * RF_parameters_section.p_increment / V0 )
         
         phi_s[(eta0[1:] + eta0[0:-1])/2 > 0] = np.pi - phi_s
@@ -244,13 +239,13 @@ def hamiltonian(General_parameters, RF_parameters_section, theta, dE, delta):
     To be generalized."""
     
     if RF_parameters_section.section_length != General_parameters.ring_circumference:
-        print 'WARNING : The hamiltonian is not yet properly computed for several sections !!!'
+        raise RuntimeError('WARNING : The hamiltonian is not yet properly computed for several sections !!!')
     
     
     if RF_parameters_section.n_rf_systems == 1:
         counter = General_parameters.counter[0]
-        h0 = RF_parameters_section.harmonic_numbers_list[counter]
-        V0 = RF_parameters_section.harmonic_numbers_list[counter]
+        h0 = RF_parameters_section.harmonic_numbers_list[0][counter]
+        V0 = RF_parameters_section.voltage_program_list[0][counter]
         
         c1 = eta_tracking(General_parameters, delta, counter) * c * np.pi / (General_parameters.ring_circumference * 
              General_parameters.beta_rel_program[counter] * General_parameters.energy_program[counter] )
@@ -276,8 +271,8 @@ def separatrix(General_parameters, RF_parameters_section, theta):
     
     if RF_parameters_section.n_rf_systems == 1:
         counter = General_parameters.counter[0]
-        h0 = RF_parameters_section.harmonic_numbers_list[counter]
-        V0 = RF_parameters_section.harmonic_numbers_list[counter]
+        h0 = RF_parameters_section.harmonic_numbers_list[0][counter]
+        V0 = RF_parameters_section.voltage_program_list[0][counter]
         
     else:
         raise RuntimeError('Separatrix for multiple RF is not implemeted yet')
