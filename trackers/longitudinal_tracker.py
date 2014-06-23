@@ -232,10 +232,9 @@ class LinearMap(object):
         Qs the synchroton tune."""
         
         self.ring_circumference = General_parameters.ring_circumference
-        self.alpha = General_parameters.alpha_array[0]
         self.eta = General_parameters._eta0
         self.Qs = Qs
-        self.omega_0 = 2 * np.pi * General_parameters.beta_rel_program * c / self.circumference
+        self.omega_0 = 2 * np.pi * General_parameters.beta_rel_program * c / self.ring_circumference
         self.omega_s = self.Qs * self.omega_0
         
         self.dQs = 2 * np.pi * self.Qs
