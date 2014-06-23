@@ -59,18 +59,24 @@ class Kick_acceleration(object):
     The acceleration is assumed to be distributed over the length of the 
     RF station, so the average beta is used in the calculation of the kick."""
     
-    def __init__(self, beta_rel_program, p_increment, counter):
+    def __init__(self, General_parameters, p_increment, counter):
         
         self.counter = counter
-        self.beta = beta_rel_program
+        self.beta_rel_program = General_parameters.beta_rel_program
+        self.gamma_rel_program = General_parameters.gamma_rel_program
+        self.energy_program = General_parameters.energy_program
+        self.momentum_program = General_parameters.momentum_program
         self.p_increment = p_increment
         
     def track(self, beam):
         
         beam.dE += - self.beta_rel_program[self.counter[0]] * self.p_increment[self.counter[0]] # in eV
-#         beam.beta_rel
-#         beam.gamma_rel
-#         beam.energy
+        
+        # Updating the beam synchronous momentum
+        beam.beta_rel = self.beta_rel_program[self.counter[0] + 1]
+        beam.gamma_rel = self.gamma_rel_program[self.counter[0] + 1]
+        beam.energy = self.energy_program[self.counter[0] + 1]
+        beam.momentum = self.momentum_program[self.counter[0] + 1]
         
 
 class Drift(object):
@@ -132,7 +138,7 @@ class Ring_and_RFstation(object):
         
         p_increment = RF_parameters_section.momentum_program[1:] - RF_parameters_section.momentum_program[1:]
                     
-        self.kick_acceleration = Kick_acceleration(General_parameters.beta_rel_program, p_increment, General_parameters.counter)
+        self.kick_acceleration = Kick_acceleration(General_parameters, p_increment, General_parameters.counter)
         
         solver = 'full' # TODO : put this as a paramter
         self.drift = Drift(RF_parameters_section.section_length, General_parameters, solver)
@@ -231,6 +237,11 @@ class LinearMap(object):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         
+        self.beta_rel_program = General_parameters.beta_rel_program
+        self.gamma_rel_program = General_parameters.gamma_rel_program
+        self.energy_program = General_parameters.energy_program
+        self.momentum_program = General_parameters.momentum_program
+        
         self.ring_circumference = General_parameters.ring_circumference
         self.eta = General_parameters._eta0
         self.Qs = Qs
@@ -250,5 +261,10 @@ class LinearMap(object):
 
         beam.z = z0 * self.cosdQs - self.eta[self.counter[0]] * c / self.omega_s[self.counter[0]] * delta0 * self.sindQs
         beam.delta = delta0 * self.cosdQs + self.omega_s[self.counter[0]] / self.eta[self.counter[0]] / c * z0 * self.sindQs
-
+        
+        # Updating the beam synchronous momentum
+        beam.beta_rel = self.beta_rel_program[self.counter[0] + 1]
+        beam.gamma_rel = self.gamma_rel_program[self.counter[0] + 1]
+        beam.energy = self.energy_program[self.counter[0] + 1]
+        beam.momentum = self.momentum_program[self.counter[0] + 1]
 
