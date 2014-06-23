@@ -17,7 +17,7 @@ class Beam(object):
     def __init__(self, General_parameters, n_macroparticles, intensity):
         
         # Beam and ring-dependent properties
-        self.ring_circumference = General_parameters.ring_circumference
+        self.ring_radius = General_parameters.ring_radius
         self.mass = General_parameters.mass # in kg
         self.charge = General_parameters.charge # in C
         self.intensity = intensity # total no of particles
@@ -66,33 +66,33 @@ class Beam(object):
     # Coordinate conversions
     @property
     def z(self):
-        return - self.theta * self.ring.radius 
+        return - self.theta * self.ring_radius
      
     @z.setter
     def z(self, value):
-        self.theta = - value / self.ring.radius
+        self.theta = - value / self.ring_radius
     
     @property
     def delta(self):
-        return self.dE / (self.ring.beta_i(self)**2 * self.ring.energy_i(self))
+        return self.dE / (self.beta_rel**2 * self.ring.energy_i(self))
 
     @delta.setter
     def delta(self, value):
-        self.dE = value * self.ring.beta_i(self)**2 * self.ring.energy_i(self)
+        self.dE = value * self.beta_rel**2 * self.ring.energy_i(self)
 
     @property
     def z0(self):
-        return - self.theta0 * self.ring.radius 
+        return - self.theta0 * self.ring_radius
     @z0.setter
     def z0(self, value):
-        self.theta0 = - value / self.ring.radius 
+        self.theta0 = - value / self.ring_radius
     
     @property
     def delta0(self):
-        return self.dE0 / (self.ring.beta_i(self)**2 * self.ring.energy_i(self))
+        return self.dE0 / (self.beta_rel**2 * self.ring.energy_i(self))
     @delta0.setter
     def delta0(self, value):
-        self.dE0 = value * self.ring.beta_i(self)**2 * self.ring.energy_i(self)
+        self.dE0 = value * self.beta_rel**2 * self.ring.energy_i(self)
 
     def reinit(self):
 
@@ -108,31 +108,31 @@ class Beam(object):
     # Statistics
     @property    
     def mean_z(self):
-        return - self.mean_theta * self.ring.radius 
+        return - self.mean_theta * self.ring_radius
     @mean_z.setter
     def mean_z(self, value):
-        self.mean_theta = - value / self.ring.radius 
+        self.mean_theta = - value / self.ring_radius
     
     @property
     def mean_delta(self):
-        return self.mean_dE / (self.ring.beta_i(self)**2 * self.ring.energy_i(self))
+        return self.mean_dE / (self.beta_rel**2 * self.energy)
     @mean_delta.setter
     def mean_delta(self, value):
-        self.mean_dE = value * self.ring.beta_i(self)**2 * self.ring.energy_i(self)
+        self.mean_dE = value * self.beta_rel**2 * self.energy
 
     @property    
     def sigma_z(self):
-        return - self.sigma_theta * self.ring.radius 
+        return - self.sigma_theta * self.ring_radius
     @sigma_z.setter
     def sigma_z(self, value):
-        self.sigma_theta = - value / self.ring.radius 
+        self.sigma_theta = - value / self.ring_radius
     
     @property
     def sigma_delta(self):
-        return self.sigma_dE / (self.ring.beta_i(self)**2 * self.ring.energy_i(self))
+        return self.sigma_dE / (self.beta_rel**2 * self.energy)
     @sigma_delta.setter
     def sigma_delta(self, value):
-        self.sigma_dE = value * self.ring.beta_i(self)**2 * self.ring.energy_i(self)
+        self.sigma_dE = value * self.beta_rel**2 * self.energy
 
     
     def longit_statistics(self, gaussian_fit = "Off"):
@@ -144,7 +144,7 @@ class Beam(object):
         
         ##### R.m.s. emittance in Gaussian approximation, other emittances to be defined
         self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
-                        * self.ring.radius / (self.ring.beta_i(self) * c) # in eVs
+                        * self.ring_radius / (self.beta_rel * c) # in eVs
 
         ##### Gaussian fit to theta-profile
         if self.beam_is_sliced == True and gaussian_fit == "On":
@@ -166,10 +166,10 @@ class Beam(object):
         self.mean_yp = cp.mean(self.yp)
         self.sigma_x = cp.std(self.x)
         self.sigma_y = cp.std(self.y)
-        self.epsn_x_xp = cp.emittance(self.x, self.xp) * self.ring.gamma_f(self) \
-                        * self.ring.beta_f(self) * 1e6
-        self.epsn_y_yp = cp.emittance(self.y, self.yp) * self.ring.gamma_f(self) \
-                        * self.ring.beta_f(self) * 1e6
+        self.epsn_x_xp = cp.emittance(self.x, self.xp) * self.gamma_rel \
+                        * self.beta_rel * 1e6
+        self.epsn_y_yp = cp.emittance(self.y, self.yp) * self.gamma_rel \
+                        * self.beta_rel * 1e6
     
     def losses(self, ring):
          
