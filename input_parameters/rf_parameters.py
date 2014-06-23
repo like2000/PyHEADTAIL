@@ -60,7 +60,9 @@ class RF_section_parameters(object):
         self.n_rf_systems = n_rf_systems #: Number of RF systems in the section
         self.momentum_program = momentum_program #: Momentum program in [eV/c]
         
-        self.momentum_program = input_check(momentum_program, self.n_turns + 1)
+        self.momentum_program = input_check(momentum_program, self.n_turns + 1) #: Momentum program in [eV/c]
+        
+        self.p_increment = self.momentum_program[1:] - self.momentum_program[0:-1] #: Momentum change (acceleration/deceleration) between two turns
         
         if n_rf_systems == 1:
             self.harmonic_numbers_list = [harmonic_numbers_list] #: Harmonic number list (according to n_rf_systems)
@@ -72,11 +74,16 @@ class RF_section_parameters(object):
             self.harmonic_numbers_list = harmonic_numbers_list #: Harmonic number list (according to n_rf_systems)
             self.voltage_program_list = voltage_program_list #: Voltage program list in [V] (according to n_rf_systems)
             self.phi_offset_list = phi_offset_list #: Phase offset list in [rad]
-            
+        
         for i in range(self.n_rf_systems):
             self.harmonic_numbers_list[i] = input_check(self.harmonic_numbers_list[i], n_turns)
             self.voltage_program_list[i] = input_check(self.voltage_program_list[i], n_turns)
             self.phi_offset_list[i] = input_check(self.phi_offset_list[i], n_turns)
+            
+
+            
+            
+
             
             
     
