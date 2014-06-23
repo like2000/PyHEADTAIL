@@ -26,18 +26,20 @@ def fig_folder():
             raise
 
 
-def plot_long_phase_space(beam, nturns, xmin, xmax, ymin, ymax, 
+def plot_long_phase_space(beam, General_parameters, xmin, xmax, ymin, ymax, 
                           xunit=None, yunit=None, separatrix=None):
 
     # Directory where longitudinal_plots will be stored
     fig_folder()
+    
+    counter = General_parameters.counter[0]
 
     # Conversion from metres to nanoseconds
     if xunit == 'ns':
-        coeff = 1.e9 * beam.ring.radius / (beam.ring.beta_i(beam) * c)
+        coeff = 1.e9 * General_parameters.ring_radius / (beam.beta_rel * c)
     elif xunit == 'm':
-        coeff = - beam.ring.radius
-    ycoeff = beam.ring.beta_i(beam)**2 * beam.ring.energy_i(beam)
+        coeff = - General_parameters.ring_radius
+    ycoeff = beam.beta_rel**2 * beam.energy
 
     # Definitions for placing the axes
     left, width = 0.1, 0.63
@@ -87,22 +89,22 @@ def plot_long_phase_space(beam, nturns, xmin, xmax, ymin, ymax,
     if xunit == None or xunit == 'rad':
         axScatter.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     axScatter.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.figtext(0.95,0.95,'%d turns' %(nturns+1), fontsize=16, ha='right', 
+    plt.figtext(0.95,0.95,'%d turns' %(General_parameters.n_turns+1), fontsize=16, ha='right', 
                 va='center') 
 
     # Separatrix
-    if separatrix == None or separatrix == 'on':
-        x_sep = np.linspace(xmin, xmax, 1000)
-        if xunit == None or xunit == 'rad':
-            y_sep = beam.ring.separatrix(beam, x_sep)
-        elif xunit == 'm' or xunit == 'ns':
-            y_sep = beam.ring.separatrix(beam, x_sep/coeff)
-        if yunit == None or yunit == 'MeV':
-            axScatter.plot(x_sep, y_sep/1.e6, 'r')
-            axScatter.plot(x_sep, -1.e-6*y_sep, 'r')       
-        else:
-            axScatter.plot(x_sep, y_sep/ycoeff, 'r')
-            axScatter.plot(x_sep, -1.*y_sep/ycoeff, 'r')
+#     if separatrix == None or separatrix == 'on':
+#         x_sep = np.linspace(xmin, xmax, 1000)
+#         if xunit == None or xunit == 'rad':
+#             y_sep = beam.ring.separatrix(beam, x_sep)
+#         elif xunit == 'm' or xunit == 'ns':
+#             y_sep = beam.ring.separatrix(beam, x_sep/coeff)
+#         if yunit == None or yunit == 'MeV':
+#             axScatter.plot(x_sep, y_sep/1.e6, 'r')
+#             axScatter.plot(x_sep, -1.e-6*y_sep, 'r')       
+#         else:
+#             axScatter.plot(x_sep, y_sep/ycoeff, 'r')
+#             axScatter.plot(x_sep, -1.*y_sep/ycoeff, 'r')
    
     # Phase and momentum histograms
     xbin = (xmax - xmin)/200.
@@ -131,7 +133,7 @@ def plot_long_phase_space(beam, nturns, xmin, xmax, ymin, ymax,
         label.set_rotation(-90) 
  
     # Save plot
-    fign = 'fig/long_distr_'"%d"%nturns+'.png'
+    fign = 'fig/long_distr_'"%d"%counter+'.png'
     plt.savefig(fign)
     plt.clf()
 
