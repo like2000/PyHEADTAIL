@@ -47,12 +47,13 @@ class SumRFSectionParameters(object):
         #: *Total length of the sections in [m]*
         self.section_length_sum = 0
         
-        #: *The total number of sections concatenated*
+        #: | *The total number of sections concatenated*
+        #: | *Counter for section is:* :math:`i`
         self.total_n_sections = len(RFSectionParameters_list)
         
-        #: | *Momentum program matrix in [eV/c]*
-        #: | *The lines of this matrix corresponds to the momentum program for one section.*
-        #: | *The columns correspond to one turn of the simulation.* 
+        #: | *Momentum program matrix in [eV/c]* :math:`: \quad p_{i,n}`
+        #: | *The lines* :math:`i` *of this matrix corresponds to the momentum program for one section.*
+        #: | *The columns* :math:`n` *correspond to one turn of the simulation.* 
         self.momentum_program_matrix = np.zeros((self.total_n_sections, 
                                                  RFSectionParameters_list[0].n_turns + 1))
         
@@ -78,33 +79,35 @@ class RFSectionParameters(object):
                  harmonic_number_list, voltage_program_list, phi_offset_list, 
                  momentum_program):
         
-        #: *Number of turns for the simulation*
+        #: | *Number of turns for the simulation*
+        #: | *Counter for turns is:* :math:`n`
         self.n_turns = n_turns
         
-        #: *Length of the section in [m]*
+        #: *Length of the section in [m]* :math:`: \quad C_i`
         self.section_length = section_length
         
-        #: *Number of RF systems in the section*
+        #: | *Number of RF systems in the section* :math:`: \quad n_{RF}`
+        #: | *Counter for RF is:* :math:`j`
         self.n_rf_systems = n_rf_systems
         
-        #: | *Momentum program in [eV/c]*
+        #: | *Momentum program in [eV/c]* :math:`: \quad p_{j,n}`
         #: | *The length of the momentum program should be n_turns + 1, check longitudinal_tracker.py for more precisions.*
         #: | *Inputing a single value will assume a constant value for all the simulation.*
         self.momentum_program = input_check(momentum_program, self.n_turns + 1)
         
         #: *Momentum increment (acceleration/deceleration) between two turns,
-        #: for one section in [eV/c]*
+        #: for one section in [eV/c]* :math:`: \quad \Delta p_{n\rightarrow n+1}`
         self.p_increment = np.diff(self.momentum_program)
         
-        #: | *Harmonic number list*
+        #: | *Harmonic number list* :math:`: \quad h_{j,n}`
         #: | *The length of the list shoud be equal to n_rf_systems.* 
         self.harmonic_number_list = 0
         
-        #: | *Voltage program list in [V]*
+        #: | *Voltage program list in [V]* :math:`: \quad V_{j,n}`
         #: | *The length of the list shoud be equal to n_rf_systems.* 
         self.voltage_program_list = 0
         
-        #: | *Phase offset list in [rad]*
+        #: | *Phase offset list in [rad]* :math:`: \quad \phi_{j,n}`
         #: | *The length of the list shoud be equal to n_rf_systems.* 
         self.phi_offset_list = 0
          
