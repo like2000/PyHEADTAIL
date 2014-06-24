@@ -25,7 +25,14 @@ class GeneralParameters(object):
         self.mass = 0
         
         #: *Particle charge in [C]*
-        self.charge = 0 
+        self.charge = 0
+        
+        # Attribution of mass and charge with respect to particle_type
+        if self.particle_type is 'proton':
+            self.mass = m_p
+            self.charge = e
+        else:
+            raise RuntimeError('Particle type not recognized')
         
         #: | *Counter to be incremented every turn in the tracking loop.*
         #: | *It is defined as a list in order to be passed as a reference in the other modules.*
@@ -68,19 +75,10 @@ class GeneralParameters(object):
         #: *Slippage factor (order 2)*
         self.eta2 = 0
         
-        ### Pre-processing
-        # Attribution of mass and charge with respect to particle_type
-        if self.particle_type is 'proton':
-            self.mass = m_p
-            self.charge = e
-        else:
-            raise RuntimeError('Particle type not recognized')
-        
         # Warning that higher orders for alpha_array will not be used
-        if ((isinstance(self.alpha_array, np.ndarray) or 
-             isinstance(self.alpha_array, list)) and len(self.alpha_array) > 3):
-            print 'WARNING : Momentum compaction factor is held only up to 2nd \
-            order'
+        if self.alpha_array.size > 3:
+            print 'WARNING : Momentum compaction factor is held only up to \
+                   2nd order'
         
         # Processing the momentum program for the cases where it is constant
         # or input as a program
@@ -128,7 +126,8 @@ class GeneralParameters(object):
         ''' 
                 
         self.eta1 = 3 * self.beta_rel_program**2 / (2 * self.gamma_rel_program**2) + \
-                    self.alpha_array[1] - self.alpha_array[0] * (self.alpha_array[0] - self.gamma_rel_program**-2)
+                    self.alpha_array[1] - \
+                    self.alpha_array[0] * (self.alpha_array[0] - self.gamma_rel_program**-2)
         return self.eta1
     
     
