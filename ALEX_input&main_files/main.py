@@ -10,14 +10,15 @@ from input_parameters.rf_parameters import RF_section_parameters, Sum_RF_section
 from trackers.longitudinal_tracker import Full_Ring_and_RF, Ring_and_RFstation
 from beams.beams import Beam
 from beams.longitudinal_distributions import longitudinal_gaussian_matched
+from longitudinal_plots.longitudinal_plots import plot_long_phase_space
 
-from os import chdir
-chdir('C:/work/git/PyHEADTAIL/ALEX_input&main_files')
 import time
 
 # Simulation parameters --------------------------------------------------------
 # Simulation parameters
 n_turns = 2000                                    # Number of turns to track
+plot_step = 10      # Time steps between plots
+
 
 # Global parameters
 particle_type = 'proton'
@@ -72,23 +73,25 @@ map_ = [my_accelerator_rf]
 # Tracking ---------------------------------------------------------------------
 
 for i in range(n_turns):
-    
+     
     if i % 100 == 0:
         print i
         t0 = time.clock()
-     
+      
     # Track
     for m in map_:
         m.track(my_beam)
     global_params.counter[0] += 1
-    
+     
     if i % 100 == 0:
         t1 = time.clock()
         print t1-t0
+     
+    if i % plot_step == 0:
+        plot_long_phase_space(my_beam, global_params, section_2_params, 0., 5., -150, 150, xunit='ns')
 
 
 # # Tracking details
-# plot_step = 10      # Time steps between plots
 # output_step = 100   # Time steps between outputs
 
              
