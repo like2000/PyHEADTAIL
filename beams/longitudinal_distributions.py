@@ -68,18 +68,18 @@ def longitudinal_bigaussian(beam, sigma_x, sigma_y, xunit=None, yunit=None):
 
   
 
-def longitudinal_gaussian_matched(General_parameters, RF_parameters_section, beam, four_sigma_bunch_length, unit=None):
+def longitudinal_gaussian_matched(General_parameters, RF_section_parameters, beam, four_sigma_bunch_length, unit=None):
     
-    if RF_parameters_section.section_length != General_parameters.ring_circumference:
+    if RF_section_parameters.section_length != General_parameters.ring_circumference:
         raise RuntimeError('WARNING : The longitudinal_gaussian_matched is not yet properly computed for several sections !!!')
         
-    if RF_parameters_section.n_rf_systems != 1:
+    if RF_section_parameters.n_rf_systems != 1:
         raise RuntimeError('longitudinal_gaussian_matched for multiple RF is not implemeted yet')
     
     counter = General_parameters.counter[0]
-    harmonic = RF_parameters_section.harmonic_numbers_list[0][counter]
-    voltage = RF_parameters_section.voltage_program_list[0][counter]
-    energy = General_parameters.beta_rel_program[0][counter]
+    harmonic = RF_section_parameters.harmonic_numbers_list[0][counter]
+    voltage = RF_section_parameters.voltage_program_list[0][counter]
+    energy = General_parameters.energy_program[0][counter]
     beta = General_parameters.beta_rel_program[0][counter]
     eta0 = General_parameters.eta0[0][counter]
             
@@ -90,7 +90,7 @@ def longitudinal_gaussian_matched(General_parameters, RF_parameters_section, bea
     elif unit == 'ns':       
         sigma_theta = four_sigma_bunch_length * beta * c * 0.25e-9 / General_parameters.ring_radius
         
-    phi_s = calc_phi_s(General_parameters, RF_parameters_section)[counter]
+    phi_s = calc_phi_s(General_parameters, RF_section_parameters)[counter]
     phi_b = harmonic*sigma_theta + phi_s
     
     sigma_dE = np.sqrt( voltage * energy * beta**2  

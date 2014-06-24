@@ -139,24 +139,24 @@ class Ring_and_RFstation(object):
     station is not necessary. 
     '''
         
-    def __init__(self, General_parameters, RF_parameters_section, index_section = 0):
+    def __init__(self, General_parameters, RF_section_parameters, index_section = 0):
         
         self.index_section = index_section
 
-        self.kick = Kick(RF_parameters_section.n_rf_systems, 
-                          RF_parameters_section.harmonic_numbers_list, RF_parameters_section.voltage_program_list, 
-                          RF_parameters_section.phi_offset_list, General_parameters.counter)
+        self.kick = Kick(RF_section_parameters.n_rf_systems, 
+                          RF_section_parameters.harmonic_numbers_list, RF_section_parameters.voltage_program_list, 
+                          RF_section_parameters.phi_offset_list, General_parameters.counter)
         
         solver = 'simple' # TODO : put this as a parameter
-        self.drift = Drift(RF_parameters_section.section_length, General_parameters, solver, index_section)
+        self.drift = Drift(RF_section_parameters.section_length, General_parameters, solver, index_section)
         
-        if np.sum(RF_parameters_section.p_increment) == 0:
+        if np.sum(RF_section_parameters.p_increment) == 0:
             self.elements = [self.kick] + [self.drift]
         else:
-            self.kick_acceleration = Kick_acceleration(General_parameters, RF_parameters_section.p_increment, General_parameters.counter, index_section)
+            self.kick_acceleration = Kick_acceleration(General_parameters, RF_section_parameters.p_increment, General_parameters.counter, index_section)
             self.elements = [self.kick] + [self.kick_acceleration] + [self.drift]
             
-        self.phi_s = calc_phi_s(General_parameters, RF_parameters_section)
+        self.phi_s = calc_phi_s(General_parameters, RF_section_parameters)
 
           
     def track(self, beam):
@@ -186,7 +186,7 @@ class Full_Ring_and_RF(object):
             self.Ring_and_RFstation_list[i].track(beam)
 
 
-def calc_phi_s(General_parameters, RF_parameters_section, accelerating_systems = 'all', index_section = 0):
+def calc_phi_s(General_parameters, RF_section_parameters, accelerating_systems = 'all', index_section = 0):
     """The synchronous phase calculated from the rate of momentum change.
     Below transition, for decelerating bucket: phi_s is in (-Pi/2,0)
     Below transition, for accelerating bucket: phi_s is in (0,Pi/2)
@@ -203,11 +203,11 @@ def calc_phi_s(General_parameters, RF_parameters_section, accelerating_systems =
     eta0 = General_parameters.eta0[index_section]
         
             
-    if RF_parameters_section.n_rf_systems == 1:
-        V0 = RF_parameters_section.voltage_program_list[0]
+    if RF_section_parameters.n_rf_systems == 1:
+        V0 = RF_section_parameters.voltage_program_list[0]
         average_beta = (beta_rel_program[1:] + beta_rel_program[0:-1])/2
         
-        phi_s = np.arcsin(average_beta * RF_parameters_section.p_increment / V0 )
+        phi_s = np.arcsin(average_beta * RF_section_parameters.p_increment / V0 )
         
         phi_s[(eta0[1:] + eta0[0:-1])/2 > 0] = np.pi - phi_s
          
@@ -233,25 +233,25 @@ def calc_phi_s(General_parameters, RF_parameters_section, accelerating_systems =
             raise RuntimeError('Did not recognize the option accelerating_systems in calc_phi_s function')
         
 
-def hamiltonian(General_parameters, RF_parameters_section, theta, dE, delta):
+def hamiltonian(General_parameters, RF_section_parameters, theta, dE, delta):
     """Single RF sinusoidal Hamiltonian.
     Uses beta, energy averaged over the turn.
     To be generalized."""
     
-    if RF_parameters_section.section_length != General_parameters.ring_circumference:
+    if RF_section_parameters.section_length != General_parameters.ring_circumference:
         raise RuntimeError('WARNING : The hamiltonian is not yet properly computed for several sections !!!')
     
     
-    if RF_parameters_section.n_rf_systems == 1:
+    if RF_section_parameters.n_rf_systems == 1:
         counter = General_parameters.counter[0]
-        h0 = RF_parameters_section.harmonic_numbers_list[0][counter]
-        V0 = RF_parameters_section.voltage_program_list[0][counter]
+        h0 = RF_section_parameters.harmonic_numbers_list[0][counter]
+        V0 = RF_section_parameters.voltage_program_list[0][counter]
         
         c1 = eta_tracking(General_parameters, delta, counter) * c * np.pi / (General_parameters.ring_circumference * 
-             General_parameters.beta_rel_program[counter] * General_parameters.energy_program[counter] )
-        c2 = c * General_parameters.beta_rel_program[counter] * V0 / (h0 * General_parameters.ring_circumference)
+             General_parameters.beta_rel_program[0][counter] * General_parameters.energy_program[0][counter] )
+        c2 = c * General_parameters.beta_rel_program[0][counter] * V0 / (h0 * General_parameters.ring_circumference)
         
-        phi_s = RF_parameters_section.phi_s[counter]
+        phi_s = calc_phi_s(General_parameters, RF_section_parameters)[counter] # TODO : do not recalculate phi_s every time but preprocess it
     
         return c1 * dE**2 + c2 * (np.cos(h0 * theta) - np.cos(phi_s) + 
                                    (h0 * theta - phi_s) * np.sin(phi_s))
@@ -260,33 +260,35 @@ def hamiltonian(General_parameters, RF_parameters_section, theta, dE, delta):
         raise RuntimeError('Hamiltonian for multiple RF is not implemeted yet')
 
 
-def separatrix(General_parameters, RF_parameters_section, theta):
+def separatrix(General_parameters, RF_section_parameters, theta):
     """Single RF sinusoidal separatrix.
     Uses beta, energy averaged over the turn.
     To be generalized."""
     
-    if RF_parameters_section.section_length != General_parameters.ring_circumference:
+    if RF_section_parameters.section_length != General_parameters.ring_circumference:
         print 'WARNING : The separatrix is not yet properly computed for several sections !!!'
     
     
-    if RF_parameters_section.n_rf_systems == 1:
+    if RF_section_parameters.n_rf_systems == 1:
         counter = General_parameters.counter[0]
-        h0 = RF_parameters_section.harmonic_numbers_list[0][counter]
-        V0 = RF_parameters_section.voltage_program_list[0][counter]
+        h0 = RF_section_parameters.harmonic_numbers_list[0][counter]
+        V0 = RF_section_parameters.voltage_program_list[0][counter]
         
     else:
         raise RuntimeError('Separatrix for multiple RF is not implemeted yet')
 
-    phi_s = RF_parameters_section.phi_s[counter]
+    phi_s = calc_phi_s(General_parameters, RF_section_parameters)[counter] # TODO : do not recalculate phi_s every time but preprocess it
      
     filterwarnings('ignore')
     
-    beta_rel_program_average = (General_parameters.beta_rel_program[counter + 1] + General_parameters.beta_rel_program[counter]) / 2
+    beta_average = (General_parameters.beta_rel_program[0][counter + 1] + General_parameters.beta_rel_program[0][counter]) / 2
     
-    energy_program_average = (General_parameters.energy_program[counter + 1] + General_parameters.energy_program[counter]) / 2
+    energy_average = (General_parameters.energy_program[0][counter + 1] + General_parameters.energy_program[0][counter]) / 2
+    
+    eta0_average = (General_parameters.eta0[0][counter + 1] + General_parameters.eta0[0][counter])/2
      
-    separatrix_array = np.sqrt(beta_rel_program_average**2 * energy_program_average *
-                    V0 / (np.pi * General_parameters.eta0 * h0) * 
+    separatrix_array = np.sqrt(beta_average**2 * energy_average *
+                    V0 / (np.pi * eta0_average * h0) * 
                     (-np.cos(h0 * theta) - np.cos(phi_s) + 
                     (np.pi - phi_s - h0 * theta) * np.sin(phi_s)))
      
@@ -296,27 +298,27 @@ def separatrix(General_parameters, RF_parameters_section, theta):
 
 
 
-def is_in_separatrix(General_parameters, RF_parameters_section, theta, dE, delta):
+def is_in_separatrix(General_parameters, RF_section_parameters, theta, dE, delta):
     """Condition for being inside the separatrix.
     Single RF sinusoidal.
     Uses beta, energy averaged over the turn.
     To be generalized."""
     
-    if RF_parameters_section.section_length != General_parameters.ring_circumference:
+    if RF_section_parameters.section_length != General_parameters.ring_circumference:
         print 'WARNING : The separatrix is not yet properly computed for several sections !!!'
     
     
-    if RF_parameters_section.n_rf_systems == 1:
+    if RF_section_parameters.n_rf_systems == 1:
         counter = General_parameters.counter[0]
-        h0 = RF_parameters_section.harmonic_numbers_list[counter]
+        h0 = RF_section_parameters.harmonic_numbers_list[0][counter]
         
     else:
         raise RuntimeError('is_in_separatrix for multiple RF is not implemeted yet')
         
-    phi_s = RF_parameters_section.phi_s[counter]
+    phi_s = calc_phi_s(General_parameters, RF_section_parameters)[counter] # TODO : do not recalculate phi_s every time but preprocess it
     
-    Hsep = hamiltonian(General_parameters, RF_parameters_section, (np.pi - phi_s) / h0, 0, 0) 
-    isin = np.fabs(hamiltonian(General_parameters, RF_parameters_section, theta, dE, delta)) < np.fabs(Hsep)
+    Hsep = hamiltonian(General_parameters, RF_section_parameters, (np.pi - phi_s) / h0, 0, 0) 
+    isin = np.fabs(hamiltonian(General_parameters, RF_section_parameters, theta, dE, delta)) < np.fabs(Hsep)
 
     return isin
         

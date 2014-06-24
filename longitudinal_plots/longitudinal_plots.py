@@ -9,6 +9,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.constants import c, e
+from trackers.longitudinal_tracker import separatrix
 
 
 def fig_folder():
@@ -26,13 +27,15 @@ def fig_folder():
             raise
 
 
-def plot_long_phase_space(beam, General_parameters, xmin, xmax, ymin, ymax, 
-                          xunit=None, yunit=None, separatrix=None):
+def plot_long_phase_space(beam, General_parameters, RF_parameters_section, xmin, xmax, ymin, ymax, 
+                          xunit=None, yunit=None, separatrix_plot=None):
 
     # Directory where longitudinal_plots will be stored
     fig_folder()
     
     counter = General_parameters.counter[0]
+    
+    print counter
 
     # Conversion from metres to nanoseconds
     if xunit == 'ns':
@@ -76,7 +79,6 @@ def plot_long_phase_space(beam, General_parameters, xmin, xmax, ymin, ymax,
     elif xunit == 'ns':
         axScatter.set_xlabel('Time [ns]', fontsize=14)
         if yunit == None or yunit == 'MeV':
-            print beam.theta*coeff
             axScatter.scatter(beam.theta*coeff, beam.dE/1.e6, s=1, edgecolor='none')
             axScatter.set_ylabel(r"$\Delta$E [MeV]", fontsize=14)
         elif yunit == '1': 
@@ -89,22 +91,22 @@ def plot_long_phase_space(beam, General_parameters, xmin, xmax, ymin, ymax,
     if xunit == None or xunit == 'rad':
         axScatter.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     axScatter.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.figtext(0.95,0.95,'%d turns' %(General_parameters.n_turns+1), fontsize=16, ha='right', 
+    plt.figtext(0.95,0.95,'%d turns' %(counter), fontsize=16, ha='right', 
                 va='center') 
 
     # Separatrix
-#     if separatrix == None or separatrix == 'on':
-#         x_sep = np.linspace(xmin, xmax, 1000)
-#         if xunit == None or xunit == 'rad':
-#             y_sep = beam.ring.separatrix(beam, x_sep)
-#         elif xunit == 'm' or xunit == 'ns':
-#             y_sep = beam.ring.separatrix(beam, x_sep/coeff)
-#         if yunit == None or yunit == 'MeV':
-#             axScatter.plot(x_sep, y_sep/1.e6, 'r')
-#             axScatter.plot(x_sep, -1.e-6*y_sep, 'r')       
-#         else:
-#             axScatter.plot(x_sep, y_sep/ycoeff, 'r')
-#             axScatter.plot(x_sep, -1.*y_sep/ycoeff, 'r')
+    if separatrix_plot == None or separatrix_plot == 'on':
+        x_sep = np.linspace(xmin, xmax, 1000)
+        if xunit == None or xunit == 'rad':
+            y_sep = separatrix(General_parameters, RF_parameters_section, x_sep)
+        elif xunit == 'm' or xunit == 'ns':
+            y_sep = separatrix(General_parameters, RF_parameters_section, x_sep/coeff)
+        if yunit == None or yunit == 'MeV':
+            axScatter.plot(x_sep, y_sep/1.e6, 'r')
+            axScatter.plot(x_sep, -1.e-6*y_sep, 'r')       
+        else:
+            axScatter.plot(x_sep, y_sep/ycoeff, 'r')
+            axScatter.plot(x_sep, -1.*y_sep/ycoeff, 'r')
    
     # Phase and momentum histograms
     xbin = (xmax - xmin)/200.
