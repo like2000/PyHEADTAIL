@@ -53,7 +53,8 @@ class Sum_RF_section_parameters(object):
         #: | *Momentum program matrix in [eV/c]*
         #: | *The lines of this matrix corresponds to the momentum program for one section.*
         #: | *The columns correspond to one turn of the simulation.* 
-        self.momentum_program_matrix = np.zeros((self.total_n_sections, RF_section_parameters_list[0].n_turns + 1))
+        self.momentum_program_matrix = np.zeros((self.total_n_sections, 
+                                                 RF_section_parameters_list[0].n_turns + 1))
         
         ### Pre-processing the inputs
         # The length of the sections are added and the momentum program is 
@@ -121,8 +122,8 @@ class RF_section_parameters(object):
             self.voltage_program_list = [voltage_program_list] 
             self.phi_offset_list = [phi_offset_list] 
         else:
-            if not n_rf_systems == len(harmonic_number_list) \
-                   == len(voltage_program_list) == len(phi_offset_list):
+            if not n_rf_systems == len(harmonic_number_list) == \
+                   len(voltage_program_list) == len(phi_offset_list):
                 raise RuntimeError('The RF parameters to define \
                                     RF_section_parameters are not homogeneous \
                                     (n_rf_systems is not matching the input)')
