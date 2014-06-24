@@ -18,13 +18,13 @@ def input_check(input_value, expected_length):
     | *If len(input_value) != expected_length and != 1, raise an error*
     '''
     
-    if type(input_value) is float:
+    if isinstance(input_value, float):
         return input_value * np.ones(expected_length)
-    elif type(input_value) is int:
+    elif isinstance(input_value, int):
         return input_value * np.ones(expected_length)
-    elif type(input_value) is np.ndarray and input_value.size == 1:
+    elif isinstance(input_value, np.ndarray) and input_value.size == 1:
         return input_value * np.ones(expected_length)
-    elif type(input_value) is list and len(input_value) == 1:
+    elif isinstance(input_value, list) and len(input_value) == 1:
         return input_value[0] * np.ones(expected_length)
     elif len(input_value) == expected_length:
         return np.array(input_value)
