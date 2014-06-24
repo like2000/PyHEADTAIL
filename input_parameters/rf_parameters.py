@@ -32,39 +32,39 @@ def input_check(input_value, expected_length):
         raise RuntimeError(str(input_value) + ' does not match ' + str(expected_length))
     
     
-class Sum_RF_section_parameters(object):
+class SumRFSectionParameters(object):
     '''
     *Method to add RF_section_parameters objects together in order to gather
     the complete information for a longitudinal_tracker.Full_Ring_and_RF
     object*
     '''
     
-    def __init__(self, RF_section_parameters_list):
+    def __init__(self, RFSectionParameters_list):
         
         #: *List of RF_section_parameters objects to concatenate*
-        self.RF_section_parameters_list = RF_section_parameters_list
+        self.RFSectionParameters_list = RFSectionParameters_list
         
         #: *Total length of the sections in [m]*
         self.section_length_sum = 0
         
         #: *The total number of sections concatenated*
-        self.total_n_sections = len(RF_section_parameters_list)
+        self.total_n_sections = len(RFSectionParameters_list)
         
         #: | *Momentum program matrix in [eV/c]*
         #: | *The lines of this matrix corresponds to the momentum program for one section.*
         #: | *The columns correspond to one turn of the simulation.* 
         self.momentum_program_matrix = np.zeros((self.total_n_sections, 
-                                                 RF_section_parameters_list[0].n_turns + 1))
+                                                 RFSectionParameters_list[0].n_turns + 1))
         
         ### Pre-processing the inputs
         # The length of the sections are added and the momentum program is 
         # set as a matrix.
-        for i in range(len(RF_section_parameters_list)):
-            self.section_length_sum += RF_section_parameters_list[i].section_length
-            self.momentum_program_matrix[i,:] = RF_section_parameters_list[i].momentum_program
+        for i in range(len(RFSectionParameters_list)):
+            self.section_length_sum += RFSectionParameters_list[i].section_length
+            self.momentum_program_matrix[i,:] = RFSectionParameters_list[i].momentum_program
 
 
-class RF_section_parameters(object):
+class RFSectionParameters(object):
     '''
     *Object gathering all the RF parameters for one section (see section
     definition in longitudinal_tracker.Ring_and_RF_section), and pre-processing 
@@ -122,8 +122,8 @@ class RF_section_parameters(object):
             self.voltage_program_list = [voltage_program_list] 
             self.phi_offset_list = [phi_offset_list] 
         else:
-            if not n_rf_systems == len(harmonic_number_list) == \
-                   len(voltage_program_list) == len(phi_offset_list):
+            if (not n_rf_systems == len(harmonic_number_list) == 
+                len(voltage_program_list) == len(phi_offset_list)):
                 raise RuntimeError('The RF parameters to define \
                                     RF_section_parameters are not homogeneous \
                                     (n_rf_systems is not matching the input)')
