@@ -83,7 +83,7 @@ class GeneralParameters(object):
         
         #: *Slippage factor (order 2)* :math:`: \quad \eta_{2,n}`
         #:
-        #: .. math:: \eta_2 = -\frac{\beta^2\left(5\beta^2-1\right)}{2\gamma^2} + \alpha_2 - 2\alpha_0\alpha_1 + \frac{\alpha_1}{\gamma^2} + \alpha_0^2\eta_0 - \frac{3\beta_0^2\alpha_0}{2\gamma_0^2}
+        #: .. math:: \eta_2 = -\frac{\beta^2\left(5\beta^2-1\right)}{2\gamma^2} + \alpha_2 - 2\alpha_0\alpha_1 + \frac{\alpha_1}{\gamma^2} + \alpha_0^2\eta_0 - \frac{3\beta^2\alpha_0}{2\gamma^2}
         self.eta2 = 0
         
         # Warning that higher orders for alpha_array will not be used
