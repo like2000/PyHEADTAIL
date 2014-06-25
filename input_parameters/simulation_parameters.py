@@ -49,7 +49,7 @@ class GeneralParameters(object):
         
         #: | *Momentum (program) in [eV/c]* :math:`: \quad p_n`
         #: | *Can be given as a single value to be assumed constant, or as a program of (n_turns + 1) terms in case of acceleration.*
-        self.momentum_program = momentum_program 
+        self.momentum_program = np.array(momentum_program, ndmin = 2)
         
         #: *Momentum compation factor (up to 2nd order)* :math:`: \quad \alpha_i`
         self.alpha_array = np.array(alpha_array) 
@@ -95,17 +95,17 @@ class GeneralParameters(object):
         
         # Processing the momentum program for the cases where it is constant
         # or input as a program
-        if isinstance(self.momentum_program, float):
+        if self.momentum_program.size == 1:
             self.momentum_program = self.momentum_program * np.ones(self.n_turns + 1)
-        elif isinstance(self.momentum_program, np.ndarray):
-            try:
-                if not self.momentum_program.shape[1] == self.n_turns + 1:
-                    raise RuntimeError('The input momentum program does not \
-                                        match the proper length (n_turns+1)')
-            except IndexError:
-                if not self.momentum_program.shape[0] == self.n_turns + 1:
-                    raise RuntimeError('The input momentum program does not \
-                                        match the proper length (n_turns+1)')
+            
+        try:
+            if not self.momentum_program.shape[1] == self.n_turns + 1:
+                raise RuntimeError('The input momentum program does not \
+                                    match the proper length (n_turns+1)')
+        except IndexError:
+            if not self.momentum_program.shape[0] == self.n_turns + 1:
+                raise RuntimeError('The input momentum program does not \
+                                    match the proper length (n_turns+1)')
         
         # Processing the slippage factor
         self.eta_generation()
