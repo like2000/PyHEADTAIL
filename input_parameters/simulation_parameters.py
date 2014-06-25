@@ -68,6 +68,8 @@ class GeneralParameters(object):
                                          (self.mass * c**2)**2) 
         
         #: *Energy (program) in [eV]* :math:`: \quad E_n`
+        #:
+        #: .. math:: \\E = \sqrt{ p^2 + \left(\frac{mc^2}{e}\right)^2 }
         self.energy_program = np.sqrt(self.momentum_program**2 + 
                                       (self.mass * c**2 / e)**2) 
         
@@ -97,9 +99,13 @@ class GeneralParameters(object):
             self.momentum_program = self.momentum_program * np.ones(self.n_turns + 1)
         elif isinstance(self.momentum_program, np.ndarray):
             try:
-                assert self.momentum_program.shape[1] == self.n_turns + 1
+                if not self.momentum_program.shape[1] == self.n_turns + 1:
+                    raise RuntimeError('The input momentum program does not \
+                                        match the proper length (n_turns+1)')
             except IndexError:
-                assert self.momentum_program.shape[0] == self.n_turns + 1
+                if not self.momentum_program.shape[0] == self.n_turns + 1:
+                    raise RuntimeError('The input momentum program does not \
+                                        match the proper length (n_turns+1)')
         
         # Processing the slippage factor
         self.eta_generation()

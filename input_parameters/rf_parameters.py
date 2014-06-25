@@ -83,7 +83,7 @@ class RFSectionParameters(object):
         #: | *Counter for turns is:* :math:`n`
         self.n_turns = n_turns
         
-        #: *Length of the section in [m]* :math:`: \quad C_i`
+        #: *Length of the section in [m]* :math:`: \quad L_i`
         self.section_length = section_length
         
         #: | *Number of RF systems in the section* :math:`: \quad n_{RF}`
@@ -100,15 +100,15 @@ class RFSectionParameters(object):
         self.p_increment = np.diff(self.momentum_program)
         
         #: | *Harmonic number list* :math:`: \quad h_{j,n}`
-        #: | *The length of the list shoud be equal to n_rf_systems.* 
+        #: | *The length of the list should be equal to n_rf_systems.* 
         self.harmonic_number_list = 0
         
         #: | *Voltage program list in [V]* :math:`: \quad V_{j,n}`
-        #: | *The length of the list shoud be equal to n_rf_systems.* 
+        #: | *The length of the list should be equal to n_rf_systems.* 
         self.voltage_program_list = 0
         
         #: | *Phase offset list in [rad]* :math:`: \quad \phi_{j,n}`
-        #: | *The length of the list shoud be equal to n_rf_systems.* 
+        #: | *The length of the list should be equal to n_rf_systems.* 
         self.phi_offset_list = 0
          
         ### Pre-processing the inputs
