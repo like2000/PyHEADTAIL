@@ -75,9 +75,18 @@ class RFSectionParameters(object):
     for one full ring.*
     '''
     
+    section_counter = -1
+    
     def __init__(self, n_turns, n_rf_systems, section_length, 
                  harmonic_number_list, voltage_program_list, phi_offset_list, 
                  momentum_program):
+        
+        # Incrementing the RFSectionParameters.section_counter
+        RFSectionParameters.section_counter += 1
+        
+        #: *Index of the section (incremented by one whenever a RFSectionParameters
+        #: is created.*
+        self.index_section = RFSectionParameters.section_counter
         
         #: | *Number of turns for the simulation*
         #: | *Counter for turns is:* :math:`n`
