@@ -3,7 +3,6 @@ from __future__ import division
 import numpy as np
 from scipy.constants import c, e, m_p
 
-
 from input_parameters.simulation_parameters import GeneralParameters
 from input_parameters.rf_parameters import *
 from trackers.longitudinal_tracker import *

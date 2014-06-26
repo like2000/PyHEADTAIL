@@ -460,27 +460,26 @@ class LinearMap(object):
         """alpha is the linear momentum compaction factor,
         Qs the synchroton tune."""
         
-        self.beta_rel_program = GeneralParameters.beta_rel_program
+        self.beta_rel_program = GeneralParameters.beta_rel_program[0][0]
         
         self.ring_circumference = GeneralParameters.ring_circumference
-        self.eta = GeneralParameters._eta0
+        self.eta = GeneralParameters._eta0[0][0]
         self.Qs = Qs
-        self.omega_0 = 2 * np.pi * GeneralParameters.beta_rel_program * c / self.ring_circumference
+        self.omega_0 = 2 * np.pi * self.beta_rel_program * c / self.ring_circumference
         self.omega_s = self.Qs * self.omega_0
         
         self.dQs = 2 * np.pi * self.Qs
         self.cosdQs = np.cos(self.dQs)
         self.sindQs = np.sin(self.dQs)
         
-        self.counter = GeneralParameters.counter
 
     def track(self, beam):
 
         z0 = beam.z
         delta0 = beam.delta
 
-        beam.z = z0 * self.cosdQs - self.eta[self.counter[0]] * c / self.omega_s[self.counter[0]] * delta0 * self.sindQs
-        beam.delta = delta0 * self.cosdQs + self.omega_s[self.counter[0]] / self.eta[self.counter[0]] / c * z0 * self.sindQs
+        beam.z = z0 * self.cosdQs - self.eta * c / self.omega_s * delta0 * self.sindQs
+        beam.delta = delta0 * self.cosdQs + self.omega_s / self.eta / c * z0 * self.sindQs
         
         
 
