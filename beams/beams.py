@@ -10,6 +10,7 @@ import sys
 from scipy.constants import c, e
 import cobra_functions.stats as cp
 from scipy.optimize import curve_fit
+from trackers.longitudinal_tracker import is_in_separatrix
 
 
 class Beam(object):
@@ -172,16 +173,13 @@ class Beam(object):
         self.epsn_y_yp = cp.emittance(self.y, self.yp) * self.gamma_rel \
                         * self.beta_rel * 1e6
     
-    def losses(self, ring):
+    def losses(self, GeneralParameters, RingAndRFSection):
         
-        '''
-        To be corrected with the proper variable names
-        '''
-         
-        for i in xrange(self.n_macroparticles):
-            if not ring.is_in_separatrix(ring, self, self.theta[i], self.dE[i], self.delta[i]):
-                # Set ID to zero
-                self.id[i] = 0
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RingAndRFSection,
+                                 self.theta, self.dE, self.delta) == False)[0]
+        if itemindex.size != 0:
+            
+            self.id[itemindex] = 0
 
 
 

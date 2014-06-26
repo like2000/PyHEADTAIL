@@ -89,7 +89,7 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, i, xmin,
     if xunit == None or xunit == 'rad':
         axScatter.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     axScatter.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.figtext(0.95,0.95,'%d turns' %(i), fontsize=16, ha='right', 
+    plt.figtext(0.95,0.95,'%d turns' %(i+1), fontsize=16, ha='right', 
                 va='center') 
 
     # Separatrix
