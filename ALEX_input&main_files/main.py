@@ -78,21 +78,21 @@ map_ = [my_accelerator_section]
  
 # Tracking ---------------------------------------------------------------------
  
-for i in range(n_turns):
-      
-    if i % 100 == 0:
-        print i
-        t0 = time.clock()
-       
-    # Track
-    for m in map_:
-        m.track(my_beam)
-    general_params.counter[0] += 1
-      
-    if i % 100 == 0:
-        t1 = time.clock()
-        print t1-t0
-      
+# for i in range(n_turns):
+#       
+#     if i % 100 == 0:
+#         print i
+#         t0 = time.clock()
+#        
+#     # Track
+#     for m in map_:
+#         m.track(my_beam)
+#     general_params.counter[0] += 1
+#       
+#     if i % 100 == 0:
+#         t1 = time.clock()
+#         print t1-t0
+#       
 #     if i % plot_step == 0:
 #         plot_long_phase_space(my_beam, general_params, section_params, 0., 5., -150, 150, xunit='ns')
 

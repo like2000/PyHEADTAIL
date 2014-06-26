@@ -1,5 +1,5 @@
 '''
-Created on 12.06.2014
+**Module containing all the elements to track the beam in the longitudinal plane.**
 
 :Authors: **Danilo Quartullo**, **Helga Timko**, **Adrian Oeftiger**, **Alexandre Lasheen**
 '''
@@ -10,7 +10,7 @@ from scipy.constants import c
 from warnings import filterwarnings
 
 
-def eta_tracking(GeneralParameters, beam, index_section = 0):
+def eta_tracking(GeneralParameters, delta, index_section = 0):
     '''
     *Depending on the number of entries in GeneralParameters.alpha_array, 
     the slippage factor is calculated depending on the delta of the beam. As eta
@@ -25,7 +25,7 @@ def eta_tracking(GeneralParameters, beam, index_section = 0):
     eta = 0
     for i in xrange( GeneralParameters.alpha_array.size ):   # order = len - 1
         eta_i = getattr(GeneralParameters, 'eta' + str(i))[index_section][GeneralParameters.counter[0]]
-        eta  += eta_i * (beam.delta**i)
+        eta  += eta_i * (delta**i)
     return eta
 
 
@@ -196,8 +196,8 @@ class Drift(object):
         self.index_section = 0
                 
         if self.solver == 'full':
-            self.beta_ratio = self.beta_rel_program[1:] / self.beta_rel_program[0:-1]
-        
+            self.beta_ratio = self.beta_rel_program[0][1:] / self.beta_rel_program[0][0:-1]
+                    
     @staticmethod
     def auto_input(GeneralParameters, RFSectionParameters, solver = 'full'):
         '''
@@ -220,12 +220,12 @@ class Drift(object):
         *Calling the eta_tracking function with the Drift object properties*
         '''
         
-        eta_tracking(self.GeneralParameters, delta, 
+        return eta_tracking(self.GeneralParameters, delta, 
                      index_section = self.index_section)
 
                 
     def track(self, beam):  
-
+        
         if self.solver == 'full': 
             beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
                          + 2 * np.pi * (1 / (1 - self.eta_tracking(beam.delta) * beam.delta) - 1) \
@@ -317,18 +317,23 @@ def calc_phi_s(GeneralParameters, RF_section_parameters, accelerating_systems = 
 #         beta_rel_program = GeneralParameters.beta_rel_program
 #         eta0 = GeneralParameters.eta0
 #     else:
+
+    
     beta_rel_program = GeneralParameters.beta_rel_program[index_section]
     eta0 = GeneralParameters.eta0[index_section]
+    
          
              
     if RF_section_parameters.n_rf_systems == 1:
+      
         V0 = RF_section_parameters.voltage_program_list[0]
+        
         average_beta = (beta_rel_program[1:] + beta_rel_program[0:-1])/2
-         
+           
         phi_s = np.arcsin(average_beta * RF_section_parameters.p_increment / V0 )
-         
-        phi_s[(eta0[1:] + eta0[0:-1])/2 > 0] = np.pi - phi_s
           
+        phi_s[(eta0[1:] + eta0[0:-1])/2 > 0] = np.pi - phi_s
+    
         return phi_s
      
     else:
@@ -351,25 +356,25 @@ def calc_phi_s(GeneralParameters, RF_section_parameters, accelerating_systems = 
             raise RuntimeError('Did not recognize the option accelerating_systems in calc_phi_s function')
          
  
-def hamiltonian(GeneralParameters, RF_section_parameters, theta, dE, delta):
+def hamiltonian(GeneralParameters, RingAndRFSection, theta, dE, delta):
     """Single RF sinusoidal Hamiltonian.
     Uses beta, energy averaged over the turn.
     To be generalized."""
      
-    if RF_section_parameters.section_length != GeneralParameters.ring_circumference:
+    if RingAndRFSection.drift.drift_length != GeneralParameters.ring_circumference:
         raise RuntimeError('WARNING : The hamiltonian is not yet properly computed for several sections !!!')
      
      
-    if RF_section_parameters.n_rf_systems == 1:
+    if RingAndRFSection.kick.n_rf_systems == 1:
         counter = GeneralParameters.counter[0]
-        h0 = RF_section_parameters.harmonic_numbers_list[0][counter]
-        V0 = RF_section_parameters.voltage_program_list[0][counter]
+        h0 = RingAndRFSection.kick.harmonic_number_list[0][counter]
+        V0 = RingAndRFSection.kick.voltage_program_list[0][counter]
          
         c1 = eta_tracking(GeneralParameters, delta, counter) * c * np.pi / (GeneralParameters.ring_circumference * 
              GeneralParameters.beta_rel_program[0][counter] * GeneralParameters.energy_program[0][counter] )
         c2 = c * GeneralParameters.beta_rel_program[0][counter] * V0 / (h0 * GeneralParameters.ring_circumference)
          
-        phi_s = calc_phi_s(GeneralParameters, RF_section_parameters)[counter] # TODO : do not recalculate phi_s every time but preprocess it
+        phi_s = RingAndRFSection.phi_s[counter]  
      
         return c1 * dE**2 + c2 * (np.cos(h0 * theta) - np.cos(phi_s) + 
                                    (h0 * theta - phi_s) * np.sin(phi_s))
@@ -378,24 +383,24 @@ def hamiltonian(GeneralParameters, RF_section_parameters, theta, dE, delta):
         raise RuntimeError('Hamiltonian for multiple RF is not implemeted yet')
  
  
-def separatrix(GeneralParameters, RF_section_parameters, theta):
+def separatrix(GeneralParameters, RingAndRFSection, theta):
     """Single RF sinusoidal separatrix.
     Uses beta, energy averaged over the turn.
     To be generalized."""
      
-    if RF_section_parameters.section_length != GeneralParameters.ring_circumference:
+    if RingAndRFSection.drift.drift_length != GeneralParameters.ring_circumference:
         print 'WARNING : The separatrix is not yet properly computed for several sections !!!'
      
      
-    if RF_section_parameters.n_rf_systems == 1:
+    if RingAndRFSection.kick.n_rf_systems == 1:
         counter = GeneralParameters.counter[0]
-        h0 = RF_section_parameters.harmonic_number_list[0][counter]
-        V0 = RF_section_parameters.voltage_program_list[0][counter]
+        h0 = RingAndRFSection.kick.harmonic_number_list[0][counter]
+        V0 = RingAndRFSection.kick.voltage_program_list[0][counter]
          
     else:
         raise RuntimeError('Separatrix for multiple RF is not implemeted yet')
  
-    phi_s = calc_phi_s(GeneralParameters, RF_section_parameters)[counter] # TODO : do not recalculate phi_s every time but preprocess it
+    phi_s = RingAndRFSection.phi_s[counter]  
       
     filterwarnings('ignore')
      
@@ -416,27 +421,27 @@ def separatrix(GeneralParameters, RF_section_parameters, theta):
  
  
  
-def is_in_separatrix(GeneralParameters, RF_section_parameters, theta, dE, delta):
+def is_in_separatrix(GeneralParameters, RingAndRFSection, theta, dE, delta):
     """Condition for being inside the separatrix.
     Single RF sinusoidal.
     Uses beta, energy averaged over the turn.
     To be generalized."""
      
-    if RF_section_parameters.section_length != GeneralParameters.ring_circumference:
+    if RingAndRFSection.drift.drift_length != GeneralParameters.ring_circumference:
         print 'WARNING : The separatrix is not yet properly computed for several sections !!!'
      
      
-    if RF_section_parameters.n_rf_systems == 1:
+    if RingAndRFSection.kick.n_rf_systems == 1:
         counter = GeneralParameters.counter[0]
-        h0 = RF_section_parameters.harmonic_numbers_list[0][counter]
+        h0 = RingAndRFSection.kick.harmonic_number_list[0][counter]
          
     else:
         raise RuntimeError('is_in_separatrix for multiple RF is not implemeted yet')
          
-    phi_s = calc_phi_s(GeneralParameters, RF_section_parameters)[counter] # TODO : do not recalculate phi_s every time but preprocess it
+    phi_s = RingAndRFSection.phi_s[counter] 
      
-    Hsep = hamiltonian(GeneralParameters, RF_section_parameters, (np.pi - phi_s) / h0, 0, 0) 
-    isin = np.fabs(hamiltonian(GeneralParameters, RF_section_parameters, theta, dE, delta)) < np.fabs(Hsep)
+    Hsep = hamiltonian(GeneralParameters, RingAndRFSection, (np.pi - phi_s) / h0, 0, 0) 
+    isin = np.fabs(hamiltonian(GeneralParameters, RingAndRFSection, theta, dE, delta)) < np.fabs(Hsep)
  
     return isin
         
@@ -456,9 +461,6 @@ class LinearMap(object):
         Qs the synchroton tune."""
         
         self.beta_rel_program = GeneralParameters.beta_rel_program
-        self.gamma_rel_program = GeneralParameters.gamma_rel_program
-        self.energy_program = GeneralParameters.energy_program
-        self.momentum_program = GeneralParameters.momentum_program
         
         self.ring_circumference = GeneralParameters.ring_circumference
         self.eta = GeneralParameters._eta0
@@ -480,9 +482,5 @@ class LinearMap(object):
         beam.z = z0 * self.cosdQs - self.eta[self.counter[0]] * c / self.omega_s[self.counter[0]] * delta0 * self.sindQs
         beam.delta = delta0 * self.cosdQs + self.omega_s[self.counter[0]] / self.eta[self.counter[0]] / c * z0 * self.sindQs
         
-        # Updating the beam synchronous momentum
-        beam.beta_rel = self.beta_rel_program[self.counter[0] + 1]
-        beam.gamma_rel = self.gamma_rel_program[self.counter[0] + 1]
-        beam.energy = self.energy_program[self.counter[0] + 1]
-        beam.momentum = self.momentum_program[self.counter[0] + 1]
+        
 

@@ -234,9 +234,9 @@ class Slices(object):
             self.sigma_dE[i] = cp.std(dE)
 
 
-            self.epsn_x[i] = cp.emittance(x, xp) * bunch.ring.gamma_i(bunch) * bunch.ring.beta_i(bunch) * 1e6
-            self.epsn_y[i] = cp.emittance(y, yp) * bunch.ring.gamma_i(bunch) * bunch.ring.beta_i(bunch) * 1e6
-            self.eps_rms_l[i] = np.pi * self.sigma_dE[i] * self.sigma_theta[i] * bunch.ring.radius / (bunch.ring.beta_i(bunch) * c)
+            self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma_rel * bunch.beta_rel * 1e6
+            self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma_rel * bunch.beta_rel * 1e6
+            self.eps_rms_l[i] = np.pi * self.sigma_dE[i] * self.sigma_theta[i] * bunch.ring_radius / (bunch.beta_rel * c)
 
     
     def sort_particles(self, bunch):

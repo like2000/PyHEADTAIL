@@ -34,7 +34,7 @@ class Beam(object):
         self.yp = np.empty([n_macroparticles])
         self.theta = np.empty([n_macroparticles])
         self.dE = np.empty([n_macroparticles])
-        
+     
         # Initial coordinates (e.g. for ecloud)
         self.x0 = np.empty([n_macroparticles])
         self.xp0 = np.empty([n_macroparticles])
@@ -141,7 +141,7 @@ class Beam(object):
         self.mean_dE = cp.mean(self.dE)
         self.sigma_theta = cp.std(self.theta)
         self.sigma_dE = cp.std(self.dE)
-        
+       
         ##### R.m.s. emittance in Gaussian approximation, other emittances to be defined
         self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
                         * self.ring_radius / (self.beta_rel * c) # in eVs
@@ -149,7 +149,8 @@ class Beam(object):
         ##### Gaussian fit to theta-profile
         if self.beam_is_sliced == True and gaussian_fit == "On":
             self.slicing.compute_statistics(self)
-            p0 = [max(self.slicing.n_macroparticles), self.mean_theta, self.sigma_theta] 
+            p0 = [max(self.slicing.n_macroparticles), self.mean_theta, self.sigma_theta]
+        
             def gauss(x, *p):
                 A, x0, sx = p
                 return A*np.exp(-(x-x0)**2/2./sx**2) 

@@ -5,8 +5,8 @@ Created on 12.06.2014
 '''
 
 import numpy as np
-from scipy.constants import c, e
-from trackers.longitudinal_tracker import calc_phi_s
+from scipy.constants import c
+from trackers.longitudinal_tracker import is_in_separatrix
 
 # def stationary_exponential(H, Hmax, H0, bunch):
 # 
@@ -70,6 +70,7 @@ def longitudinal_bigaussian(beam, sigma_x, sigma_y, xunit=None, yunit=None):
 
 def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam, four_sigma_bunch_length, unit=None):
     
+    
     if RingAndRFSection.drift.drift_length != GeneralParameters.ring_circumference:
         raise RuntimeError('WARNING : The longitudinal_gaussian_matched is not yet properly computed for several sections !!!')
         
@@ -89,8 +90,9 @@ def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam, fou
         sigma_theta = four_sigma_bunch_length / (-4 * GeneralParameters.ring_radius) 
     elif unit == 'ns':       
         sigma_theta = four_sigma_bunch_length * beta * c * 0.25e-9 / GeneralParameters.ring_radius
-        
+    
     phi_s = RingAndRFSection.phi_s[counter]
+  
     phi_b = harmonic*sigma_theta + phi_s
     
     sigma_dE = np.sqrt( voltage * energy * beta**2  
@@ -103,17 +105,19 @@ def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam, fou
     beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
                         + phi_s/harmonic
     beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
-
-#     for i in xrange(beam.n_macroparticles):
-#         beam.theta[i] = sigma_theta * np.random.randn() \
-#                         + phi_s/beam.ring.harmonic[0]
-#         beam.dE[i] = sigma_dE * np.random.randn()
-#         
-#         if not beam.ring.is_in_separatrix(beam, beam.theta[i], beam.dE[i], beam.delta[i]): 
-#             while not beam.ring.is_in_separatrix(beam, beam.theta[i], beam.dE[i], beam.delta[i]):
-#                 beam.theta[i] = sigma_theta * np.random.randn() \
-#                         + phi_s/beam.ring.harmonic[0]
-#                 beam.dE[i] = sigma_dE * np.random.randn()
+    
+    itemindex = np.where(is_in_separatrix(GeneralParameters, RingAndRFSection,
+                                 beam.theta, beam.dE, beam.delta) == False)[0]
+    
+    
+    while itemindex.size != 0:
+    
+        beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
+                + phi_s/harmonic
+        beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
+        itemindex = np.where(is_in_separatrix(GeneralParameters, 
+                            RingAndRFSection, beam.theta, beam.dE, beam.delta) 
+                             == False)[0]
     
     
 

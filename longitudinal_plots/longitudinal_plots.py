@@ -27,16 +27,14 @@ def fig_folder():
             raise
 
 
-def plot_long_phase_space(beam, General_parameters, RF_parameters_section, xmin, xmax, ymin, ymax, 
-                          xunit=None, yunit=None, separatrix_plot=None):
+def plot_long_phase_space(beam, General_parameters, RingAndRFSection, i, xmin,
+                          xmax, ymin, ymax, xunit=None, yunit=None, 
+                          separatrix_plot=None):
 
     # Directory where longitudinal_plots will be stored
     fig_folder()
     
-    counter = General_parameters.counter[0]
     
-    print counter
-
     # Conversion from metres to nanoseconds
     if xunit == 'ns':
         coeff = 1.e9 * General_parameters.ring_radius / (beam.beta_rel * c)
@@ -91,16 +89,16 @@ def plot_long_phase_space(beam, General_parameters, RF_parameters_section, xmin,
     if xunit == None or xunit == 'rad':
         axScatter.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     axScatter.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.figtext(0.95,0.95,'%d turns' %(counter), fontsize=16, ha='right', 
+    plt.figtext(0.95,0.95,'%d turns' %(i), fontsize=16, ha='right', 
                 va='center') 
 
     # Separatrix
     if separatrix_plot == None or separatrix_plot == 'on':
         x_sep = np.linspace(xmin, xmax, 1000)
         if xunit == None or xunit == 'rad':
-            y_sep = separatrix(General_parameters, RF_parameters_section, x_sep)
+            y_sep = separatrix(General_parameters, RingAndRFSection, x_sep)
         elif xunit == 'm' or xunit == 'ns':
-            y_sep = separatrix(General_parameters, RF_parameters_section, x_sep/coeff)
+            y_sep = separatrix(General_parameters, RingAndRFSection, x_sep/coeff)
         if yunit == None or yunit == 'MeV':
             axScatter.plot(x_sep, y_sep/1.e6, 'r')
             axScatter.plot(x_sep, -1.e-6*y_sep, 'r')       
@@ -135,7 +133,7 @@ def plot_long_phase_space(beam, General_parameters, RF_parameters_section, xmin,
         label.set_rotation(-90) 
  
     # Save plot
-    fign = 'fig/long_distr_'"%d"%counter+'.png'
+    fign = 'fig/long_distr_'"%d"%i+'.png'
     plt.savefig(fign)
     plt.clf()
 
@@ -180,7 +178,7 @@ def plot_bunch_length_evol_gaussian(bunch, h5file, nturns, unit=None):
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/bunch_length_gauss_theta"], dtype=np.double)
     if unit == 'ns':
-        bl *= 1.e9/c/bunch.ring.beta_i(bunch) * bunch.ring.radius # 4-sigma bunch length
+        bl *= 1.e9/c/bunch.beta_rel * bunch.ring_radius # 4-sigma bunch length
 
     # Plot
     plt.figure(1, figsize=(8,6))
