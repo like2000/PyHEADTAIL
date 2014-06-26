@@ -164,8 +164,8 @@ class KickAcceleration(object):
         updated*
         '''
         
-        beam.dE += - self.acceleration_kick[self.counter[0]]
-        
+        beam.dE += self.acceleration_kick[self.counter[0]]
+        print self.acceleration_kick[self.counter[0]]
         # Updating the beam synchronous momentum
         beam.beta_rel = self.beta_rel_program[self.counter[0] + 1]
         beam.gamma_rel = self.gamma_rel_program[self.counter[0] + 1]
