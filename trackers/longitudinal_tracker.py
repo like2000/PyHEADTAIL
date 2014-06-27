@@ -139,7 +139,7 @@ class KickAcceleration(object):
         self.index_section = 0
         
         #: *Geometric factor for transverse emittance shrinkage due to 
-        #: acceleration* :math:`: \quad TBI`
+        #: acceleration* :math:`: \quad \frac{\beta_n\gamma_n}{\beta_{n+1}\gamma_{n+1}}`
         self.geo_emittance_factor = (self.beta_rel_program[0:-1] * 
                                      self.gamma_rel_program[0:-1]) / \
                                     (self.beta_rel_program[1:] * 
@@ -263,7 +263,7 @@ class RingAndRFSection(object):
     '''
     Definition of an RF station and part of the ring until the next station, see figure.
     
-    .. image:: https://raw.githubusercontent.com/like2000/PyHEADTAIL/PYlongitudinal/doc/source/ring_and_RFstation.png
+    .. image:: ring_and_RFstation.png
         :align: center
         :width: 600
         :height: 600
@@ -283,6 +283,10 @@ class RingAndRFSection(object):
         self.index_section = RFSectionParameters.index_section
 
         self.kick = Kick.auto_input(GeneralParameters, RFSectionParameters)
+        
+        self.drift = 0
+        
+        self.kick_acceleration = 0
         
         if np.sum(RFSectionParameters.p_increment) == 0:
             solver = 'simple'
@@ -333,25 +337,23 @@ def calc_phi_s(GeneralParameters, RF_section_parameters, accelerating_systems = 
     Above transition, for decelerating bucket: phi_s is in (Pi,3Pi/2)
     The synchronous phase is calculated at a certain moment.
     Uses beta, energy averaged over the turn."""
-     
-#     if GeneralParameters.beta_rel_program.size == GeneralParameters.n_turns + 1:
-#         beta_rel_program = GeneralParameters.beta_rel_program
-#         eta0 = GeneralParameters.eta0
-#     else:
 
     
     beta_rel_program = GeneralParameters.beta_rel_program[index_section]
     eta0 = GeneralParameters.eta0[index_section]
-    
          
-             
     if RF_section_parameters.n_rf_systems == 1:
-      
-        V0 = RF_section_parameters.voltage_program_list[0]
-        
+              
         average_beta = (beta_rel_program[1:] + beta_rel_program[0:-1])/2
+        
+        acceleration_ratio = average_beta * RF_section_parameters.p_increment / RF_section_parameters.voltage_program_list[0]
+        
+        acceleration_test = np.where((acceleration_ratio > -1) * (acceleration_ratio < 1) == False)[0]
+        
+        if acceleration_test.size > 0:
+            raise RuntimeError('Acceleration is not possible (momentum increment is too big or voltage too low) at index ' + str(acceleration_test))
            
-        phi_s = np.arcsin(average_beta * RF_section_parameters.p_increment / V0 )
+        phi_s = np.arcsin(acceleration_ratio)
           
         phi_s[(eta0[1:] + eta0[0:-1])/2 > 0] = np.pi - phi_s
     
