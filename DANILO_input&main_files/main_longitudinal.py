@@ -104,6 +104,7 @@ for i in range(N_t):
     # Track
     for m in map_:
         m.track(my_beam)
+    general_params.counter[0] += 1
     bunchmonitor.dump(my_beam)
 #     print "Momentumi %.6e eV" %beam.p0_i()
 #     print "Particle energy, theta %.6e %.6e" %(beam.dE[0], beam.theta[0])
@@ -119,11 +120,11 @@ for i in range(N_t):
 
     # Plot
     if (i % dt_plt) == 0:
-        #plot_long_phase_space(my_beam, general_params, ring, i, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
+        plot_long_phase_space(my_beam, general_params, ring, i, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
         #plot_long_phase_space(ring, beam, i, 0, 2.5, -.5e3, .5e3, xunit='ns', yunit='MeV')
 #        plot_long_phase_space(beam, i, 0, 0.0001763, -450, 450)
 #        plot_bunch_length_evol(beam, 'bunch', i, unit='ns')
-       plot_bunch_length_evol_gaussian(my_beam, 'bunch', i, unit='ns')
+#       plot_bunch_length_evol_gaussian(my_beam, 'bunch', i, unit='ns')
 
 
 

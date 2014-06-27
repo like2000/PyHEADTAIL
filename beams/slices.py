@@ -65,6 +65,13 @@ class Slices(object):
     @mean_delta.setter
     def mean_delta(self, value):
         self.mean_dE = value * self.bunch.beta_rel**2 * self.bunch.energy
+    
+    @property    
+    def mean_tau(self):
+        return self.mean_theta * self.ring_radius / (self.beta_rel * c)
+    @mean_tau.setter
+    def mean_tau(self, value):
+        self.mean_theta = value * self.beta_rel * c / self.ring_radius
 
     @property    
     def sigma_z(self):
@@ -79,6 +86,13 @@ class Slices(object):
     @sigma_delta.setter
     def sigma_delta(self, value):
         self.sigma_dE = value * self.bunch.beta_rel**2 * self.bunch.energy
+    
+    @property
+    def sigma_tau(self):
+        return self.sigma_theta * self.ring_radius / (self.beta_rel * c)
+    @sigma_tau.setter
+    def sigma_tau(self, value):
+        self.sigma_theta = value * self.beta_rel * c / self.ring_radius
 
     
     def _set_longitudinal_cuts(self, bunch):
