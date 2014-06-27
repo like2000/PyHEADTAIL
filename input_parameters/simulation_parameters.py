@@ -34,7 +34,7 @@ class GeneralParameters(object):
             self.charge = e
         elif self.particle_type is 'user_input':
             self.mass = user_mass
-            self.charge = user_charge
+            self.mass = user_charge
         else:
             raise RuntimeError('Particle type not recognized')
         
