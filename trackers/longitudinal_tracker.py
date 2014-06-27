@@ -22,8 +22,9 @@ def eta_tracking(GeneralParameters, delta, index_section = 0):
         \eta = \sum_{i}(\eta_i \, \delta^i)
 
     '''
+    
     eta = 0
-    for i in xrange( GeneralParameters.alpha_array.size ):   # order = len - 1
+    for i in xrange( GeneralParameters.alpha_array.size ):
         eta_i = getattr(GeneralParameters, 'eta' + str(i))[index_section][GeneralParameters.counter[0]]
         eta  += eta_i * (delta**i)
     return eta
@@ -63,6 +64,7 @@ class Kick(object):
         #: | *Phase offset list in [rad]* :math:`: \quad \phi_{j,n}`
         #: | *The length of the list should be equal to n_rf_systems.* 
         self.phi_offset_list = phi_offset_list
+    
     
     @staticmethod
     def auto_input(GeneralParameters, RFSectionParameters):
@@ -135,7 +137,13 @@ class KickAcceleration(object):
         
         #: *Index of the section (initialized to 0)*
         self.index_section = 0
-                
+        
+        #: *Geometric factor for transverse emittance shrinkage due to 
+        #: acceleration* :math:`: \quad TBI`
+        self.geo_emittance_factor = (self.beta_rel_program[0:-1] * 
+                                     self.gamma_rel_program[0:-1]) / \
+                                    (self.beta_rel_program[1:] * 
+                                     self.gamma_rel_program[1:])    
                 
     @staticmethod
     def auto_input(GeneralParameters, RFSectionParameters):
@@ -154,6 +162,16 @@ class KickAcceleration(object):
         temp.index_section = RFSectionParameters.index_section
         
         return temp
+    
+
+    def shrink_transverse_emittance(self, beam):
+        '''
+        *Transverse emittance shrinkage due to acceleration.*
+        '''
+        beam.x *= self.geo_emittance_factor[self.counter[0]]
+        beam.xp *= self.geo_emittance_factor[self.counter[0]]
+        beam.y *= self.geo_emittance_factor[self.counter[0]]
+        beam.yp *= self.geo_emittance_factor[self.counter[0]]
             
         
     def track(self, beam):
@@ -171,6 +189,9 @@ class KickAcceleration(object):
         beam.gamma_rel = self.gamma_rel_program[self.counter[0] + 1]
         beam.energy = self.energy_program[self.counter[0] + 1]
         beam.momentum = self.momentum_program[self.counter[0] + 1]
+        
+        # Shrinking emittance in transverse plane
+        self.shrink_transverse_emittance(beam)
         
 
 class Drift(object):
