@@ -36,15 +36,8 @@ class Beam(object):
         self.theta = np.empty([n_macroparticles])
         self.dE = np.empty([n_macroparticles])
      
-        # Initial coordinates (e.g. for ecloud)
-        self.x0 = np.empty([n_macroparticles])
-        self.xp0 = np.empty([n_macroparticles])
-        self.y0 = np.empty([n_macroparticles])
-        self.yp0 = np.empty([n_macroparticles])
-        self.theta0 = np.empty([n_macroparticles])
-        self.dE0 = np.empty([n_macroparticles])
-        
         # Transverse and longitudinal properties, statistics       
+        
         self.alpha_x = 0
         self.beta_x = 0
         self.epsn_x = 0
@@ -82,31 +75,15 @@ class Beam(object):
         self.dE = value * self.beta_rel**2 * self.energy
 
     @property
-    def z0(self):
-        return - self.theta0 * self.ring_radius
-    @z0.setter
-    def z0(self, value):
-        self.theta0 = - value / self.ring_radius
-    
-    @property
-    def delta0(self):
-        return self.dE0 / (self.beta_rel**2 * self.energy)
-    @delta0.setter
-    def delta0(self, value):
-        self.dE0 = value * self.beta_rel**2 * self.energy
+    def tau(self):
+        return  self.theta * self.ring_radius / (self.beta_rel * c)
+     
+    @tau.setter
+    def tau(self, value):
+        self.theta = value * self.beta_rel * c / self.ring_radius
 
-    def reinit(self):
-
-        np.copyto(self.x, self.x0)
-        np.copyto(self.xp, self.xp0)
-        np.copyto(self.y, self.y0)
-        np.copyto(self.yp, self.yp0)
-        np.copyto(self.theta, self.theta0)
-        np.copyto(self.dE, self.dE0)
-        np.copyto(self.z, self.z0)
-        np.copyto(self.delta, self.delta0)
-        
     # Statistics
+    
     @property    
     def mean_z(self):
         return - self.mean_theta * self.ring_radius
@@ -120,6 +97,13 @@ class Beam(object):
     @mean_delta.setter
     def mean_delta(self, value):
         self.mean_dE = value * self.beta_rel**2 * self.energy
+    
+    @property    
+    def mean_tau(self):
+        return self.mean_theta * self.ring_radius / (self.beta_rel * c)
+    @mean_tau.setter
+    def mean_tau(self, value):
+        self.mean_theta = value * self.beta_rel * c / self.ring_radius
 
     @property    
     def sigma_z(self):
@@ -134,6 +118,13 @@ class Beam(object):
     @sigma_delta.setter
     def sigma_delta(self, value):
         self.sigma_dE = value * self.beta_rel**2 * self.energy
+    
+    @property
+    def sigma_tau(self):
+        return self.sigma_theta * self.ring_radius / (self.beta_rel * c)
+    @sigma_tau.setter
+    def sigma_tau(self, value):
+        self.sigma_theta = value * self.beta_rel * c / self.ring_radius
 
     
     def longit_statistics(self, gaussian_fit = "Off"):
