@@ -23,11 +23,15 @@ def eta_tracking(GeneralParameters, delta, index_section = 0):
 
     '''
     
-    eta = 0
-    for i in xrange( GeneralParameters.alpha_array.size ):
-        eta_i = getattr(GeneralParameters, 'eta' + str(i))[index_section][GeneralParameters.counter[0]]
-        eta  += eta_i * (delta**i)
-    return eta
+    if GeneralParameters.alpha_array.size == 1:
+        return GeneralParameters.eta0[index_section][GeneralParameters.counter[0]]
+    else:
+        eta = 0
+        for i in xrange( GeneralParameters.alpha_array.size ):
+            eta_i = getattr(GeneralParameters, 'eta' + str(i))[index_section]\
+                    [GeneralParameters.counter[0]]
+            eta  += eta_i * (delta**i)
+        return eta
 
 
 class Kick(object):
@@ -189,7 +193,7 @@ class KickAcceleration(object):
         beam.gamma_rel = self.gamma_rel_program[self.counter[0] + 1]
         beam.energy = self.energy_program[self.counter[0] + 1]
         beam.momentum = self.momentum_program[self.counter[0] + 1]
-        
+          
         # Shrinking emittance in transverse plane
         self.shrink_transverse_emittance(beam)
         
@@ -350,6 +354,7 @@ def calc_phi_s(GeneralParameters, RF_section_parameters, accelerating_systems = 
         
         acceleration_test = np.where((acceleration_ratio > -1) * (acceleration_ratio < 1) == False)[0]
         
+        
         if acceleration_test.size > 0:
             raise RuntimeError('Acceleration is not possible (momentum increment is too big or voltage too low) at index ' + str(acceleration_test))
            
@@ -392,8 +397,8 @@ def hamiltonian(GeneralParameters, RingAndRFSection, theta, dE, delta):
         counter = GeneralParameters.counter[0]
         h0 = RingAndRFSection.kick.harmonic_number_list[0][counter]
         V0 = RingAndRFSection.kick.voltage_program_list[0][counter]
-         
-        c1 = eta_tracking(GeneralParameters, delta, counter) * c * np.pi / (GeneralParameters.ring_circumference * 
+        
+        c1 = eta_tracking(GeneralParameters, delta) * c * np.pi / (GeneralParameters.ring_circumference * 
              GeneralParameters.beta_rel_program[0][counter] * GeneralParameters.energy_program[0][counter] )
         c2 = c * GeneralParameters.beta_rel_program[0][counter] * V0 / (h0 * GeneralParameters.ring_circumference)
          
