@@ -199,29 +199,62 @@ class KickAcceleration(object):
         
 
 class Drift(object):
+    '''
+    *The drift updates the longitudinal coordinate of the particle after 
+    applying the energy kick. The two options of tracking are: full, 
+    corresponding to the cases where beta is not considered constant and
+    the slippage factor may be of higher orders; and simple, where beta
+    is approximatively one and the slippage factor is of order 0. Corresponding
+    to the equations:*
     
-    """The drift updates the longitudinal coordinate of the particle after 
-    applying the energy kick; self.length is the drift length.  
-
-    The correction factor \\beta_{n+1} / \\beta_n is necessary when the 
-    synchronous energy is low and the range is synchronous energy is large,
-    to avoid a shrinking phase space."""
+    .. math::
+        \\theta_{n+1} = \\frac{\\beta_{n+1}}{\\beta_n}\\theta_n + 2\\pi\\left(\\frac{1}{1 - \\eta\\delta_n} - 1\\right)\\frac{L}{C} \quad \\text{(full)}
+        
+    .. math::
+        \\approx> \\theta_{n+1} = \\theta_n + 2\\pi\\eta_0\\delta_n\\frac{L}{C} \quad \\text{(simple)}
+    
+    '''
 
     def __init__(self, GeneralParameters, drift_length, solver = 'full'):
         
         
+        ''''This can be optimized ! In order to make it more modular, the
+        slippage factor has to be passed as an input parameter of the Drift
+        object (as a library for example) instead of the full GeneralParameters
+        object'''
+        #: *Passing the GeneralParameters object in order to pass all the orders
+        #: of slippage factor*
         self.GeneralParameters = GeneralParameters
+        
+        #: *Drift length in [m]* :math:`: \quad L`
         self.drift_length = drift_length
+        
+        #: *Ring circumference in [m]* :math:`: \quad C`
         self.ring_circumference = GeneralParameters.ring_circumference
+        
+        #: *The counter has to be input as a list, to be passed as by reference.
+        #: The index of the counter is* :math:`: \quad n`
         self.counter = GeneralParameters.counter
+        
+        #: *The solver used (simple or full, see in Drift.track).*
         self.solver = solver
+        
+        #: *Relativistic beta (program)* :math:`: \quad \beta_n`
         self.beta_rel_program = GeneralParameters.beta_rel_program
+        
+        #: *Beta ratio*  :math:`: \quad \frac{\beta_{n+1}}{\beta_{n}}`
         self.beta_ratio = 1
+        
+        #: *Length ratio between drift and ring circumference*  
+        #: :math:`: \quad \frac{L}{C}`
         self.length_ratio = self.drift_length / self.ring_circumference
+        
+        #: *Index of the section (initialized to 0)*
         self.index_section = 0
                 
         if self.solver == 'full':
-            self.beta_ratio = self.beta_rel_program[0][1:] / self.beta_rel_program[0][0:-1]
+            self.beta_ratio = self.beta_rel_program[0][1:] /\
+                              self.beta_rel_program[0][0:-1]
                     
     @staticmethod
     def auto_input(GeneralParameters, RFSectionParameters, solver = 'full'):
@@ -250,58 +283,82 @@ class Drift(object):
 
                 
     def track(self, beam):  
+        '''
+        *Applying the Drift equation of motion to the beam. The 
+        Drift object can directly be used in the mapping as a single 
+        element.*
+        '''
         
         if self.solver == 'full': 
             beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
-                         + 2 * np.pi * (1 / (1 - self.eta_tracking(beam.delta) * beam.delta) - 1) \
-                         * self.length_ratio
+                         + 2 * np.pi * (1 / (1 - self.eta_tracking(beam.delta) * 
+                                             beam.delta) - 1) * self.length_ratio
         elif self.solver == 'simple':
             beam.theta = beam.theta \
                          + 2 * np.pi * self.GeneralParameters.eta0[self.index_section][self.counter[0]] \
                          * beam.delta * self.length_ratio
         else:
-            raise RuntimeError("ERROR: Choice of longitudinal solver not recognized! Aborting...")
+            raise RuntimeError("ERROR: Choice of longitudinal solver not \
+                               recognized! Aborting...")
         
 
 class RingAndRFSection(object):
     '''
-    Definition of an RF station and part of the ring until the next station, see figure.
+    *Definition of an RF station and part of the ring until the next station, 
+    see figure.*
     
     .. image:: ring_and_RFstation.png
         :align: center
         :width: 600
         :height: 600
         
-    The time step is fixed to be one turn, but the tracking can consist of multiple
-    ring_and_RFstation objects. In this case, the user should make sure that the lengths
-    of the stations sum up exactly to the circumference.
-    Each RF station may contain several RF harmonic systems which are considered to be
-    in the same location. First, a kick from the cavity voltage(s) is applied, then a
-    kick from the accelerating magnets, and finally a drift. 
-    If one wants to do minimal longitudinal tracking, defining the RF systems in the 
-    station is not necessary. 
+    *The time step is fixed to be one turn, but the tracking can consist of 
+    multiple RingAndRFSection objects. In this case, the user should make sure 
+    that the lengths of the stations sum up exactly to the circumference or use
+    the FullRingAndRF object in order to let the code pre-process the parameters.
+    Each RF station may contain several RF harmonic systems which are considered
+    to be in the same location. First, a kick from the cavity voltage(s) is applied, 
+    then an accelerating kick in case the momentum program presents variations, 
+    and finally a drift kick between stations.*
     '''
         
     def __init__(self, GeneralParameters, RFSectionParameters, index_section = 0):
         
+        #: *Index of the section*
         self.index_section = RFSectionParameters.index_section
-
+        
+        #: *Kick object generated according to the GeneralParameters and
+        #: RFSectionParameters, for the proper index_section*
         self.kick = Kick.auto_input(GeneralParameters, RFSectionParameters)
         
+        #: *Drift object generated according to the GeneralParameters and
+        #: RFSectionParameters, for the proper index_section.
+        #: The 'full' option for the equation of motion will be set if there
+        #: is acceleration, 'simple' instead.*
         self.drift = 0
         
+        #: *KickAcceleration object generated according to the GeneralParameters
+        #: and RFSectionParameters, for the proper index_section.
+        #: This will only be generated if there are variations in the momentum 
+        #: program.*
         self.kick_acceleration = 0
         
+        # This part might need more options !
         if np.sum(RFSectionParameters.p_increment) == 0:
             solver = 'simple'
-            self.drift = Drift.auto_input(GeneralParameters, RFSectionParameters, solver)
+            self.drift = Drift.auto_input(GeneralParameters, RFSectionParameters, 
+                                          solver)
             self.elements = [self.kick] + [self.drift]
         else:
             solver = 'full'
-            self.drift = Drift.auto_input(GeneralParameters, RFSectionParameters, solver)
-            self.kick_acceleration = KickAcceleration.auto_input(GeneralParameters, RFSectionParameters)
+            self.drift = Drift.auto_input(GeneralParameters, RFSectionParameters, 
+                                          solver)
+            self.kick_acceleration = KickAcceleration.auto_input(GeneralParameters, 
+                                                                 RFSectionParameters)
             self.elements = [self.kick] + [self.kick_acceleration] + [self.drift]
-            
+        
+        #: *Synchronous phase for this section, calucated from the gamma
+        #: transition and the momentum program.*
         self.phi_s = calc_phi_s(GeneralParameters, RFSectionParameters)
           
     def track(self, beam):
