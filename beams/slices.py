@@ -2,6 +2,7 @@
 @authors: Hannes Bartosik,
           Kevin Li,
           Michael Schenk
+          Danilo Quartullo
 @date:    06/01/2014
 '''
 
@@ -9,7 +10,6 @@ import numpy as np
 from random import sample
 import cobra_functions.stats as cp
 from scipy.constants import c
-
 
 
 class Slices(object):
@@ -22,26 +22,28 @@ class Slices(object):
         Constructor
         '''
         
+        self.bunch = None
+        
         self.n_slices = n_slices
         self.n_sigma = n_sigma
         self.unit = unit
         self.mode = mode
 
-        self.mean_x = np.zeros(n_slices)
-        self.mean_xp = np.zeros(n_slices)
-        self.mean_y = np.zeros(n_slices)
-        self.mean_yp = np.zeros(n_slices)
-        self.mean_theta = np.zeros(n_slices)
-        self.mean_dE = np.zeros(n_slices)
+        self.mean_x = np.empty(n_slices)
+        self.mean_xp = np.empty(n_slices)
+        self.mean_y = np.empty(n_slices)
+        self.mean_yp = np.empty(n_slices)
+        self.mean_theta = np.empty(n_slices)
+        self.mean_dE = np.empty(n_slices)
         
-        self.sigma_x = np.zeros(n_slices)
-        self.sigma_y = np.zeros(n_slices)
-        self.sigma_theta = np.zeros(n_slices)
-        self.sigma_dE = np.zeros(n_slices)
+        self.sigma_x = np.empty(n_slices)
+        self.sigma_y = np.empty(n_slices)
+        self.sigma_theta = np.empty(n_slices)
+        self.sigma_dE = np.empty(n_slices)
         
-        self.epsn_x = np.zeros(n_slices)
-        self.epsn_y = np.zeros(n_slices)
-        self.eps_rms_l = np.zeros(n_slices)
+        self.epsn_x = np.empty(n_slices)
+        self.epsn_y = np.empty(n_slices)
+        self.eps_rms_l = np.empty(n_slices)
         
         if cut_left != None and cut_right != None:
             self.cut_left = cut_left
@@ -52,63 +54,87 @@ class Slices(object):
     
     @property    
     def mean_z(self):
-        return - self.mean_theta * self.ring.radius 
+        return - self.mean_theta * self.bunch.ring_radius 
     @mean_z.setter
     def mean_z(self, value):
-        self.mean_theta = - value / self.ring.radius 
+        self.mean_theta = - value / self.bunch.ring_radius 
     
     @property
     def mean_delta(self):
-        return self.mean_dE / (self.ring.beta_i(self)**2 * self.ring.energy_i(self))
+        return self.mean_dE / (self.bunch.beta_rel**2 * self.bunch.energy)
     @mean_delta.setter
     def mean_delta(self, value):
-        self.mean_dE = value * self.ring.beta_i(self)**2 * self.ring.energy_i(self)
+        self.mean_dE = value * self.bunch.beta_rel**2 * self.bunch.energy
+    
+    @property    
+    def mean_tau(self):
+        return self.mean_theta * self.ring_radius / (self.beta_rel * c)
+    @mean_tau.setter
+    def mean_tau(self, value):
+        self.mean_theta = value * self.beta_rel * c / self.ring_radius
 
     @property    
     def sigma_z(self):
-        return - self.sigma_theta * self.ring.radius 
+        return - self.sigma_theta * self.bunch.ring_radius 
     @sigma_z.setter
     def sigma_z(self, value):
-        self.sigma_theta = - value / self.ring.radius 
+        self.sigma_theta = - value / self.bunch.ring_radius 
     
     @property
     def sigma_delta(self):
-        return self.sigma_dE / (self.ring.beta_i(self)**2 * self.ring.energy_i(self))
+        return self.sigma_dE / (self.bunch.beta_rel**2 * self.bunch.energy)
     @sigma_delta.setter
     def sigma_delta(self, value):
-        self.sigma_dE = value * self.ring.beta_i(self)**2 * self.ring.energy_i(self)
+        self.sigma_dE = value * self.bunch.beta_rel**2 * self.bunch.energy
+    
+    @property
+    def sigma_tau(self):
+        return self.sigma_theta * self.ring_radius / (self.beta_rel * c)
+    @sigma_tau.setter
+    def sigma_tau(self, value):
+        self.sigma_theta = value * self.beta_rel * c / self.ring_radius
 
     
-    def _set_longitudinal_cuts(self, bunch):
+    def set_longitudinal_cuts(self, bunch):
 
-        if self.n_sigma == None and self.unit == "theta":
-            cut_left = bunch.theta[0]
-            cut_right = bunch.theta[-1 - bunch.n_macroparticles_lost]
-        elif self.n_sigma == None and self.unit == "z":
-            cut_left = bunch.z[0]
-            cut_right = bunch.z[-1 - bunch.n_macroparticles_lost]
-        elif self.unit == "theta":
-            mean_theta = cp.mean(bunch.theta[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            sigma_theta = cp.std(bunch.theta[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            cut_left = mean_theta - self.n_sigma * sigma_theta
-            cut_right = mean_theta + self.n_sigma * sigma_theta
+        if self.n_sigma == None:
+            if self.unit == "theta":
+                cut_left = bunch.theta[0]
+                cut_right = bunch.theta[-1 - bunch.n_macroparticles_lost]
+            elif self.unit == "z":
+                cut_left = bunch.z[0]
+                cut_right = bunch.z[-1 - bunch.n_macroparticles_lost]
+            else:
+                cut_left = bunch.tau[0]
+                cut_right = bunch.tau[-1 - bunch.n_macroparticles_lost]
         else:
-            mean_z = cp.mean(bunch.z[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            sigma_z = cp.std(bunch.z[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
-            cut_left = mean_z - self.n_sigma * sigma_z
-            cut_right = mean_z + self.n_sigma * sigma_z
-
+            if self.unit == "theta":
+                mean_theta = cp.mean(bunch.theta[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+                sigma_theta = cp.std(bunch.theta[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+                cut_left = mean_theta - self.n_sigma * sigma_theta
+                cut_right = mean_theta + self.n_sigma * sigma_theta
+            elif self.unit == "z":
+                mean_z = cp.mean(bunch.z[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+                sigma_z = cp.std(bunch.z[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+                cut_left = mean_z - self.n_sigma * sigma_z
+                cut_right = mean_z + self.n_sigma * sigma_z
+            else:
+                mean_tau = cp.mean(bunch.tau[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+                sigma_tau = cp.std(bunch.tau[:bunch.n_macroparticles - bunch.n_macroparticles_lost])
+                cut_left = mean_tau - self.n_sigma * sigma_tau
+                cut_right = mean_tau + self.n_sigma * sigma_tau
+            
         return cut_left, cut_right
 
 
-    def _slice_constant_space(self, bunch):
+    def slice_constant_space(self, bunch):
         
         self.sort_particles(bunch)
 
         try:
             cut_left, cut_right = self.cut_left, self.cut_right
         except AttributeError:
-            cut_left, cut_right = self._set_longitudinal_cuts(bunch)
+            cut_left, cut_right = self.set_longitudinal_cuts(bunch)
             self.bins = np.linspace(cut_left, cut_right, self.n_slices + 1)
             self.centers = self.bins[:-1] + (self.bins[1:] - self.bins[:-1]) / 2.
         
@@ -118,24 +144,34 @@ class Slices(object):
             
             self.n_cut_tail = np.searchsorted(bunch.z[:n_macroparticles_alive], cut_left)
             self.n_cut_head = np.searchsorted(bunch.z[:n_macroparticles_alive], cut_right)
-    
             self.first_index_in_bin = np.searchsorted(bunch.z[:n_macroparticles_alive], self.bins)
-            if (self.bins[-1] in bunch.z[:n_macroparticles_alive]): first_index_in_bin[-1] += 1
+            if (self.bins[-1] in bunch.z[:n_macroparticles_alive]): self.first_index_in_bin[-1] += 1
             
-        else:
+        elif self.unit == 'theta':
+            
             self.n_cut_tail = np.searchsorted(bunch.theta[:n_macroparticles_alive], cut_left)
             self.n_cut_head = np.searchsorted(bunch.theta[:n_macroparticles_alive], cut_right)
-    
             self.first_index_in_bin = np.searchsorted(bunch.theta[:n_macroparticles_alive], self.bins)
-            if (self.bins[-1] in bunch.theta[:n_macroparticles_alive]): first_index_in_bin[-1] += 1
+            if (self.bins[-1] in bunch.theta[:n_macroparticles_alive]): self.first_index_in_bin[-1] += 1
+        
+        else:
             
+            self.n_cut_tail = np.searchsorted(bunch.tau[:n_macroparticles_alive], cut_left)
+            self.n_cut_head = np.searchsorted(bunch.tau[:n_macroparticles_alive], cut_right)
+            self.first_index_in_bin = np.searchsorted(bunch.tau[:n_macroparticles_alive], self.bins)
+            if (self.bins[-1] in bunch.tau[:n_macroparticles_alive]): self.first_index_in_bin[-1] += 1
             
         self.n_macroparticles = np.diff(self.first_index_in_bin)
 
-        self.set_slice_index_of_particle(bunch)
-       
+        
+    #def slice_constant_space_histogram(self, bunch):
+        
+        
+        
+        
+        
 
-    def _slice_constant_charge(self, bunch):
+    def slice_constant_charge(self, bunch):
         
         ################### TO BE CHECKED!!!!!!!!!
         
@@ -168,8 +204,8 @@ class Slices(object):
         # 2. z-bins
         # Get indices of the particles defining the bin edges
         n_macroparticles_all = np.hstack((self.n_cut_tail, self.n_macroparticles, self.n_cut_head))
-        first_index_in_bin = np.cumsum(n_macroparticles_all)
-        self.z_index = first_index_in_bin[:-1]
+        self.first_index_in_bin = np.cumsum(n_macroparticles_all)
+        self.z_index = self.first_index_in_bin[:-1]
         self.z_index = (self.z_index).astype(int)
 
 
@@ -179,30 +215,17 @@ class Slices(object):
         self.z_centers = (self.z_bins[:-1] + self.z_bins[1:]) / 2.
 
 
-        self._set_slice_index_of_particle(bunch)
-
-
         # # self.z_centers = map((lambda i: cp.mean(bunch.z[first_index_in_bin[i]:first_index_in_bin[i+1]])), np.arange(self.n_slices)
 
 
-    def set_slice_index_of_particle(self, bunch):
-
-        try:
-            self.slice_index_of_particle
-        except AttributeError:
-            self.slice_index_of_particle = np.zeros(bunch.n_macroparticles, dtype=np.int)
-
-        for i in range(self.n_slices):
-            self.slice_index_of_particle[self.first_index_in_bin[i]:self.first_index_in_bin[i+1]] = i
-
-    
     def track(self, bunch):
         
+        self.bunch = bunch
         bunch.beam_is_sliced = True
         if self.mode == 'const_charge':
             self._slice_constant_charge(bunch)
         elif self.mode == 'const_space':
-            self._slice_constant_space(bunch)
+            self.slice_constant_space(bunch)
         bunch.slicing = self
 
 
@@ -234,26 +257,29 @@ class Slices(object):
             self.sigma_dE[i] = cp.std(dE)
 
 
-            self.epsn_x[i] = cp.emittance(x, xp) * bunch.ring.gamma_i(bunch) * bunch.ring.beta_i(bunch) * 1e6
-            self.epsn_y[i] = cp.emittance(y, yp) * bunch.ring.gamma_i(bunch) * bunch.ring.beta_i(bunch) * 1e6
-            self.eps_rms_l[i] = np.pi * self.sigma_dE[i] * self.sigma_theta[i] * bunch.ring.radius / (bunch.ring.beta_i(bunch) * c)
+            self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma_rel * bunch.beta_rel * 1e6
+            self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma_rel * bunch.beta_rel * 1e6
+            self.eps_rms_l[i] = np.pi * self.sigma_dE[i] * self.sigma_theta[i] * bunch.ring_radius / (bunch.beta_rel * c)
 
     
     def sort_particles(self, bunch):
        
         bunch.n_macroparticles_lost = (bunch.n_macroparticles - np.count_nonzero(bunch.id))
     
-        if self.unit == 'theta':
+        if self.unit == 'theta' or self.unit == 'tau':
+            
             if bunch.n_macroparticles_lost:
                 argsorted = np.lexsort((bunch.theta, -np.sign(bunch.id))) 
             else:
                 argsorted = np.argsort(bunch.theta)
-        else:
+            
+        elif self.unit == 'z':
+            
             if bunch.n_macroparticles_lost:
                 argsorted = np.lexsort((bunch.z, -np.sign(bunch.id))) 
             else:
                 argsorted = np.argsort(bunch.z)
-    
+        
         bunch.x = bunch.x.take(argsorted)
         bunch.xp = bunch.xp.take(argsorted)
         bunch.y = bunch.y.take(argsorted)
@@ -261,5 +287,6 @@ class Slices(object):
         bunch.theta = bunch.theta.take(argsorted)
         bunch.dE = bunch.dE.take(argsorted)
         bunch.id = bunch.id.take(argsorted)
-
+    
+        
    
