@@ -50,11 +50,8 @@ class Beam(object):
         # Particle/loss counts
         self.n_macroparticles = n_macroparticles
         self.n_macroparticles_lost = 0
+        self.n_macroparticles_alive = self.n_macroparticles - self.n_macroparticles_lost
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
-        
-        # Boolean value: is the beam sliced?
-        self.beam_is_sliced = False
-        self.slicing = None
 
             
     # Coordinate conversions
@@ -127,38 +124,39 @@ class Beam(object):
         self.sigma_theta = value * self.beta_rel * c / self.ring_radius
 
     
-    def longit_statistics(self, gaussian_fit = "Off"):
+    def longit_statistics(self, gaussian_fit, slices):
         
-        self.mean_theta = cp.mean(self.theta)
-        self.mean_dE = cp.mean(self.dE)
-        self.sigma_theta = cp.std(self.theta)
-        self.sigma_dE = cp.std(self.dE)
+        self.mean_theta = np.mean(self.theta)
+        self.mean_dE = np.mean(self.dE)
+        self.sigma_theta = np.std(self.theta)
+        self.sigma_dE = np.std(self.dE)
        
         ##### R.m.s. emittance in Gaussian approximation, other emittances to be defined
         self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
                         * self.ring_radius / (self.beta_rel * c) # in eVs
 
         ##### Gaussian fit to theta-profile
-        if self.beam_is_sliced == True and gaussian_fit == "On":
-            self.slicing.compute_statistics(self)
-            p0 = [max(self.slicing.n_macroparticles), self.mean_theta, self.sigma_theta]
+        if gaussian_fit == "On":
+
+            p0 = [max(slices.n_macroparticles), self.mean_theta, self.sigma_theta]
         
             def gauss(x, *p):
                 A, x0, sx = p
                 return A*np.exp(-(x-x0)**2/2./sx**2) 
-            pfit, pvar = curve_fit(gauss, self.slicing.mean_theta[0:], 
-                                   self.slicing.n_macroparticles[0:], p0 = p0)
+            
+            pfit = curve_fit(gauss, slices.bins_centers, 
+                                   slices.n_macroparticles, p0)[0]
             self.bl_gauss = 4*abs(pfit[2]) 
 
                                 
     def transv_statistics(self):
         
-        self.mean_x = cp.mean(self.x)
-        self.mean_xp = cp.mean(self.xp)
-        self.mean_y = cp.mean(self.y)
-        self.mean_yp = cp.mean(self.yp)
-        self.sigma_x = cp.std(self.x)
-        self.sigma_y = cp.std(self.y)
+        self.mean_x = np.mean(self.x)
+        self.mean_xp = np.mean(self.xp)
+        self.mean_y = np.mean(self.y)
+        self.mean_yp = np.mean(self.yp)
+        self.sigma_x = np.std(self.x)
+        self.sigma_y = np.std(self.y)
         self.epsn_x_xp = cp.emittance(self.x, self.xp) * self.gamma_rel \
                         * self.beta_rel * 1e6
         self.epsn_y_yp = cp.emittance(self.y, self.yp) * self.gamma_rel \

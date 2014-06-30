@@ -2,6 +2,7 @@
 from __future__ import division
 import numpy as np
 from scipy.constants import c, e, m_p
+import time
 
 from input_parameters.simulation_parameters import GeneralParameters
 from input_parameters.rf_parameters import *
@@ -28,7 +29,7 @@ p_s = 450.e9         # Synchronous momentum [eV]
 
 
 # Tracking details
-N_t = 200           # Number of turns to track
+N_t = 2000           # Number of turns to track
 dt_out = 20          # Time steps between output
 dt_plt = 20          # Time steps between plots
 
@@ -79,10 +80,9 @@ longitudinal_gaussian_matched(general_params, ring, my_beam, sigma_theta*2)
 
 
 number_slices = 200
-slice_beam = Slices(number_slices, cut_left = 0, cut_right = 0.0001763, unit = "theta")
+slice_beam = Slices(number_slices, cut_left = 0, cut_right = 0.0001763, unit = "theta", mode = 'const_space')
 slice_beam.track(my_beam)
-bunchmonitor.dump(my_beam)
-
+bunchmonitor.dump(my_beam, slice_beam)
 
 
 # Accelerator map
@@ -100,12 +100,14 @@ print ""
 # Tracking ---------------------------------------------------------------------
 for i in range(N_t):
     
-    
+    t0 = time.clock()
     # Track
     for m in map_:
         m.track(my_beam)
     general_params.counter[0] += 1
-    bunchmonitor.dump(my_beam)
+    bunchmonitor.dump(my_beam, slice_beam)
+    t1 = time.clock()
+    print t1 - t0
 #     print "Momentumi %.6e eV" %beam.p0_i()
 #     print "Particle energy, theta %.6e %.6e" %(beam.dE[0], beam.theta[0])
     # Output data
@@ -120,11 +122,11 @@ for i in range(N_t):
 
     # Plot
     if (i % dt_plt) == 0:
-        plot_long_phase_space(my_beam, general_params, ring, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
+#        plot_long_phase_space(my_beam, general_params, ring, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
         #plot_long_phase_space(ring, beam, i, 0, 2.5, -.5e3, .5e3, xunit='ns', yunit='MeV')
 #        plot_long_phase_space(beam, i, 0, 0.0001763, -450, 450)
 #        plot_bunch_length_evol(beam, 'bunch', i, unit='ns')
-#       plot_bunch_length_evol_gaussian(my_beam, 'bunch', i, unit='ns')
+        plot_bunch_length_evol_gaussian(my_beam, 'bunch', i, unit='ns')
 
 
 
