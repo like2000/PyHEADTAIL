@@ -1,6 +1,7 @@
 
 from __future__ import division
 import numpy as np
+from numpy import loadtxt
 from scipy.constants import c, e, m_p
 import time
 
@@ -12,6 +13,7 @@ from beams.longitudinal_distributions import *
 from longitudinal_plots.longitudinal_plots import *
 from monitors.monitors import *
 from beams.slices import *
+from impedances.longitudinal_impedance import *
 
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
@@ -84,9 +86,15 @@ slice_beam = Slices(number_slices, cut_left = 0, cut_right = 0.0001763, unit = "
 slice_beam.track(my_beam)
 bunchmonitor.dump(my_beam, slice_beam)
 
+temp = loadtxt('new_HQ_table.dat', comments = '!')
+R_shunt = temp[:,2]*10**6
+f_res = temp[:,0]*10**9
+Q_factor = temp[:,1]
+resonator_impedance = Long_BB_resonators(R_shunt, f_res, Q_factor, slice_beam, my_beam, acceleration = 'off')
+
 
 # Accelerator map
-map_ = [ring] + [slice_beam] # No intensity effects, no aperture limitations
+map_ = [slice_beam] + [resonator_impedance] + [ring]# No intensity effects, no aperture limitations
 print "Map set"
 print ""
 
@@ -122,11 +130,11 @@ for i in range(N_t):
 
     # Plot
     if (i % dt_plt) == 0:
-#        plot_long_phase_space(my_beam, general_params, ring, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
+        plot_long_phase_space(my_beam, general_params, ring, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
         #plot_long_phase_space(ring, beam, i, 0, 2.5, -.5e3, .5e3, xunit='ns', yunit='MeV')
 #        plot_long_phase_space(beam, i, 0, 0.0001763, -450, 450)
 #        plot_bunch_length_evol(beam, 'bunch', i, unit='ns')
-        plot_bunch_length_evol_gaussian(my_beam, 'bunch', i, unit='ns')
+#        plot_bunch_length_evol_gaussian(my_beam, 'bunch', i, unit='ns')
 
 
 

@@ -76,7 +76,7 @@ class Long_BB_resonators(Wakefields):
     '''
     classdocs
     '''
-    def __init__(self, R_shunt, frequency, Q, slices):
+    def __init__(self, R_shunt, frequency, Q, slices, bunch, acceleration):
         '''
         Constructor
         '''
@@ -84,47 +84,68 @@ class Long_BB_resonators(Wakefields):
         self.frequency = np.array([frequency]).flatten()
         self.Q = np.array([Q]).flatten()
         assert(len(self.R_shunt) == len(self.frequency) == len(self.Q))
+        
         self.slices = slices
-        if self.slices.unit =
+        self.bunch = bunch
+        self.acceleration = acceleration
+        if self.slices.mode == 'const_charge':
+            self.mode = "matrix_no_precalc"
+        elif self.acceleration == 'off':
+            self.mode = 'matrix_with_precalc'
+            dist_betw_centers = slices.bins_centers - np.transpose([slices.bins_centers])
+            self.wake_matrix = self.wake_longitudinal(dist_betw_centers, self.bunch)
+        elif self.slices.unit == 'tau':
+            self.mode = 'matrix_with_precalc'
+            dist_betw_centers = slices.bins_centers - np.transpose([slices.bins_centers])
+            self.wake_matrix = self.wake_longitudinal(dist_betw_centers, self.bunch)
+        else:
+            self.mode = "matrix_no_precalc"
         
-        
-        dist_centers_tau = slices.z_centers - np.transpose([slices.z_centers])
-        self.wake_matrix = self.wake_longitudinal(dz_to_target_slice)
-        
-        
-    def wake_longitudinal(self, tau):
-        return reduce(lambda x,y: x+y, [self.wake_BB_resonator(self.R_shunt[i], self.frequency[i], self.Q[i], tau) for i in np.arange(len(self.Q))])
+    
+    def wake_longitudinal(self, dist_betw_centers, bunch):
+        return reduce(lambda x,y: x+y, [self.wake_BB_resonator(self.R_shunt[i],
+         self.frequency[i], self.Q[i], dist_betw_centers, bunch) for i in np.arange(len(self.Q))])
 
     
-    def wake_BB_resonator(self, R_shunt, frequency, Q, tau):        
+    def wake_BB_resonator(self, R_shunt, frequency, Q, dist_betw_centers, bunch):        
         
         omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
         omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
-
-        wake =  2 * R_shunt * alpha * np.exp(-alpha * tau) * \
-            (np.cos(omegabar * tau) - alpha / omegabar * np.sin(omegabar * tau))
+        
+        if self.slices.unit == 'tau':
+            dtau = dist_betw_centers
+            wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
+                (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
+        elif self.slices.unit == 'z':
+            dtau = - dist_betw_centers / (bunch.beta_rel * c)
+            wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
+                (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
+        else:
+            dtau = (bunch.ring_radius * dist_betw_centers) / (bunch.beta_rel * c)
+            wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
+                (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
         
         return wake
         
-        
+    
     def track(self, bunch):
         
-        self.convolution_plus_kick(bunch)
-    
-    def wake_factor(self, bunch):
+        if self.mode == "matrix_no_precalc":
+            dist_betw_centers = self.slices.bins_centers - np.transpose([self.slices.bins_centers])
+            self.wake_matrix = self.wake_longitudinal(dist_betw_centers, bunch)
         
-        particles_per_macroparticle = bunch.intensity / bunch.n_macroparticles
-        return -(bunch.charge) ** 2 / (bunch.mass * bunch.gamma_rel * (bunch.beta_rel * c) ** 2) * particles_per_macroparticle
-
-    
-    def convolution_plus_kick(self, bunch): 
-        
-        self.longitudinal_kick = np.dot(self.slices.n_macroparticles, self.wake_matrix) * self.wake_factor(bunch)
+        self.longitudinal_kick = - bunch.charge * np.dot(
+                                self.slices.n_macroparticles, self.wake_matrix) 
         
         for i in range(0, self.slices.n_slices):
             
-            bunch.dp[self.slices.first_index_in_bin[i]:self.slices.first_index_in_bin[i+1]] += self.longitudinal_kick[i]
+            bunch.dE[self.slices.first_index_in_bin[i]:
+              self.slices.first_index_in_bin[i+1]] += self.longitudinal_kick[i]
+    
+    
+    
+
         
   
  
