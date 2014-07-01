@@ -1,41 +1,26 @@
 '''
 
-@author: Hannes Bartosik, Danilo Quartullo
+@author: Hannes Bartosik, Danilo Quartullo, Alexandre Lasheen
 '''
-
 
 from __future__ import division
 import numpy as np
 from scipy.constants import c, e
 from scipy.constants import physical_constants
+import abc
 
 
 class Wakefields(object):
     '''
     classdocs
     '''
-    def __init__(self):
-        '''
-        Constructor
-        '''
-        pass        
-
-
-    def wake_factor(self, bunch):
-        
-        particles_per_macroparticle = bunch.n_particles / bunch.n_macroparticles
-        return -(bunch.charge) ** 2 / (bunch.mass * bunch.gamma * (bunch.beta * c) ** 2) * particles_per_macroparticle
+    __metaclass__ = abc.ABCMeta
+    
+    @abc.abstractmethod
+    def track(self, bunch):
+        pass
 
     
-    def convolution_plus_kick(self, bunch): 
-        
-        self.longitudinal_kick = np.dot(self.slices.n_macroparticles, self.wake_matrix) * self.wake_factor(bunch)
-        
-        for i in range(0, self.slices.n_slices):
-            
-            bunch.dp[self.slices.first_index_in_bin[i]:self.slices.first_index_in_bin[i+1]] += self.longitudinal_kick[i]
-        
-        
 class long_wake_table(Wakefields):
     '''
     classdocs
@@ -87,11 +72,11 @@ class long_wake_table(Wakefields):
             self.longitudinal_wakefield_kicks(bunch)
 
 
-class long_wake_analytical(Wakefields):
+class Long_BB_resonators(Wakefields):
     '''
     classdocs
     '''
-    def __init__(self, R_shunt, frequency, Q, slices, bunch):
+    def __init__(self, R_shunt, frequency, Q, slices):
         '''
         Constructor
         '''
@@ -100,36 +85,46 @@ class long_wake_analytical(Wakefields):
         self.Q = np.array([Q]).flatten()
         assert(len(self.R_shunt) == len(self.frequency) == len(self.Q))
         self.slices = slices
-        dz_to_target_slice = slices.z_centers - np.transpose([slices.z_centers])
-        self.wake_matrix = self.wake_longitudinal(bunch, dz_to_target_slice)
+        if self.slices.unit =
         
         
-    def wake_longitudinal(self, bunch, z):
-        return reduce(lambda x,y: x+y, [self.wake_BB_resonator(self.R_shunt[i], self.frequency[i], self.Q[i], bunch, z) for i in np.arange(len(self.Q))])
+        dist_centers_tau = slices.z_centers - np.transpose([slices.z_centers])
+        self.wake_matrix = self.wake_longitudinal(dz_to_target_slice)
+        
+        
+    def wake_longitudinal(self, tau):
+        return reduce(lambda x,y: x+y, [self.wake_BB_resonator(self.R_shunt[i], self.frequency[i], self.Q[i], tau) for i in np.arange(len(self.Q))])
 
     
-    def wake_BB_resonator(self, R_shunt, frequency, Q, bunch, z):        
+    def wake_BB_resonator(self, R_shunt, frequency, Q, tau):        
         
         omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
         omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
 
-        if Q > 0.5:
-            wake =  - (np.sign(z) - 1) * R_shunt * alpha * np.exp(alpha * z.clip(max=0) / \
-                                                                  c / bunch.beta) * \
-                    (np.cos(omegabar * z.clip(max=0) / c / bunch.beta) + alpha / omegabar * np.sin(omegabar * z.clip(max=0) / c / bunch.beta))
-        elif Q == 0.5:
-            wake =  - (np.sign(z) - 1) * R_shunt * alpha * np.exp(alpha * z.clip(max=0) / c / bunch.beta) * \
-                    (1. + alpha * z.clip(max=0) / c / bunch.beta)
-        elif Q < 0.5:
-            wake =  - (np.sign(z) - 1) * R_shunt * alpha * np.exp(alpha * z.clip(max=0) / c / bunch.beta) * \
-                    (np.cosh(omegabar * z.clip(max=0) / c / bunch.beta) + alpha / omegabar * np.sinh(omegabar * z.clip(max=0) / c / bunch.beta))
+        wake =  2 * R_shunt * alpha * np.exp(-alpha * tau) * \
+            (np.cos(omegabar * tau) - alpha / omegabar * np.sin(omegabar * tau))
+        
         return wake
         
         
     def track(self, bunch):
         
         self.convolution_plus_kick(bunch)
+    
+    def wake_factor(self, bunch):
+        
+        particles_per_macroparticle = bunch.intensity / bunch.n_macroparticles
+        return -(bunch.charge) ** 2 / (bunch.mass * bunch.gamma_rel * (bunch.beta_rel * c) ** 2) * particles_per_macroparticle
+
+    
+    def convolution_plus_kick(self, bunch): 
+        
+        self.longitudinal_kick = np.dot(self.slices.n_macroparticles, self.wake_matrix) * self.wake_factor(bunch)
+        
+        for i in range(0, self.slices.n_slices):
+            
+            bunch.dp[self.slices.first_index_in_bin[i]:self.slices.first_index_in_bin[i+1]] += self.longitudinal_kick[i]
         
   
  

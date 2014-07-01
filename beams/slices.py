@@ -10,6 +10,8 @@ import numpy as np
 from random import sample
 import cobra_functions.stats as cp
 from scipy.constants import c
+import sys
+
 
 
 class Slices(object):
@@ -105,27 +107,27 @@ class Slices(object):
                 self.sort_particles(bunch)
                 self.sorted = True
                 cut_left = bunch.theta[0]
-                cut_right = bunch.theta[-1 - bunch.n_macroparticles_lost]
+                cut_right = bunch.theta[-1]
             elif self.unit == "z":
                 cut_left = bunch.z[0]
-                cut_right = bunch.z[-1 - bunch.n_macroparticles_lost]
+                cut_right = bunch.z[-1]
             else:
                 cut_left = bunch.tau[0]
-                cut_right = bunch.tau[-1 - bunch.n_macroparticles_lost]
+                cut_right = bunch.tau[-1]
         else:
             if self.unit == "theta":
-                mean_theta = np.mean(bunch.theta[:bunch.n_macroparticles_alive])
-                sigma_theta = np.std(bunch.theta[:bunch.n_macroparticles_alive])
+                mean_theta = np.mean(bunch.theta)
+                sigma_theta = np.std(bunch.theta)
                 cut_left = mean_theta - self.n_sigma * sigma_theta
                 cut_right = mean_theta + self.n_sigma * sigma_theta
             elif self.unit == "z":
-                mean_z = np.mean(bunch.z[:bunch.n_macroparticles_alive])
-                sigma_z = np.std(bunch.z[:bunch.n_macroparticles_alive])
+                mean_z = np.mean(bunch.z)
+                sigma_z = np.std(bunch.z)
                 cut_left = mean_z - self.n_sigma * sigma_z
                 cut_right = mean_z + self.n_sigma * sigma_z
             else:
-                mean_tau = np.mean(bunch.tau[:bunch.n_macroparticles_alive])
-                sigma_tau = np.std(bunch.tau[:bunch.n_macroparticles_alive])
+                mean_tau = np.mean(bunch.tau)
+                sigma_tau = np.std(bunch.tau)
                 cut_left = mean_tau - self.n_sigma * sigma_tau
                 cut_right = mean_tau + self.n_sigma * sigma_tau
             
@@ -147,33 +149,28 @@ class Slices(object):
 
         if self.unit == 'z':
             
-            self.first_index_in_bin = np.searchsorted(bunch.z
-                                    [:bunch.n_macroparticles_alive], self.edges)
-            if (cut_right == bunch.z[self.first_index_in_bin[-1]]):
-                list_z = bunch.z[self.first_index_in_bin[-1]:
-                                 bunch.n_macroparticles_alive].tolist()
+            self.first_index_in_bin = np.searchsorted(bunch.z, self.edges)
+            if cut_right <= bunch.z[-1] and \
+                  cut_right == bunch.z[self.first_index_in_bin[-1]]:
+                list_z = bunch.z[self.first_index_in_bin[-1]:].tolist()
                 self.first_index_in_bin[-1] += list_z.count(bunch.z[
                                                 self.first_index_in_bin[-1]])
             
         elif self.unit == 'theta':
             
-            self.first_index_in_bin = np.searchsorted(bunch.theta
-                                    [:bunch.n_macroparticles_alive], self.edges)
-            
-            if cut_right <= bunch.theta[-1 - bunch.n_macroparticles_lost] and \
+            self.first_index_in_bin = np.searchsorted(bunch.theta, self.edges)
+            if cut_right <= bunch.theta[-1] and \
                   cut_right == bunch.theta[self.first_index_in_bin[-1]]:
-                list_theta = bunch.theta[self.first_index_in_bin[-1]:
-                                 bunch.n_macroparticles_alive].tolist()
+                list_theta = bunch.theta[self.first_index_in_bin[-1]:].tolist()
                 self.first_index_in_bin[-1] += list_theta.count(bunch.theta[
                                                 self.first_index_in_bin[-1]])
         
         else:
             
-            self.first_index_in_bin = np.searchsorted(bunch.tau
-                                    [:bunch.n_macroparticles_alive], self.edges)
-            if (cut_right == bunch.tau[self.first_index_in_bin[-1]]):
-                list_tau = bunch.tau[self.first_index_in_bin[-1]:
-                                 bunch.n_macroparticles_alive].tolist()
+            self.first_index_in_bin = np.searchsorted(bunch.tau, self.edges)
+            if cut_right <= bunch.tau[-1] and \
+                  cut_right == bunch.tau[self.first_index_in_bin[-1]]:
+                list_tau = bunch.tau[self.first_index_in_bin[-1]:].tolist()
                 self.first_index_in_bin[-1] += list_tau.count(bunch.tau[
                                                 self.first_index_in_bin[-1]])
             
@@ -208,14 +205,12 @@ class Slices(object):
             self.sort_particles(bunch)
             self.sorted = True
 
-        n_cut_left = np.searchsorted(bunch.z[:bunch.n_macroparticles_alive], 
-                                     cut_left)
-        n_cut_right = np.searchsorted(bunch.z[:bunch.n_macroparticles_alive], 
-                                      cut_right)
+        n_cut_left = np.searchsorted(bunch.z, cut_left)
+        n_cut_right = np.searchsorted(bunch.z, cut_right)
         
-        q0 = self.n_macroparticles_alive - (n_cut_right - n_cut_left)
+        q0 = self.n_macroparticles - (n_cut_right - n_cut_left)
         if (cut_right == bunch.z[n_cut_right]):
-            list_z = bunch.z[n_cut_right:bunch.n_macroparticles_alive].tolist()
+            list_z = bunch.z[n_cut_right:].tolist()
             q0 += list_z.count(bunch.z[n_cut_right])
         
         ix = sample(range(self.n_slices), q0 % self.n_slices)
@@ -235,13 +230,16 @@ class Slices(object):
         
         self.sorted = False
         self.bunch = bunch
-        bunch.beam_is_sliced = True
+       
         if self.mode == 'const_charge':
             self._slice_constant_charge(bunch)
         elif self.mode == 'const_space':
             self.slice_constant_space(bunch)
-        else:
+        elif self.mode == 'const_space_hist':
             self.slice_constant_space_histogram(bunch)
+        else:
+            print 'Choose one of the three slicing methods!'
+            sys.exit()
 
 
     def compute_statistics(self, bunch):
@@ -283,22 +281,13 @@ class Slices(object):
     
     def sort_particles(self, bunch):
        
-        bunch.n_macroparticles_lost = bunch.n_macroparticles - \
-                                        np.count_nonzero(bunch.id)
-    
         if self.unit == 'theta' or self.unit == 'tau':
             
-            if bunch.n_macroparticles_lost:
-                argsorted = np.lexsort((bunch.theta, -np.sign(bunch.id))) 
-            else:
-                argsorted = np.argsort(bunch.theta)
+            argsorted = np.argsort(bunch.theta)
             
         elif self.unit == 'z':
             
-            if bunch.n_macroparticles_lost:
-                argsorted = np.lexsort((bunch.z, -np.sign(bunch.id))) 
-            else:
-                argsorted = np.argsort(bunch.z)
+            argsorted = np.argsort(bunch.z)
         
         bunch.x = bunch.x.take(argsorted)
         bunch.xp = bunch.xp.take(argsorted)
