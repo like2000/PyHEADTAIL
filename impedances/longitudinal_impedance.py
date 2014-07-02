@@ -5,6 +5,7 @@
 
 from __future__ import division
 import numpy as np
+from numpy import convolve, interp
 from scipy.constants import c, e
 from scipy.constants import physical_constants
 import abc
@@ -131,21 +132,51 @@ class Long_BB_resonators(Wakefields):
     
     def track(self, bunch):
         
-        if self.mode == "matrix_no_precalc":
+        ind = self.induced_voltage_with_matrix(bunch)
+        self.update_without_interpolation(bunch, ind)
+            
+    
+    def induced_voltage_with_matrix(self, bunch):
+        
+        if self.mode == "no_precalc":
             dist_betw_centers = self.slices.bins_centers - np.transpose([self.slices.bins_centers])
             self.wake_matrix = self.wake_longitudinal(dist_betw_centers, bunch)
         
-        self.longitudinal_kick = - bunch.charge * np.dot(
-                                self.slices.n_macroparticles, self.wake_matrix) 
+        return - bunch.charge * np.dot(
+                                self.slices.n_macroparticles, self.wake_matrix)
+    
+    
+    def induced_voltage_with_convolv(self, bunch): 
+    
+        if self.mode == "no_precalc":
+            translation = self.slices.bins_centers - self.slices.bins_centers[0]
+            wake_array = self.wake_longitudinal(translation, bunch)
+        
+        return - bunch.charge * convolve(wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)]
+    
+    
+    def update_without_interpolation(self, bunch, induced_voltage):
         
         for i in range(0, self.slices.n_slices):
-            
-            bunch.dE[self.slices.first_index_in_bin[i]:
-              self.slices.first_index_in_bin[i+1]] += self.longitudinal_kick[i]
+                
+                bunch.dE[self.slices.first_index_in_bin[i]:
+                  self.slices.first_index_in_bin[i+1]] += induced_voltage[i]
     
     
-    
-
+    def update_with_interpolation(self, bunch, induced_voltage):
         
+        if self.slices.unit == 'tau':
+        
+            induced_voltage_interpolated = interp(bunch.tau, self.slices.bins_centers, induced_voltage)
+        
+        elif self.slices.unit == 'z':
+            
+            induced_voltage_interpolated = interp(bunch.z, self.slices.bins_centers, induced_voltage)
+        
+        else:
+            
+            induced_voltage_interpolated = interp(bunch.theta, self.slices.bins_centers, induced_voltage)
+
+        bunch.dE += induced_voltage_interpolated
   
  
