@@ -9,7 +9,7 @@ from numpy import convolve, interp
 from scipy.constants import c, e
 from scipy.constants import physical_constants
 import abc
-
+import time
 
 class Wakefields(object):
     '''
@@ -75,7 +75,21 @@ class long_wake_table(Wakefields):
 
 class Long_BB_resonators(Wakefields):
     '''
-    classdocs
+    Induced voltage derived from resonators.
+    Apart from further optimizations, these are the important results obtained
+    after the benchmarking which are applied to the following code:
+    1) in general update_with_interpolation is faster than update_without_interpolation
+    2) in general induced_voltage_with_convolv is faster than induced_voltage_with_matrix
+    3) if slices.mode == const_charge, you are obliged to use 
+        induced_voltage_with_matrix, then you should use update_with_interpolation
+    4) if slices.mode == const_space, i.e. you want to calculate slices statistics
+        (otherwise slices.mode == const_space_hist is faster), you should use 
+        induced_voltage_with_convolv and then update_with_interpolation
+    5) if slices.mode == const_space_hist, use induced_voltage_with_convolv and
+        update_with_interpolation
+    If there is not acceleration then precalc == 'on', except for the const_charge method.
+    If you have acceleration and slices.unit == z or theta, then precalc == 'off';
+    if slices.unit == tau then precalc == 'on'
     '''
     def __init__(self, R_shunt, frequency, Q, slices, bunch, acceleration):
         '''
@@ -85,30 +99,26 @@ class Long_BB_resonators(Wakefields):
         self.frequency = np.array([frequency]).flatten()
         self.Q = np.array([Q]).flatten()
         assert(len(self.R_shunt) == len(self.frequency) == len(self.Q))
-        
         self.slices = slices
         self.bunch = bunch
         self.acceleration = acceleration
-        if self.slices.mode == 'const_charge':
-            self.mode = "matrix_no_precalc"
-        elif self.acceleration == 'off':
-            self.mode = 'matrix_with_precalc'
-            dist_betw_centers = slices.bins_centers - np.transpose([slices.bins_centers])
-            self.wake_matrix = self.wake_longitudinal(dist_betw_centers, self.bunch)
-        elif self.slices.unit == 'tau':
-            self.mode = 'matrix_with_precalc'
-            dist_betw_centers = slices.bins_centers - np.transpose([slices.bins_centers])
-            self.wake_matrix = self.wake_longitudinal(dist_betw_centers, self.bunch)
-        else:
-            self.mode = "matrix_no_precalc"
+        
+        if self.slices.mode != 'const_charge':
+            
+            if self.acceleration == 'off' or self.slices.unit == 'tau':
+                self.precalc = 'on'
+                translation = self.slices.bins_centers - self.slices.bins_centers[0]
+                self.wake_array = self.sum_resonators(translation, bunch)
+            else:
+                self.precalc = 'off' 
         
     
-    def wake_longitudinal(self, dist_betw_centers, bunch):
-        return reduce(lambda x,y: x+y, [self.wake_BB_resonator(self.R_shunt[i],
+    def sum_resonators(self, dist_betw_centers, bunch):
+        return reduce(lambda x,y: x+y, [self.single_resonator(self.R_shunt[i],
          self.frequency[i], self.Q[i], dist_betw_centers, bunch) for i in np.arange(len(self.Q))])
 
     
-    def wake_BB_resonator(self, R_shunt, frequency, Q, dist_betw_centers, bunch):        
+    def single_resonator(self, R_shunt, frequency, Q, dist_betw_centers, bunch):        
         
         omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
@@ -132,27 +142,31 @@ class Long_BB_resonators(Wakefields):
     
     def track(self, bunch):
         
-        ind = self.induced_voltage_with_matrix(bunch)
-        self.update_without_interpolation(bunch, ind)
+        if self.slices.mode == 'const_charge':
+            ind_vol = self.induced_voltage_with_matrix(bunch)
+        else:
+            ind_vol = self.induced_voltage_with_convolv(bunch)
             
-    
+        self.update_with_interpolation(bunch, ind_vol)
+        
+           
     def induced_voltage_with_matrix(self, bunch):
         
-        if self.mode == "no_precalc":
-            dist_betw_centers = self.slices.bins_centers - np.transpose([self.slices.bins_centers])
-            self.wake_matrix = self.wake_longitudinal(dist_betw_centers, bunch)
+        dist_betw_centers = self.slices.bins_centers - np.transpose([self.slices.bins_centers])
+        self.wake_matrix = self.sum_resonators(dist_betw_centers, bunch)
         
-        return - bunch.charge * np.dot(
-                                self.slices.n_macroparticles, self.wake_matrix)
+        return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
+                np.dot(self.slices.n_macroparticles, self.wake_matrix)
     
     
     def induced_voltage_with_convolv(self, bunch): 
     
-        if self.mode == "no_precalc":
+        if self.precalc == 'off':
             translation = self.slices.bins_centers - self.slices.bins_centers[0]
-            wake_array = self.wake_longitudinal(translation, bunch)
+            self.wake_array = self.sum_resonators(translation, bunch)
         
-        return - bunch.charge * convolve(wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)]
+        return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
+            convolve(self.wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)] 
     
     
     def update_without_interpolation(self, bunch, induced_voltage):
@@ -165,17 +179,36 @@ class Long_BB_resonators(Wakefields):
     
     def update_with_interpolation(self, bunch, induced_voltage):
         
-        if self.slices.unit == 'tau':
         
-            induced_voltage_interpolated = interp(bunch.tau, self.slices.bins_centers, induced_voltage)
+        if self.slices.unit == 'tau':
+            
+            x = (self.slices.bins_centers[0] + self.slices.bins_centers[1]) / 2
+            y = (self.slices.bins_centers[-2] + self.slices.bins_centers[-1]) / 2
+            self.slices.bins_centers[0] -= x
+            self.slices.bins_centers[-1] += y
+            induced_voltage_interpolated = interp(bunch.tau, self.slices.bins_centers, induced_voltage, 0, 0)
+            self.slices.bins_centers[0] += x
+            self.slices.bins_centers[-1] += y
         
         elif self.slices.unit == 'z':
             
-            induced_voltage_interpolated = interp(bunch.z, self.slices.bins_centers, induced_voltage)
+            x = (self.slices.bins_centers[0] + self.slices.bins_centers[1]) / 2
+            y = (self.slices.bins_centers[-2] + self.slices.bins_centers[-1]) / 2
+            self.slices.bins_centers[0] -= x
+            self.slices.bins_centers[-1] += y
+            induced_voltage_interpolated = interp(bunch.z, self.slices.bins_centers, induced_voltage, 0, 0)
+            self.slices.bins_centers[0] += x
+            self.slices.bins_centers[-1] += y
         
         else:
             
-            induced_voltage_interpolated = interp(bunch.theta, self.slices.bins_centers, induced_voltage)
+            x = (self.slices.bins_centers[0] + self.slices.bins_centers[1]) / 2
+            y = (self.slices.bins_centers[-2] + self.slices.bins_centers[-1]) / 2
+            self.slices.bins_centers[0] -= x
+            self.slices.bins_centers[-1] += y
+            induced_voltage_interpolated = interp(bunch.theta, self.slices.bins_centers, induced_voltage, 0, 0)
+            self.slices.bins_centers[0] += x
+            self.slices.bins_centers[-1] += y
 
         bunch.dE += induced_voltage_interpolated
   

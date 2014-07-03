@@ -46,7 +46,7 @@ sigma_dE = sd * beta**2 * E_s           # R.m.s. dE
 
 
 # Monitors
-bunchmonitor = BunchMonitor('bunch', N_t+1, long_gaussian_fit = "On")
+bunchmonitor = BunchMonitor('bunch', N_t+1, long_gaussian_fit = "Off")
 
 p_f = p_s+600000000
 n_rf_systems = 1                                      # Number of rf systems second section
@@ -90,7 +90,7 @@ temp = loadtxt('new_HQ_table.dat', comments = '!')
 R_shunt = temp[:,2]*10**6
 f_res = temp[:,0]*10**9
 Q_factor = temp[:,1]
-resonator_impedance = Long_BB_resonators(R_shunt, f_res, Q_factor, slice_beam, my_beam, acceleration = 'off')
+resonator_impedance = Long_BB_resonators(R_shunt, f_res, Q_factor, slice_beam, my_beam, acceleration = 'on')
 
 
 # Accelerator map
@@ -115,7 +115,7 @@ for i in range(N_t):
     general_params.counter[0] += 1
     bunchmonitor.dump(my_beam, slice_beam)
     t1 = time.clock()
-    print t1 - t0
+#   print t1 - t0
 #     print "Momentumi %.6e eV" %beam.p0_i()
 #     print "Particle energy, theta %.6e %.6e" %(beam.dE[0], beam.theta[0])
     # Output data

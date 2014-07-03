@@ -11,6 +11,7 @@ from random import sample
 import cobra_functions.stats as cp
 from scipy.constants import c
 import sys
+import time
 
 
 
@@ -143,6 +144,7 @@ class Slices(object):
             self.edges = np.linspace(cut_left, cut_right, self.n_slices + 1)
             self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
         
+        t0 = time.clock()
         if self.sorted == False:
             self.sort_particles(bunch)
             self.sorted = True
@@ -175,6 +177,7 @@ class Slices(object):
                                                 self.first_index_in_bin[-1]])
             
         self.n_macroparticles = np.diff(self.first_index_in_bin)
+        print (time.clock() - t0)
         
         
     def slice_constant_space_histogram(self, bunch):
@@ -186,13 +189,14 @@ class Slices(object):
             self.edges = np.linspace(cut_left, cut_right, self.n_slices + 1)
             self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
         
+        t0 = time.clock()
         if self.unit == 'theta':
             self.n_macroparticles = np.histogram(bunch.theta, self.edges)[0]
         elif self.unit == 'z':
             self.n_macroparticles = np.histogram(bunch.z, self.edges)[0]
         else:
             self.n_macroparticles = np.histogram(bunch.tau, self.edges)[0]
-       
+        print (time.clock() - t0)
        
     def slice_constant_charge(self, bunch):
         
