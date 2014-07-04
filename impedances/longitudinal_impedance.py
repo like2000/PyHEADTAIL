@@ -8,43 +8,10 @@ import numpy as np
 from numpy import convolve, interp
 from scipy.constants import c, e
 from scipy.constants import physical_constants
-import abc
 import time
 
-class Total_wake(object):
-    '''
-    classdocs
-    '''
-    __metaclass__ = abc.ABCMeta
-    
-    @abc.abstractmethod
-    def track(self, bunch):
-        pass
 
-    
-class Long_wake_table(Total_wake):
-    '''
-    classdocs
-    '''
-    
-    def __init__(self, array_distances, coord_distances, array_wake, slices):       
-        '''
-        Constructor
-        '''
-        self.array_distances = array_distances
-        self.coord_distances = coord_distances
-        self.array_wake = array_wake
-        self.slices = slices
-        if self.coord_distances != self.slices.unit:
-            pass
-            
-        
-
-    
-    
-
-
-class Long_BB_resonators(Total_wake):
+class Ind_volt_from_wake(object):
     '''
     Induced voltage derived from resonators.
     Apart from further optimizations, these are the important results obtained
@@ -62,52 +29,31 @@ class Long_BB_resonators(Total_wake):
     If you have acceleration and slices.unit == z or theta, then precalc == 'off';
     if slices.unit == tau then precalc == 'on'
     '''
-    def __init__(self, R_shunt, frequency, Q, slices, bunch, acceleration):
+    
+    def __init__(self, slices, bunch, acceleration, wake_object_sum):       
         '''
         Constructor
         '''
-        self.R_shunt = np.array([R_shunt]).flatten()
-        self.frequency = np.array([frequency]).flatten()
-        self.Q = np.array([Q]).flatten()
-        assert(len(self.R_shunt) == len(self.frequency) == len(self.Q))
         self.slices = slices
         self.bunch = bunch
         self.acceleration = acceleration
+        self.wake_object_sum = wake_object_sum
         
         if self.slices.mode != 'const_charge':
             
             if self.acceleration == 'off' or self.slices.unit == 'tau':
                 self.precalc = 'on'
                 translation = self.slices.bins_centers - self.slices.bins_centers[0]
-                self.wake_array = self.sum_resonators(translation, bunch)
+                self.wake_array = self.sum_wakes(translation, self.wake_object_sum)
             else:
                 self.precalc = 'off' 
-        
     
-    def sum_resonators(self, dist_betw_centers, bunch):
-        return reduce(lambda x,y: x+y, [self.single_resonator(self.R_shunt[i],
-         self.frequency[i], self.Q[i], dist_betw_centers, bunch) for i in np.arange(len(self.Q))])
-
     
-    def single_resonator(self, R_shunt, frequency, Q, dtau, bunch):        
+    def sum_wakes(self, translation, wake_object_sum):
         
-        omega = 2 * np.pi * frequency
-        alpha = omega / (2 * Q)
-        omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
-        
-        wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
-          (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
-#         elif self.slices.unit == 'z':
-#             dtau = - dist_betw_centers / (bunch.beta_rel * c)
-#             wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
-#                 (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
-#         else:
-#             dtau = (bunch.ring_radius * dist_betw_centers) / (bunch.beta_rel * c)
-#             wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
-#                 (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
-        
-        return wake
-        
+        for wake_object in wake_object_sum:
+            wake_object.wake_calc(translation)
+    
     
     def track(self, bunch):
         
@@ -121,8 +67,18 @@ class Long_BB_resonators(Total_wake):
            
     def induced_voltage_with_matrix(self, bunch):
         
-        dist_betw_centers = self.slices.bins_centers - np.transpose([self.slices.bins_centers])
-        self.wake_matrix = self.sum_resonators(dist_betw_centers, bunch)
+        if self.slices.unit == 'tau':
+            dtau_matrix = self.slices.bins_centers - \
+                            np.transpose([self.slices.bins_centers])
+            self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
+        elif self.slices.unit == 'z':
+            dtau_matrix = (np.transpose([self.slices.bins_centers]) - \
+                           self.slices.bins_centers) / (bunch.beta_rel * c)
+            self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
+        else:
+            dtau_matrix = bunch.ring_radius / (bunch.beta_rel * c) * \
+            (self.slices.bins_centers - np.transpose([self.slices.bins_centers])) 
+            self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
         
         return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
                 np.dot(self.slices.n_macroparticles, self.wake_matrix)
@@ -131,8 +87,19 @@ class Long_BB_resonators(Total_wake):
     def induced_voltage_with_convolv(self, bunch): 
     
         if self.precalc == 'off':
-            translation = self.slices.bins_centers - self.slices.bins_centers[0]
-            self.wake_array = self.sum_resonators(translation, bunch)
+            if self.slices.unit == 'tau':
+                dtau = self.slices.bins_centers - self.slices.bins_centers[0]
+                self.wake_array = self.sum_wakes(dtau, self.wake_object_sum)
+            elif self.slices.unit == 'z':
+                dtau = (self.slices.bins_centers - self.slices.bins_centers[0])/(bunch.beta_rel * c)
+                self.wake_array = self.sum_wakes(dtau, self.wake_object_sum)
+                reversed_array = self.wake_array[::-1]
+                return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
+                    convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):] 
+            else:
+                dtau = (self.slices.bins_centers - self.slices.bins_centers[0]) \
+                       * bunch.ring_radius / (bunch.beta_rel * c)
+                self.wake_array = self.sum_wakes(dtau, self.wake_object_sum)
         
         return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
             convolve(self.wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)] 
@@ -147,7 +114,6 @@ class Long_BB_resonators(Total_wake):
     
     
     def update_with_interpolation(self, bunch, induced_voltage):
-        
         
         if self.slices.unit == 'tau':
             
@@ -180,5 +146,56 @@ class Long_BB_resonators(Total_wake):
             self.slices.bins_centers[-1] += y
 
         bunch.dE += induced_voltage_interpolated
+    
+    
+class Long_wake_table(object):
+    '''
+    classdocs
+    '''
+    
+    def __init__(self, dtau_array, wake_array):       
+        '''
+        Constructor
+        '''
+        self.dtau_array = dtau_array
+        self.wake_array = wake_array
+    
+    def wake_calc(self, dtau):
+        
+        wake = interp(dtau, self.dtau_array - self.dtau_array[0], self.wake_array, left = 0, right = 0)
+        
+        return wake
+    
+    
+class Long_wake_BB_resonators(object):
+    '''
+    
+    '''
+    def __init__(self, R_shunt, frequency, Q):
+        '''
+        Constructor
+        '''
+        self.R_shunt = np.array([R_shunt]).flatten()
+        self.frequency = np.array([frequency]).flatten()
+        self.Q = np.array([Q]).flatten()
+        
+    
+    def wake_calc(self, dtau):
+        
+        wake = np.zeros(len(dtau))
+        
+        for i in range(0, len(self.R_shunt)):
+       
+            omega = 2 * np.pi * self.frequency[i]
+            alpha = omega / (2 * self.Q[i])
+            omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
+            
+            wake += (np.sign(dtau) + 1) * self.R_shunt[i] * alpha * np.exp(-alpha * dtau) * \
+              (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
+       
+        return wake
+        
+    
+    
   
  
