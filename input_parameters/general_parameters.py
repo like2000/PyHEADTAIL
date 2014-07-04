@@ -10,33 +10,13 @@ from scipy.constants import m_p, e, c
 import numpy as np
 
 
-class GeneralParameters(object):
+class General_parameters(object):
     '''
     *Object containing all the general input parameters used for the simulation*
     '''
 
-    def __init__(self, particle_type, n_turns, ring_circumference, alpha_array, 
-                 momentum_program, user_mass = 0, user_charge = 0):
-        
-        #: | *Particle type*
-        #: | *Recognized types: 'proton' and 'user_input' to input mass and charge manually.*
-        self.particle_type = particle_type
-        
-        #: *Particle mass in [kg]* :math:`: \quad m`
-        self.mass = 0
-        
-        #: *Particle charge in [C]* :math:`: \quad q`
-        self.charge = 0
-        
-        # Attribution of mass and charge with respect to particle_type
-        if self.particle_type is 'proton':
-            self.mass = m_p
-            self.charge = e
-        elif self.particle_type is 'user_input':
-            self.mass = user_mass
-            self.mass = user_charge
-        else:
-            raise RuntimeError('Particle type not recognized')
+    def __init__(self, n_turns, ring_circumference, alpha_array, 
+                 momentum_program):
         
         #: | *Counter to be incremented every turn in the tracking loop.* :math:`: \quad n`
         #: | *It is defined as a list in order to be passed as a reference in the other modules.*

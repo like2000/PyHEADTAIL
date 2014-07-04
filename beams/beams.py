@@ -5,9 +5,8 @@ Created on 12.06.2014
 '''
 
 import numpy as np
-#import copy, h5py, sys
 import sys
-from scipy.constants import c, e
+from scipy.constants import c, e, m_p
 import cobra_functions.stats as cp
 from scipy.optimize import curve_fit
 from trackers.longitudinal_tracker import is_in_separatrix
@@ -15,18 +14,38 @@ from trackers.longitudinal_tracker import is_in_separatrix
 
 class Beam(object):
     
-    def __init__(self, General_parameters, n_macroparticles, intensity):
+    def __init__(self, General_parameters, n_macroparticles, intensity, 
+                 particle_type, user_mass = 0, user_charge = 0):
         
         # Beam and ring-dependent properties
+        
+        #: | *Particle type*
+        #: | *Recognized types: 'proton' and 'user_input' to input mass and charge manually.*
+        #: | *Particle mass in [kg]* :math:`: \quad m` *
+        #: | *Particle charge in [C]* :math:`: \quad q` *
+        self.particle_type = particle_type
+        
+        # Attribution of mass and charge with respect to particle_type
+        if self.particle_type is 'proton':
+            self.mass = m_p
+            self.charge = e
+        elif self.particle_type is 'user_input':
+            self.mass = user_mass
+            self.charge = user_charge
+        else:
+            raise RuntimeError('Particle type not recognized')
+        
         self.ring_radius = General_parameters.ring_radius
-        self.mass = General_parameters.mass # in kg
-        self.charge = General_parameters.charge # in C
         self.intensity = intensity # total no of particles
         
-        self.beta_rel = General_parameters.beta_rel_program[0][0] #: Relativistic beta of the synchronous particle
-        self.gamma_rel = General_parameters.gamma_rel_program[0][0] #: Relativistic gamma of the synchronous particle
-        self.energy = General_parameters.energy_program[0][0] #: Energy of the synchronous particle [eV]
-        self.momentum = General_parameters.momentum_program[0][0] #: Momentum of the synchronous particle [eV/c]
+        #: Relativistic beta of the synchronous particle
+        self.beta_rel = General_parameters.beta_rel_program[0][0]
+        #: Relativistic gamma of the synchronous particle
+        self.gamma_rel = General_parameters.gamma_rel_program[0][0]
+        #: Energy of the synchronous particle [eV]
+        self.energy = General_parameters.energy_program[0][0]
+        #: Momentum of the synchronous particle [eV/c]
+        self.momentum = General_parameters.momentum_program[0][0] 
 
         # Beam coordinates
         self.x = np.empty([n_macroparticles])
