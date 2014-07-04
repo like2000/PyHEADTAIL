@@ -11,7 +11,7 @@ from scipy.constants import physical_constants
 import abc
 import time
 
-class Wakefields(object):
+class Total_wake(object):
     '''
     classdocs
     '''
@@ -22,58 +22,29 @@ class Wakefields(object):
         pass
 
     
-class long_wake_table(Wakefields):
+class Long_wake_table(Total_wake):
     '''
     classdocs
     '''
-    def __init__(self):       
+    
+    def __init__(self, array_distances, coord_distances, array_wake, slices):       
         '''
         Constructor
         '''
-        self.wake_table = {}
-
-    
-    @classmethod
-    def from_ASCII(cls, wake_file, keys):
-        self = cls()
-        table = np.loadtxt(wake_file, delimiter="\t")
-        self.wake_table = dict(zip(keys, np.array(zip(*table))))
-        self.unit_conversion()
-        return self
-
-    def unit_conversion(self):
-        longitudinal_wakefield_keys = ['longitudinal']
-        self.wake_field_keys = []
-        print 'Converting wake table to correct units ... '
-        self.wake_table['time'] *= 1e-9 # unit convention [ns]
-        print '\t converted time from [ns] to [s]'        
+        self.array_distances = array_distances
+        self.coord_distances = coord_distances
+        self.array_wake = array_wake
+        self.slices = slices
+        if self.coord_distances != self.slices.unit:
+            pass
+            
         
-        for wake in longitudinal_wakefield_keys:
-            try: 
-                self.wake_table[wake] *= - 1.e12 # unit convention [V/pC] and sign convention !!
-                print '\t converted "' + wake + '" wake from [V/pC/mm] to [V/C/m]'
-                self.wake_field_keys += [wake]
-            except:
-                print '\t "' + wake + '" wake not provided'
 
-    def wake_longitudinal(self, bunch, z):
-        time = np.array(self.wake_table['time'])
-        wake = np.array(self.wake_table['longitudinal'])
-        wake_interpolated = np.interp(- z / c / bunch.beta, time, wake, left=0, right=0)
-        if time[0] < 0:
-            return wake_interpolated
-        elif time[0] == 0:
-            # beam loading theorem: half value of wake at z=0; 
-            return (np.sign(-z) + 1) / 2 * wake_interpolated
     
     
-    def track(self, bunch):
-        
-        if 'longitudinal' in self.wake_field_keys:
-            self.longitudinal_wakefield_kicks(bunch)
 
 
-class Long_BB_resonators(Wakefields):
+class Long_BB_resonators(Total_wake):
     '''
     Induced voltage derived from resonators.
     Apart from further optimizations, these are the important results obtained
@@ -118,24 +89,22 @@ class Long_BB_resonators(Wakefields):
          self.frequency[i], self.Q[i], dist_betw_centers, bunch) for i in np.arange(len(self.Q))])
 
     
-    def single_resonator(self, R_shunt, frequency, Q, dist_betw_centers, bunch):        
+    def single_resonator(self, R_shunt, frequency, Q, dtau, bunch):        
         
         omega = 2 * np.pi * frequency
         alpha = omega / (2 * Q)
         omegabar = np.sqrt(np.abs(omega ** 2 - alpha ** 2))
         
-        if self.slices.unit == 'tau':
-            dtau = dist_betw_centers
-            wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
-                (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
-        elif self.slices.unit == 'z':
-            dtau = - dist_betw_centers / (bunch.beta_rel * c)
-            wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
-                (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
-        else:
-            dtau = (bunch.ring_radius * dist_betw_centers) / (bunch.beta_rel * c)
-            wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
-                (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
+        wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
+          (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
+#         elif self.slices.unit == 'z':
+#             dtau = - dist_betw_centers / (bunch.beta_rel * c)
+#             wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
+#                 (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
+#         else:
+#             dtau = (bunch.ring_radius * dist_betw_centers) / (bunch.beta_rel * c)
+#             wake = (np.sign(dtau) + 1) * R_shunt * alpha * np.exp(-alpha * dtau) * \
+#                 (np.cos(omegabar * dtau) - alpha / omegabar * np.sin(omegabar * dtau))
         
         return wake
         

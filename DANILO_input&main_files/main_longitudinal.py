@@ -87,6 +87,7 @@ slice_beam.track(my_beam)
 bunchmonitor.dump(my_beam, slice_beam)
 
 temp = loadtxt('new_HQ_table.dat', comments = '!')
+print temp
 R_shunt = temp[:,2]*10**6
 f_res = temp[:,0]*10**9
 Q_factor = temp[:,1]
