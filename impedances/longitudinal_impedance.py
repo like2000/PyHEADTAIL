@@ -35,7 +35,6 @@ class Ind_volt_from_wake(object):
         Constructor
         '''
         self.slices = slices
-        self.bunch = bunch
         self.acceleration = acceleration
         self.wake_object_sum = wake_object_sum
         
@@ -96,7 +95,7 @@ class Ind_volt_from_wake(object):
                 reversed_array = self.wake_array[::-1]
                 return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
                     convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):] 
-            else:
+            elif self.slices.unit == 'theta':
                 dtau = (self.slices.bins_centers - self.slices.bins_centers[0]) \
                        * bunch.ring_radius / (bunch.beta_rel * c)
                 self.wake_array = self.sum_wakes(dtau, self.wake_object_sum)
@@ -135,7 +134,7 @@ class Ind_volt_from_wake(object):
             self.slices.bins_centers[0] += x
             self.slices.bins_centers[-1] += y
         
-        else:
+        elif self.slices.unit == 'theta':
             
             x = (self.slices.bins_centers[0] + self.slices.bins_centers[1]) / 2
             y = (self.slices.bins_centers[-2] + self.slices.bins_centers[-1]) / 2
@@ -167,7 +166,7 @@ class Long_wake_table(object):
         return wake
     
     
-class Long_wake_BB_resonators(object):
+class Long_wake_resonators(object):
     '''
     
     '''

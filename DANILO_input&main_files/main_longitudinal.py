@@ -95,7 +95,7 @@ resonator_impedance = Long_BB_resonators(R_shunt, f_res, Q_factor, slice_beam, m
 
 
 # Accelerator map
-map_ = [slice_beam] + [resonator_impedance] + [ring]# No intensity effects, no aperture limitations
+map_ = [slice_beam] + [ind] + [ring]# No intensity effects, no aperture limitations
 print "Map set"
 print ""
 
