@@ -1,6 +1,7 @@
 '''
 
 @author: Hannes Bartosik, Danilo Quartullo, Alexandre Lasheen
+
 '''
 
 from __future__ import division
@@ -11,9 +12,9 @@ from scipy.constants import physical_constants
 import time
 
 
-class Ind_volt_from_wake(object):
+class Induced_voltage_from_wake(object):
     '''
-    Induced voltage derived from resonators.
+    Induced voltage derived from sum of several wake fields.
     Apart from further optimizations, these are the important results obtained
     after the benchmarking which are applied to the following code:
     1) in general update_with_interpolation is faster than update_without_interpolation
@@ -30,7 +31,7 @@ class Ind_volt_from_wake(object):
     if slices.unit == tau then precalc == 'on'
     '''
     
-    def __init__(self, slices, bunch, acceleration, wake_object_sum):       
+    def __init__(self, slices, acceleration, wake_object_sum):       
         '''
         Constructor
         '''
@@ -50,9 +51,11 @@ class Ind_volt_from_wake(object):
     
     def sum_wakes(self, translation, wake_object_sum):
         
+        total_wakes = np.zeros(len(translation))
         for wake_object in wake_object_sum:
-            wake_object.wake_calc(translation)
-    
+            total_wakes += wake_object.wake_calc(translation)
+            
+        return total_wakes
     
     def track(self, bunch):
         
@@ -99,7 +102,7 @@ class Ind_volt_from_wake(object):
                 dtau = (self.slices.bins_centers - self.slices.bins_centers[0]) \
                        * bunch.ring_radius / (bunch.beta_rel * c)
                 self.wake_array = self.sum_wakes(dtau, self.wake_object_sum)
-        
+                
         return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
             convolve(self.wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)] 
     
@@ -116,38 +119,38 @@ class Ind_volt_from_wake(object):
         
         if self.slices.unit == 'tau':
             
-            x = (self.slices.bins_centers[0] + self.slices.bins_centers[1]) / 2
-            y = (self.slices.bins_centers[-2] + self.slices.bins_centers[-1]) / 2
-            self.slices.bins_centers[0] -= x
-            self.slices.bins_centers[-1] += y
+            temp1 = self.slices.bins_centers[0]
+            temp2 = self.slices.bins_centers[-1]
+            self.slices.bins_centers[0] = self.slices.edges[0]
+            self.slices.bins_centers[-1] = self.slices.edges[-1]
             induced_voltage_interpolated = interp(bunch.tau, self.slices.bins_centers, induced_voltage, 0, 0)
-            self.slices.bins_centers[0] += x
-            self.slices.bins_centers[-1] += y
+            self.slices.bins_centers[0] = temp1
+            self.slices.bins_centers[-1] = temp2
         
         elif self.slices.unit == 'z':
             
-            x = (self.slices.bins_centers[0] + self.slices.bins_centers[1]) / 2
-            y = (self.slices.bins_centers[-2] + self.slices.bins_centers[-1]) / 2
-            self.slices.bins_centers[0] -= x
-            self.slices.bins_centers[-1] += y
+            temp1 = self.slices.bins_centers[0]
+            temp2 = self.slices.bins_centers[-1]
+            self.slices.bins_centers[0] = self.slices.edges[0]
+            self.slices.bins_centers[-1] = self.slices.edges[-1]
             induced_voltage_interpolated = interp(bunch.z, self.slices.bins_centers, induced_voltage, 0, 0)
-            self.slices.bins_centers[0] += x
-            self.slices.bins_centers[-1] += y
+            self.slices.bins_centers[0] = temp1
+            self.slices.bins_centers[-1] = temp2
         
         elif self.slices.unit == 'theta':
             
-            x = (self.slices.bins_centers[0] + self.slices.bins_centers[1]) / 2
-            y = (self.slices.bins_centers[-2] + self.slices.bins_centers[-1]) / 2
-            self.slices.bins_centers[0] -= x
-            self.slices.bins_centers[-1] += y
+            temp1 = self.slices.bins_centers[0]
+            temp2 = self.slices.bins_centers[-1]
+            self.slices.bins_centers[0] = self.slices.edges[0]
+            self.slices.bins_centers[-1] = self.slices.edges[-1]
             induced_voltage_interpolated = interp(bunch.theta, self.slices.bins_centers, induced_voltage, 0, 0)
-            self.slices.bins_centers[0] += x
-            self.slices.bins_centers[-1] += y
+            self.slices.bins_centers[0] = temp1
+            self.slices.bins_centers[-1] = temp2
 
         bunch.dE += induced_voltage_interpolated
     
     
-class Long_wake_table(object):
+class Longit_wake_table(object):
     '''
     classdocs
     '''
@@ -166,7 +169,7 @@ class Long_wake_table(object):
         return wake
     
     
-class Long_wake_resonators(object):
+class Longit_wake_resonators(object):
     '''
     
     '''

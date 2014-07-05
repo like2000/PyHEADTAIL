@@ -5,7 +5,7 @@ from numpy import loadtxt
 from scipy.constants import c, e, m_p
 import time
 
-from input_parameters.simulation_parameters import GeneralParameters
+from input_parameters.general_parameters import *
 from input_parameters.rf_parameters import *
 from trackers.longitudinal_tracker import *
 from beams.beams import *
@@ -60,7 +60,7 @@ section_params = RFSectionParameters(N_t, n_rf_systems, C, harmonic_numbers, vol
 
 momentum_compaction = 1./gamma_transition**2
 
-general_params = GeneralParameters(particle_type, N_t, C, momentum_compaction, section_params.momentum_program)
+general_params = General_parameters(particle_type, N_t, C, momentum_compaction, section_params.momentum_program)
 
 
 # Simulation setup -------------------------------------------------------------
@@ -73,74 +73,48 @@ print ""
 ring = RingAndRFSection(general_params, section_params)
 
 
-
 # Define Beam
 my_beam = Beam(general_params, N_p, N_b)
 
 longitudinal_gaussian_matched(general_params, ring, my_beam, sigma_theta*2)
 
-
-
 number_slices = 200
 slice_beam = Slices(number_slices, cut_left = 0, cut_right = 0.0001763, unit = "theta", mode = 'const_space')
+print 'h'
 slice_beam.track(my_beam)
+
 bunchmonitor.dump(my_beam, slice_beam)
 
 temp = loadtxt('new_HQ_table.dat', comments = '!')
-print temp
 R_shunt = temp[:,2]*10**6
 f_res = temp[:,0]*10**9
 Q_factor = temp[:,1]
-resonator_impedance = Long_BB_resonators(R_shunt, f_res, Q_factor, slice_beam, my_beam, acceleration = 'on')
-
+resonator_wake = Longit_wake_resonators(R_shunt, f_res, Q_factor)
+ind_volt_from_wake = Induced_voltage_from_wake(slice_beam, 'on', [resonator_wake])
 
 # Accelerator map
-map_ = [slice_beam] + [ind] + [ring]# No intensity effects, no aperture limitations
+map_ = [slice_beam] + [ind_volt_from_wake] + [ring]
 print "Map set"
 print ""
 
-# print beam.dE
-# print beam.theta
-# print ""
-# print beam.delta
-# print beam.z
-#plot_long_phase_space(beam, ring, 0, -1.5, 1.5, -1.e-3, 1.e-3, unit='ns')
 
 # Tracking ---------------------------------------------------------------------
 for i in range(N_t):
     
-    t0 = time.clock()
     # Track
+    t0 = time.clock()
     for m in map_:
         m.track(my_beam)
     general_params.counter[0] += 1
     bunchmonitor.dump(my_beam, slice_beam)
     t1 = time.clock()
-#   print t1 - t0
-#     print "Momentumi %.6e eV" %beam.p0_i()
-#     print "Particle energy, theta %.6e %.6e" %(beam.dE[0], beam.theta[0])
-    # Output data
-    #if (i % dt_out) == 0:
+    print t1 - t0
     
-#     print '{0:5d} \t {1:3e} \t {2:3e} \t {3:3e} \t {4:3e} \t {5:3e} \t {6:5d} \t {7:3s}'.format(i, bunch.slices.mean_dz[-2], bunch.slices.epsn_z[-2],
-#                 bunch.slices.sigma_dz[-2], bunch.bl_gauss, 
-#                 bunch.slices.sigma_dp[-2], bunch.slices.n_macroparticles[-2], 
-#                 str(time.clock() - t0))
-
-    
-
     # Plot
     if (i % dt_plt) == 0:
         plot_long_phase_space(my_beam, general_params, ring, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
-        #plot_long_phase_space(ring, beam, i, 0, 2.5, -.5e3, .5e3, xunit='ns', yunit='MeV')
-#        plot_long_phase_space(beam, i, 0, 0.0001763, -450, 450)
-#        plot_bunch_length_evol(beam, 'bunch', i, unit='ns')
-#        plot_bunch_length_evol_gaussian(my_beam, 'bunch', i, unit='ns')
-
-
 
 print "Done!"
 print ""
-
 
 bunchmonitor.h5file.close()

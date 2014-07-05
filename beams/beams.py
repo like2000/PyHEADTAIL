@@ -14,27 +14,12 @@ from trackers.longitudinal_tracker import is_in_separatrix
 
 class Beam(object):
     
-    def __init__(self, General_parameters, n_macroparticles, intensity, 
-                 particle_type, user_mass = 0, user_charge = 0):
+    def __init__(self, General_parameters, n_macroparticles, intensity):
         
         # Beam and ring-dependent properties
         
-        #: | *Particle type*
-        #: | *Recognized types: 'proton' and 'user_input' to input mass and charge manually.*
-        #: | *Particle mass in [kg]* :math:`: \quad m` *
-        #: | *Particle charge in [C]* :math:`: \quad q` *
-        self.particle_type = particle_type
-        
-        # Attribution of mass and charge with respect to particle_type
-        if self.particle_type is 'proton':
-            self.mass = m_p
-            self.charge = e
-        elif self.particle_type is 'user_input':
-            self.mass = user_mass
-            self.charge = user_charge
-        else:
-            raise RuntimeError('Particle type not recognized')
-        
+        self.mass = General_parameters.mass
+        self.charge = General_parameters.charge
         self.ring_radius = General_parameters.ring_radius
         self.intensity = intensity # total no of particles
         

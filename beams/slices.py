@@ -177,7 +177,6 @@ class Slices(object):
                                                 self.first_index_in_bin[-1]])
             
         self.n_macroparticles = np.diff(self.first_index_in_bin)
-        print (time.clock() - t0)
         
         
     def slice_constant_space_histogram(self, bunch):
@@ -196,7 +195,7 @@ class Slices(object):
             self.n_macroparticles = np.histogram(bunch.z, self.edges)[0]
         else:
             self.n_macroparticles = np.histogram(bunch.tau, self.edges)[0]
-        print (time.clock() - t0)
+
        
     def slice_constant_charge(self, bunch):
         
