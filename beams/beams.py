@@ -10,6 +10,7 @@ from scipy.constants import c, e, m_p
 import cobra_functions.stats as cp
 from scipy.optimize import curve_fit
 from trackers.longitudinal_tracker import is_in_separatrix
+from numpy.fft import rfft, irfft, rfftfreq
 
 
 class Beam(object):
@@ -173,6 +174,13 @@ class Beam(object):
         if itemindex.size != 0:
             
             self.id[itemindex] = 0
+    
+    
+    def spectrum(self, n_sampling_fft, slices):
+        
+        spectr = rfft(slices.n_macroparticles, n_sampling_fft)
+            
+        return spectr
 
 
 
