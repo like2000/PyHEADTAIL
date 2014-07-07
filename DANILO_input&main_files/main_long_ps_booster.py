@@ -3,7 +3,7 @@ from __future__ import division
 import numpy as np
 from numpy import loadtxt
 from scipy.constants import c, e, m_p
-import time
+import time, sys
 
 from input_parameters.general_parameters import *
 from input_parameters.rf_parameters import *
@@ -79,21 +79,17 @@ my_beam = Beam(general_params, N_p, N_b)
 longitudinal_gaussian_matched(general_params, ring, my_beam, sigma_theta*2)
 
 number_slices = 250
-slice_beam = Slices(number_slices, cut_left = 0, cut_right = 10e-9, unit = "tau", mode = 'const_space_hist')
-
-# slice_beam.track(my_beam)
-# 
-# bunchmonitor.dump(my_beam, slice_beam)
-
-temp = loadtxt('new_HQ_table.dat', comments = '!')
-R_shunt = temp[:, 2] * 10**6 
-f_res = temp[:, 0] * 10**9
-Q_factor = temp[:, 1]
-print R_shunt, f_res, Q_factor
-resonator = Longitudinal_resonators(R_shunt, f_res, Q_factor)
-ind_volt_from_wake = Induced_voltage_from_wake(slice_beam, 'off', [resonator])
-ind_volt_from_wake2 = Induced_voltage_from_impedance(slice_beam, 'off', [resonator], 0.5e6, my_beam)
-
+slice_beam = Slices(number_slices, cut_left = 0, cut_right = 10e-9, unit = 
+                    "tau", mode = 'const_space_hist')
+temp = np.complex128(loadtxt('ps_booster_impedances/ejection kicker/Ekicker_\
+        1.0GeV.txt', dtype = str, converters = dict(zip((0, 1), (lambda s: 
+        s.replace('i', 'j'), lambda s: s.replace('i', 'j'))))))
+print temp
+sys.exit("Error message")
+omega = temp[:,0]
+Re_Z = temp[:,1]
+Im_Z = temp[:,2]
+sys.exit("Error message")
 
 # Accelerator map
 map_ = [slice_beam] + [ind_volt_from_wake] + [ind_volt_from_wake2] + [ring]
