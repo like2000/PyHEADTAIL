@@ -17,21 +17,21 @@ from impedances.longitudinal_impedance import *
 
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
-N_b = 1.e9           # Intensity
-N_p = 10001            # Macro-particles
-tau_0 = 0.4e-9       # Initial bunch length, 4 sigma [s]
+N_b = 1.e11           # Intensity
+N_p = 500000          # Macro-particles
+tau_0 = 2e-9       # Initial bunch length, 4 sigma [s]
 sd = .5e-4           # Initial r.m.s. momentum spread
 particle_type = 'proton'
 
 # Machine and RF parameters
 
-gamma_transition = 55.759505  # Transition gamma
-C = 26658.883        # Machine circumference [m]
+gamma_transition = 18.0 #55.759505  # Transition gamma
+C = 2 * np.pi * 1100.009 #26658.883        # Machine circumference [m]
 p_s = 450.e9         # Synchronous momentum [eV]
 
 
 # Tracking details
-N_t = 2000           # Number of turns to track
+N_t = 1          # Number of turns to track
 dt_out = 20          # Time steps between output
 dt_plt = 20          # Time steps between plots
 
@@ -48,9 +48,9 @@ sigma_dE = sd * beta**2 * E_s           # R.m.s. dE
 # Monitors
 bunchmonitor = BunchMonitor('bunch', N_t+1, long_gaussian_fit = "Off")
 
-p_f = p_s+600000000
+p_f = p_s
 n_rf_systems = 1                                      # Number of rf systems second section
-harmonic_numbers = 35640                               # Harmonic number second section
+harmonic_numbers = 4620#35640                               # Harmonic number second section
 voltage_program = 6.e6
        
 sync_momentum = np.linspace(p_s, p_f, N_t +1)          # Synchronous momentum program [eV/c] second section
@@ -78,22 +78,25 @@ my_beam = Beam(general_params, N_p, N_b)
 
 longitudinal_gaussian_matched(general_params, ring, my_beam, sigma_theta*2)
 
-number_slices = 200
-slice_beam = Slices(number_slices, cut_left = 0, cut_right = 0.0001763, unit = "theta", mode = 'const_space')
-print 'h'
-slice_beam.track(my_beam)
+number_slices = 250
+slice_beam = Slices(number_slices, cut_left = 0, cut_right = 10e-9, unit = "tau", mode = 'const_space_hist')
 
-bunchmonitor.dump(my_beam, slice_beam)
+# slice_beam.track(my_beam)
+# 
+# bunchmonitor.dump(my_beam, slice_beam)
 
 temp = loadtxt('new_HQ_table.dat', comments = '!')
-R_shunt = temp[:,2]*10**6
+R_shunt = temp[:,2]*10**6 
 f_res = temp[:,0]*10**9
 Q_factor = temp[:,1]
-resonator_wake = Longit_wake_resonators(R_shunt, f_res, Q_factor)
-ind_volt_from_wake = Induced_voltage_from_wake(slice_beam, 'on', [resonator_wake])
+print R_shunt, f_res, Q_factor
+resonator = Longitudinal_resonators(R_shunt, f_res, Q_factor)
+ind_volt_from_wake = Induced_voltage_from_wake(slice_beam, 'off', [resonator])
+ind_volt_from_wake2 = Induced_voltage_from_impedance(slice_beam, 'off', [resonator], 0.5e6, my_beam)
+
 
 # Accelerator map
-map_ = [slice_beam] + [ind_volt_from_wake] + [ring]
+map_ = [slice_beam] + [ind_volt_from_wake] + [ind_volt_from_wake2] + [ring]
 print "Map set"
 print ""
 
@@ -111,8 +114,8 @@ for i in range(N_t):
     print t1 - t0
     
     # Plot
-    if (i % dt_plt) == 0:
-        plot_long_phase_space(my_beam, general_params, ring, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
+#     if (i % dt_plt) == 0:
+#         plot_long_phase_space(my_beam, general_params, ring, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
 
 print "Done!"
 print ""

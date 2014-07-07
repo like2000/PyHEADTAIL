@@ -11,6 +11,7 @@ from scipy.constants import c, e
 from scipy.constants import physical_constants
 import time
 from numpy.fft import rfft, irfft, rfftfreq
+import matplotlib.pyplot as plt
 
 
 class Induced_voltage_from_wake(object):
@@ -32,7 +33,7 @@ class Induced_voltage_from_wake(object):
     if slices.unit == tau then precalc == 'on'
     '''
     
-    def __init__(self, slices, acceleration, wake_sum):       
+    def __init__(self, slices, acceleration, wake_sum, bunch):       
         '''
         Constructor
         '''
@@ -44,8 +45,17 @@ class Induced_voltage_from_wake(object):
             
             if self.acceleration == 'off' or self.slices.unit == 'tau':
                 self.precalc = 'on'
-                translation = self.slices.bins_centers - self.slices.bins_centers[0]
-                self.wake_array = self.sum_wakes(translation, self.wake_object_sum)
+                if self.slices.unit == 'tau':
+                    dtau = self.slices.bins_centers - self.slices.bins_centers[0]
+                elif self.slices.unit == 'theta':
+                    dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
+                       * bunch.ring_radius / (bunch.beta_rel * c)
+                elif self.slices.unit == 'z':
+                    dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
+                       / (bunch.beta_rel * c)
+                self.wake_array = self.sum_wakes(dtau, self.wake_sum)
+                plt.figure(3)
+                plt.plot(dtau, self.wake_array)
             else:
                 self.precalc = 'off' 
     
@@ -65,8 +75,10 @@ class Induced_voltage_from_wake(object):
             ind_vol = self.induced_voltage_with_matrix(bunch)
         else:
             ind_vol = self.induced_voltage_with_convolv(bunch)
-            
-        self.update_with_interpolation(bunch, ind_vol)
+        plt.figure(1)
+        plt.plot(self.slices.bins_centers, ind_vol)
+        
+        update_with_interpolation(bunch, ind_vol, self.slices)
         
            
     def induced_voltage_with_matrix(self, bunch):
@@ -79,7 +91,7 @@ class Induced_voltage_from_wake(object):
             dtau_matrix = (np.transpose([self.slices.bins_centers]) - \
                            self.slices.bins_centers) / (bunch.beta_rel * c)
             self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
-        else:
+        elif self.slices.unit == 'theta':
             dtau_matrix = bunch.ring_radius / (bunch.beta_rel * c) * \
             (self.slices.bins_centers - np.transpose([self.slices.bins_centers])) 
             self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
@@ -94,12 +106,12 @@ class Induced_voltage_from_wake(object):
             
             if self.slices.unit == 'tau':
                 dtau = self.slices.bins_centers - self.slices.bins_centers[0]
-                self.wake_array = self.sum_wakes(dtau, self.wake_object_sum)
+                self.wake_array = self.sum_wakes(dtau, self.wake_sum)
             
             elif self.slices.unit == 'z':
                 dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
                        /(bunch.beta_rel * c)
-                self.wake_array = self.sum_wakes(dtau, self.wake_object_sum)
+                self.wake_array = self.sum_wakes(dtau, self.wake_sum)
                 reversed_array = self.wake_array[::-1]
                 return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
                     convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):] 
@@ -107,7 +119,19 @@ class Induced_voltage_from_wake(object):
             elif self.slices.unit == 'theta':
                 dtau = (self.slices.bins_centers - self.slices.bins_centers[0]) \
                        * bunch.ring_radius / (bunch.beta_rel * c)
-                self.wake_array = self.sum_wakes(dtau, self.wake_object_sum)
+                self.wake_array = self.sum_wakes(dtau, self.wake_sum)
+        
+        if self.precalc == 'on' and self.slices.unit == 'z':
+                reversed_array = self.wake_array[::-1]
+                return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
+                    convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):]  
+        
+        plt.figure(6)  
+        plt.plot(self.slices.bins_centers , self.wake_array ) 
+        plt.figure(7)  
+        plt.plot(self.slices.bins_centers ,- bunch.charge * bunch.intensity / bunch.n_macroparticles * \
+            convolve(self.slices.n_macroparticles, self.wake_array)[0:len(self.wake_array)] , self.slices.bins_centers, 0.1 *self.slices.n_macroparticles)
+              
                 
         return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
             convolve(self.wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)] 
@@ -131,17 +155,23 @@ class Induced_voltage_from_impedance(object):
         if self.acceleration == 'off' or self.slices.unit == 'tau':
                 self.precalc = 'on'
                 self.frequency_fft, self.n_sampling_fft = self.frequency_array(slices, bunch)
-                self.imped_array = self.sum_impedances(self.frequency_fft, self.imped_sum)    
+                print self.frequency_fft
+                self.impedance_array = self.sum_impedances(self.frequency_fft, self.impedance_sum)
+                plt.figure(4)
+                plt.plot(self.frequency_fft, self.impedance_array.real)  
+                plt.figure(5)  
+                plt.plot(self.frequency_fft, self.impedance_array.imag)
+                print self.impedance_array.imag
         else:
             self.precalc = 'off' 
     
     
     def sum_impedances(self, omega, imped_object_sum):
         
-        total_impedance = np.zeros(len(omega))
-        for imped_object in self.imped_sum:
+        total_impedance = np.zeros(len(omega)) + 0j
+        for imped_object in self.impedance_sum:
             total_impedance += imped_object.imped_calc(omega)
-            
+       
         return total_impedance
     
     
@@ -155,7 +185,7 @@ class Induced_voltage_from_impedance(object):
         elif self.slices.unit == 'z':
                     dtau = (self.slices.bins_centers[1] - self.slices.bins_centers[0])\
                        /(bunch.beta_rel * c)
-        power = np.floor(np.log2(1 / (self.frequency_step * dtau))) + 2
+        power = int(np.floor(np.log2(1 / (self.frequency_step * dtau)))) + 1
         
         return rfftfreq(2 ** power, dtau), 2 ** power
     
@@ -164,18 +194,23 @@ class Induced_voltage_from_impedance(object):
         
         if self.precalc == 'off':
             self.frequency_fft, self.n_sampling_fft = self.frequency_array(self.slices, bunch)
-            self.imped_array = self.sum_impedances(self.frequency_fft, self.imped_sum)  
+            self.impedance_array = self.sum_impedances(self.frequency_fft, self.imped_sum)
+              
             
         spectrum = bunch.spectrum(self.n_sampling_fft, self.slices)
          
         ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
-                    * irfft(self.impedance_array * spectrum) * \
-                     self.frequency_fft[1] * 2*(len(self.frequency_fft)-1)
-        ind_vol = ind_vol[0:len(self.frequency_fft)]
-        self.update_with_interpolation(bunch, ind_vol)
+                    * irfft(self.impedance_array * spectrum) * self.frequency_fft[1] * 2*(len(self.frequency_fft)-1)
+        ind_vol = ind_vol[0:self.slices.n_slices]
+        plt.figure(2)
+        plt.plot(self.slices.bins_centers, ind_vol)
+#        plt.plot(self.slices.bins_centers, ind_vol, self.slices.bins_centers, 0.0001*self.slices.n_macroparticles)
+        plt.show()
+        
+        update_with_interpolation(bunch, ind_vol, self.slices)
     
 
-def update_without_interpolation(self, bunch, induced_voltage):
+def update_without_interpolation(bunch, induced_voltage, slices):
     
     for i in range(0, self.slices.n_slices):
             
@@ -183,30 +218,30 @@ def update_without_interpolation(self, bunch, induced_voltage):
               self.slices.first_index_in_bin[i+1]] += induced_voltage[i]
     
     
-def update_with_interpolation(self, bunch, induced_voltage):
+def update_with_interpolation(bunch, induced_voltage, slices):
     
-    temp1 = self.slices.bins_centers[0]
-    temp2 = self.slices.bins_centers[-1]
-    self.slices.bins_centers[0] = self.slices.edges[0]
-    self.slices.bins_centers[-1] = self.slices.edges[-1]
+    temp1 = slices.bins_centers[0]
+    temp2 = slices.bins_centers[-1]
+    slices.bins_centers[0] = slices.edges[0]
+    slices.bins_centers[-1] = slices.edges[-1]
     
-    if self.slices.unit == 'tau':
+    if slices.unit == 'tau':
         
         induced_voltage_interpolated = interp(bunch.tau, 
-                            self.slices.bins_centers, induced_voltage, 0, 0)
+                            slices.bins_centers, induced_voltage, 0, 0)
         
-    elif self.slices.unit == 'z':
+    elif slices.unit == 'z':
         
         induced_voltage_interpolated = interp(bunch.z, 
-                            self.slices.bins_centers, induced_voltage, 0, 0)
+                            slices.bins_centers, induced_voltage, 0, 0)
         
-    elif self.slices.unit == 'theta':
+    elif slices.unit == 'theta':
         
         induced_voltage_interpolated = interp(bunch.theta, 
-                            self.slices.bins_centers, induced_voltage, 0, 0)
+                            slices.bins_centers, induced_voltage, 0, 0)
         
-    self.slices.bins_centers[0] = temp1
-    self.slices.bins_centers[-1] = temp2
+    slices.bins_centers[0] = temp1
+    slices.bins_centers[-1] = temp2
     bunch.dE += induced_voltage_interpolated
     
     
@@ -254,7 +289,7 @@ class Longitudinal_resonators(object):
         Constructor
         '''
         self.R_S = np.array([R_S]).flatten()
-        self.omega_R = np.array([omega_R]).flatten()
+        self.omega_R = 2 *np.pi * np.array([omega_R]).flatten()
         self.Q = np.array([Q]).flatten()
         self.n_resonators = len(self.R_S)
         
@@ -266,7 +301,7 @@ class Longitudinal_resonators(object):
         for i in range(0, self.n_resonators):
        
             alpha = self.omega_R[i] / (2 * self.Q[i])
-            omega_bar = np.sqrt(self.omega_R ** 2 - alpha ** 2)
+            omega_bar = np.sqrt(self.omega_R[i] ** 2 - alpha ** 2)
             
             wake += (np.sign(dtau) + 1) * self.R_S[i] * alpha * np.exp(-alpha * 
                     dtau) * (np.cos(omega_bar * dtau) - alpha / omega_bar * 
@@ -278,11 +313,14 @@ class Longitudinal_resonators(object):
     def imped_calc(self, omega):
         
         impedance = np.zeros(len(omega)) + 0j
+  
         
         for i in range(0, len(self.R_S)):
             
             impedance[1:] +=  self.R_S[i] / (1 + 1j * self.Q[i] * \
-                    (self.omega_R[i] / omega[1:] - omega[1:] / self.omega_R[i]))
+                    (-self.omega_R[i] / (2 * np.pi *omega[1:]) + (2 * np.pi *omega[1:]) / self.omega_R[i]))
+        
+        
             
         return impedance
  
