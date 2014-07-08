@@ -11,7 +11,6 @@ from scipy.constants import c, e
 from scipy.constants import physical_constants
 import time
 from numpy.fft import rfft, irfft, rfftfreq
-import matplotlib.pyplot as plt
 
 
 class Induced_voltage_from_wake(object):
@@ -54,8 +53,6 @@ class Induced_voltage_from_wake(object):
                     dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
                        / (bunch.beta_rel * c)
                 self.wake_array = self.sum_wakes(dtau, self.wake_sum)
-                plt.figure(3)
-                plt.plot(dtau, self.wake_array)
             else:
                 self.precalc = 'off' 
     
@@ -75,8 +72,6 @@ class Induced_voltage_from_wake(object):
             ind_vol = self.induced_voltage_with_matrix(bunch)
         else:
             ind_vol = self.induced_voltage_with_convolv(bunch)
-        plt.figure(1)
-        plt.plot(self.slices.bins_centers, ind_vol)
         
         update_with_interpolation(bunch, ind_vol, self.slices)
         
@@ -126,13 +121,6 @@ class Induced_voltage_from_wake(object):
                 return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
                     convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):]  
         
-        plt.figure(6)  
-        plt.plot(self.slices.bins_centers , self.wake_array ) 
-        plt.figure(7)  
-        plt.plot(self.slices.bins_centers ,- bunch.charge * bunch.intensity / bunch.n_macroparticles * \
-            convolve(self.slices.n_macroparticles, self.wake_array)[0:len(self.wake_array)] , self.slices.bins_centers, 0.1 *self.slices.n_macroparticles)
-              
-                
         return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
             convolve(self.wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)] 
     
@@ -156,12 +144,6 @@ class Induced_voltage_from_impedance(object):
                 self.precalc = 'on'
                 self.frequency_fft, self.n_sampling_fft = self.frequency_array(slices, bunch)
                 self.impedance_array = self.sum_impedances(self.frequency_fft, self.impedance_sum)
-                plt.figure()
-                plt.suptitle('real part impedance', fontsize=20)
-                plt.plot(self.frequency_fft, self.impedance_array.real, '.-')  
-                plt.figure()
-                plt.suptitle('imaginary part impedance', fontsize=20)  
-                plt.plot(self.frequency_fft, self.impedance_array.imag, '.-')
         else:
             self.precalc = 'off' 
     
@@ -202,12 +184,7 @@ class Induced_voltage_from_impedance(object):
         ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
                     * irfft(self.impedance_array * spectrum) * self.frequency_fft[1] * 2*(len(self.frequency_fft)-1)
         ind_vol = ind_vol[0:self.slices.n_slices]
-        plt.figure()
-        plt.suptitle('induced voltage', fontsize=20)
-        plt.plot(self.slices.bins_centers, ind_vol, self.slices.bins_centers, self.slices.n_macroparticles)
-        plt.figure()
-        plt.suptitle('spectrum', fontsize=20)
-        plt.plot(self.frequency_fft, np.abs(spectrum))
+
         update_with_interpolation(bunch, ind_vol, self.slices)
     
 

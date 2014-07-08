@@ -7,7 +7,7 @@ Created on 12.06.2014
 import numpy as np
 import sys
 from scipy.constants import c, e, m_p
-import cobra_functions.stats as cp
+import cython_scripts.stats as cp
 from scipy.optimize import curve_fit
 from trackers.longitudinal_tracker import is_in_separatrix
 from numpy.fft import rfft, irfft, rfftfreq
