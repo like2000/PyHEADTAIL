@@ -13,6 +13,7 @@ from trackers.longitudinal_tracker import separatrix
 
 
 def fig_folder():
+    
     # Directory where longitudinal_plots will be stored
     dirname = 'fig'
 
@@ -28,8 +29,8 @@ def fig_folder():
 
 
 def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
-                          xmax, ymin, ymax, xunit=None, yunit=None, 
-                          separatrix_plot=None):
+                          xmax, ymin, ymax, xunit = None, yunit = None, 
+                          separatrix_plot = None):
 
     # Directory where longitudinal_plots will be stored
     fig_folder()
@@ -93,7 +94,7 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
                 va='center') 
 
     # Separatrix
-    if separatrix_plot == None or separatrix_plot == 'on':
+    if separatrix_plot == 'on':
         x_sep = np.linspace(xmin, xmax, 1000)
         if xunit == None or xunit == 'rad':
             y_sep = separatrix(General_parameters, RingAndRFSection, x_sep)

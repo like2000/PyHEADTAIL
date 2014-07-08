@@ -4,6 +4,7 @@ import numpy as np
 from numpy import loadtxt
 from scipy.constants import c, e, m_p
 import time, sys
+import matplotlib.pyplot as plt
 
 from input_parameters.general_parameters import *
 from input_parameters.rf_parameters import *
@@ -15,45 +16,45 @@ from monitors.monitors import *
 from beams.slices import *
 from impedances.longitudinal_impedance import *
 
-# Simulation parameters --------------------------------------------------------
+
+# SIMULATION PARAMETERS
+
 # Bunch parameters
 N_b = 1.e11           # Intensity
-N_p = 500000          # Macro-particles
-tau_0 = 2e-9       # Initial bunch length, 4 sigma [s]
+N_p = 5000000     # Macro-particles
+tau_0 = 180e-9       # Initial bunch length, 4 sigma [s]
 sd = .5e-4           # Initial r.m.s. momentum spread
 particle_type = 'proton'
 
 # Machine and RF parameters
 
-gamma_transition = 18.0 #55.759505  # Transition gamma
-C = 2 * np.pi * 1100.009 #26658.883        # Machine circumference [m]
-p_s = 450.e9         # Synchronous momentum [eV]
+gamma_transition = 4.4 #55.759505  # Transition gamma
+C = 2 * np.pi * 25.0 #26658.883        # Machine circumference [m]
+p_s = 2.12e9      # Synchronous momentum [eV]
 
 
 # Tracking details
-N_t = 1          # Number of turns to track
+N_t = 3          # Number of turns to track
 dt_out = 20          # Time steps between output
 dt_plt = 20          # Time steps between plots
 
 # Derived parameters
-#m_p *= c**2/e
+
 E_s = np.sqrt(p_s**2 + m_p**2 * c**4 / e**2)  # Sychronous energy [eV]
-gamma = E_s/(m_p*c**2/e)          # Relativistic gamma
-beta = np.sqrt(1. - 1./gamma**2)  # Relativistic beta
+gamma = E_s/(m_p*c**2/e)          
+
+beta = np.sqrt(1. - 1./gamma**2)  
 T0 = C / beta / c                 # Turn period
+print T0
 sigma_theta = 2 * np.pi * tau_0 / T0      # R.m.s. theta
 sigma_dE = sd * beta**2 * E_s           # R.m.s. dE
 
-
-# Monitors
-bunchmonitor = BunchMonitor('bunch', N_t+1, long_gaussian_fit = "Off")
-
-p_f = p_s
-n_rf_systems = 1                                      # Number of rf systems second section
-harmonic_numbers = 4620#35640                               # Harmonic number second section
-voltage_program = 6.e6
+n_rf_systems = 1                                     
+harmonic_numbers = 1                         
+voltage_program = 8.e3
        
-sync_momentum = np.linspace(p_s, p_f, N_t +1)          # Synchronous momentum program [eV/c] second section
+sync_momentum = p_s
+
 phi_offset = 0
 
 section_params = RFSectionParameters(N_t, n_rf_systems, C, harmonic_numbers, voltage_program, phi_offset, sync_momentum)
@@ -62,48 +63,81 @@ momentum_compaction = 1./gamma_transition**2
 
 general_params = General_parameters(particle_type, N_t, C, momentum_compaction, section_params.momentum_program)
 
+# MONITOR
 
-# Simulation setup -------------------------------------------------------------
-print "Setting up the simulation..."
-print ""
+bunchmonitor = BunchMonitor('bunch', N_t+1, long_gaussian_fit = "Off")
 
-
-# Define Ring and RF Station
+# DEFINE RING
 
 ring = RingAndRFSection(general_params, section_params)
 
+# DEFINE BEAM
 
-# Define Beam
 my_beam = Beam(general_params, N_p, N_b)
 
 longitudinal_gaussian_matched(general_params, ring, my_beam, sigma_theta*2)
 
-number_slices = 250
-slice_beam = Slices(number_slices, cut_left = 0, cut_right = 10e-9, unit = 
+# DEFINE SLICES
+
+number_slices = 2000
+slice_beam = Slices(number_slices, cut_left = - 5.72984173562e-07 / 2, cut_right = 5.72984173562e-07 / 2, unit = 
                     "tau", mode = 'const_space_hist')
-temp = np.complex128(loadtxt('ps_booster_impedances/ejection kicker/Ekicker_\
-        1.0GeV.txt', dtype = str, converters = dict(zip((0, 1), (lambda s: 
-        s.replace('i', 'j'), lambda s: s.replace('i', 'j'))))))
-print temp
-sys.exit("Error message")
-omega = temp[:,0]
-Re_Z = temp[:,1]
-Im_Z = temp[:,2]
-sys.exit("Error message")
 
-# Accelerator map
-map_ = [slice_beam] + [ind_volt_from_wake] + [ind_volt_from_wake2] + [ring]
-print "Map set"
-print ""
+# LOAD IMPEDANCE TABLES
+
+Ekicker = loadtxt('ps_booster_impedances/ejection kicker/Ekicker_1.4GeV.txt'
+        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
+
+Ekicker_table = Longitudinal_table(Ekicker[:,0].real, Ekicker[:,1].real, Ekicker[:,1].imag)
 
 
-# Tracking ---------------------------------------------------------------------
+Ekicker_cables = loadtxt('ps_booster_impedances/ejection kicker cables/Ekicker_cables_1.4GeV.txt'
+        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
+
+Ekicker_cables_table = Longitudinal_table(Ekicker_cables[:,0].real, Ekicker_cables[:,1].real, Ekicker_cables[:,1].imag)
+
+
+ISC = loadtxt('ps_booster_impedances/Indirect space charge/ISC_1.4GeV.txt'
+        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
+
+ISC_table = Longitudinal_table(ISC[:,0].real, ISC[:,1].real, ISC[:,1].imag)
+
+
+KSW = loadtxt('ps_booster_impedances/KSW/KSW_1.4GeV.txt'
+        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
+
+KSW_table = Longitudinal_table(KSW[:,0].real, KSW[:,1].real, KSW[:,1].imag)
+
+
+RW = loadtxt('ps_booster_impedances/resistive wall/RW_1.4GeV.txt'
+        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
+
+RW_table = Longitudinal_table(RW[:,0].real, RW[:,1].real, RW[:,1].imag)
+
+steps = Longitudinal_inductive_impedance(0.061, general_params)
+
+sum_impedance = [Ekicker_table] + [Ekicker_cables_table] + [KSW_table] + [RW_table] + [steps]
+
+ind_volt_from_imp = Induced_voltage_from_impedance(slice_beam, "off", sum_impedance, 2e6, my_beam)
+
+
+# ACCELERATION MAP
+
+map_ = [slice_beam] + [ind_volt_from_imp] + [ring]
+
+# TRACKING
+
 for i in range(N_t):
     
-    # Track
     t0 = time.clock()
     for m in map_:
         m.track(my_beam)
+    plt.show()
     general_params.counter[0] += 1
     bunchmonitor.dump(my_beam, slice_beam)
     t1 = time.clock()
@@ -111,9 +145,8 @@ for i in range(N_t):
     
     # Plot
 #     if (i % dt_plt) == 0:
-#         plot_long_phase_space(my_beam, general_params, ring, -0.75, 0, -1.e-3, 1.e-3, xunit='m', yunit='1')
+#         plot_long_phase_space(my_beam, general_params, ring, 0, 10e-9, -1.e-3, 1.e-3, xunit = 'tau', yunit = '1')
 
 print "Done!"
-print ""
 
 bunchmonitor.h5file.close()

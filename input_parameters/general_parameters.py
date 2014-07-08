@@ -71,7 +71,13 @@ class General_parameters(object):
         #:
         #: .. math:: \\E = \sqrt{ p^2 + \left(\frac{mc^2}{e}\right)^2 }
         self.energy_program = np.sqrt(self.momentum_program**2 + 
-                                      (self.mass * c**2 / e)**2) 
+                                      (self.mass * c**2 / e)**2)
+        
+        # Revolution period
+        self.T0 = self.ring_circumference / self.beta_rel_program / c 
+        
+        # Revolution frequency
+        self.f_rev = 1 / self.T0 
         
         #: *Slippage factor (order 0)* :math:`: \quad \eta_{0,n}`
         #:

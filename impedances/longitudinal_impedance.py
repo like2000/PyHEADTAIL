@@ -155,13 +155,13 @@ class Induced_voltage_from_impedance(object):
         if self.acceleration == 'off' or self.slices.unit == 'tau':
                 self.precalc = 'on'
                 self.frequency_fft, self.n_sampling_fft = self.frequency_array(slices, bunch)
-                print self.frequency_fft
                 self.impedance_array = self.sum_impedances(self.frequency_fft, self.impedance_sum)
-                plt.figure(4)
-                plt.plot(self.frequency_fft, self.impedance_array.real)  
-                plt.figure(5)  
-                plt.plot(self.frequency_fft, self.impedance_array.imag)
-                print self.impedance_array.imag
+                plt.figure()
+                plt.suptitle('real part impedance', fontsize=20)
+                plt.plot(self.frequency_fft, self.impedance_array.real, '.-')  
+                plt.figure()
+                plt.suptitle('imaginary part impedance', fontsize=20)  
+                plt.plot(self.frequency_fft, self.impedance_array.imag, '.-')
         else:
             self.precalc = 'off' 
     
@@ -185,8 +185,8 @@ class Induced_voltage_from_impedance(object):
         elif self.slices.unit == 'z':
                     dtau = (self.slices.bins_centers[1] - self.slices.bins_centers[0])\
                        /(bunch.beta_rel * c)
-        power = int(np.floor(np.log2(1 / (self.frequency_step * dtau)))) + 1
         
+        power = int(np.floor(np.log2(1 / (self.frequency_step * dtau)))) + 1
         return rfftfreq(2 ** power, dtau), 2 ** power
     
     
@@ -202,20 +202,21 @@ class Induced_voltage_from_impedance(object):
         ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
                     * irfft(self.impedance_array * spectrum) * self.frequency_fft[1] * 2*(len(self.frequency_fft)-1)
         ind_vol = ind_vol[0:self.slices.n_slices]
-        plt.figure(2)
-        plt.plot(self.slices.bins_centers, ind_vol)
-#        plt.plot(self.slices.bins_centers, ind_vol, self.slices.bins_centers, 0.0001*self.slices.n_macroparticles)
-        plt.show()
-        
+        plt.figure()
+        plt.suptitle('induced voltage', fontsize=20)
+        plt.plot(self.slices.bins_centers, ind_vol, self.slices.bins_centers, self.slices.n_macroparticles)
+        plt.figure()
+        plt.suptitle('spectrum', fontsize=20)
+        plt.plot(self.frequency_fft, np.abs(spectrum))
         update_with_interpolation(bunch, ind_vol, self.slices)
     
 
 def update_without_interpolation(bunch, induced_voltage, slices):
     
-    for i in range(0, self.slices.n_slices):
+    for i in range(0, slices.n_slices):
             
-            bunch.dE[self.slices.first_index_in_bin[i]:
-              self.slices.first_index_in_bin[i+1]] += induced_voltage[i]
+            bunch.dE[slices.first_index_in_bin[i]:
+              slices.first_index_in_bin[i+1]] += induced_voltage[i]
     
     
 def update_with_interpolation(bunch, induced_voltage, slices):
@@ -273,8 +274,8 @@ class Longitudinal_table(object):
     
     def imped_calc(self, omega):
         
-        Re_Z = interp(omega, self.omega_array, self.Re_Z_array, right = 0)
-        Im_Z = interp(omega, self.omega_array, self.Im_Z_array, right = 0)
+        Re_Z = interp(omega, self.omega_array, self.Re_Z_array, left=0, right = 0)
+        Im_Z = interp(omega, self.omega_array, self.Im_Z_array, left=0, right = 0)
         
         return Re_Z + 1j * Im_Z
     
@@ -374,6 +375,23 @@ class Longitudinal_travelling_waves(object):
             
         return impedance       
     
+
+class Longitudinal_inductive_impedance(object):
+    '''
     
-  
+    '''
+    def __init__(self, Z_over_n, gen_par):
+        '''
+        Constructor
+        '''
+        self.Z_over_n = Z_over_n
+        self.counter = gen_par.counter
+        self.T0 = gen_par.T0
+        
+    def imped_calc(self, omega):    
+        
+        print self.T0 
+        impedance = self.T0[0][self.counter] * omega * self.Z_over_n * 1j
+        
+        return impedance 
  
