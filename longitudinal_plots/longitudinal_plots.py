@@ -196,4 +196,3 @@ def plot_bunch_length_evol_gaussian(bunch, h5file, nturns, unit=None):
     plt.savefig(fign)
     plt.clf()
 
-def 

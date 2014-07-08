@@ -1,3 +1,8 @@
+'''
+@author: Kevin Li, Danilo Quartullo
+
+'''
+
 import numpy as np
 
 import os
@@ -41,10 +46,7 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 
 # Set up extension and build
 cy_ext = [
-        Extension("general_functions.stats",
-                 ["general_functions/stats.pyx"],
-                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 )
+        
         ]
 
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
