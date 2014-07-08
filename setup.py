@@ -41,11 +41,9 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 
 # Set up extension and build
 cy_ext = [
-        Extension("cython_scripts.stats",
-                 ["cython_scripts/stats.pyx"],
+        Extension("general_functions.stats",
+                 ["general_functions/stats.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
                  )
         ]
 

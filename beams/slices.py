@@ -8,7 +8,7 @@
 from __future__ import division
 import numpy as np
 from random import sample
-import cython_scripts.stats as cp
+import general_functions.stats as cp
 from scipy.constants import c
 import sys
 import time

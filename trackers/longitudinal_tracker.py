@@ -168,16 +168,6 @@ class KickAcceleration(object):
         return temp
     
 
-    def shrink_transverse_emittance(self, beam):
-        '''
-        *Transverse emittance shrinkage due to acceleration.*
-        '''
-        beam.x *= self.geo_emittance_factor[self.counter[0]]
-        beam.xp *= self.geo_emittance_factor[self.counter[0]]
-        beam.y *= self.geo_emittance_factor[self.counter[0]]
-        beam.yp *= self.geo_emittance_factor[self.counter[0]]
-            
-        
     def track(self, beam):
         '''
         *Applying the KickAcceleration equation of motion to the beam. The 
