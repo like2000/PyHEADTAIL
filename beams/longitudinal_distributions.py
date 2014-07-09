@@ -10,7 +10,7 @@ from trackers.longitudinal_tracker import is_in_separatrix
 
 
 def longitudinal_bigaussian(GeneralParameters, RingAndRFSection, beam, sigma_x,
-                             sigma_y, xunit=None, yunit=None):
+                             sigma_y, xunit=None, yunit=None, reinsertion = 'off'):
     
     if RingAndRFSection.drift.drift_length != GeneralParameters.ring_circumference:
         raise RuntimeError('WARNING : The longitudinal_gaussian_matched is not\
@@ -46,22 +46,24 @@ def longitudinal_bigaussian(GeneralParameters, RingAndRFSection, beam, sigma_x,
                         + phi_s/harmonic
     beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
     
-    itemindex = np.where(is_in_separatrix(GeneralParameters, RingAndRFSection,
-                                 beam.theta, beam.dE, beam.delta) == False)[0]
+    if reinsertion is 'on':
     
-    while itemindex.size != 0:
-    
-        beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
-                + phi_s/harmonic
-        beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
-        itemindex = np.where(is_in_separatrix(GeneralParameters, 
-                            RingAndRFSection, beam.theta, beam.dE, beam.delta) 
-                             == False)[0]
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RingAndRFSection,
+                                     beam.theta, beam.dE, beam.delta) == False)[0]
+         
+        while itemindex.size != 0:
+         
+            beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
+                    + phi_s/harmonic
+            beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
+            itemindex = np.where(is_in_separatrix(GeneralParameters, 
+                                RingAndRFSection, beam.theta, beam.dE, beam.delta) 
+                                 == False)[0]
 
   
 
 def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam, 
-                                  four_sigma_bunch_length, unit=None):
+                                  four_sigma_bunch_length, unit=None, reinsertion = 'off'):
     
     
     if RingAndRFSection.drift.drift_length != GeneralParameters.ring_circumference:
@@ -102,17 +104,19 @@ def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam,
                         + phi_s/harmonic
     beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
     
-    itemindex = np.where(is_in_separatrix(GeneralParameters, RingAndRFSection,
-                                 beam.theta, beam.dE, beam.delta) == False)[0]
+    if reinsertion is 'on':
     
-    while itemindex.size != 0:
-    
-        beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
-                + phi_s/harmonic
-        beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
-        itemindex = np.where(is_in_separatrix(GeneralParameters, 
-                            RingAndRFSection, beam.theta, beam.dE, beam.delta) 
-                             == False)[0]
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RingAndRFSection,
+                                     beam.theta, beam.dE, beam.delta) == False)[0]
+         
+        while itemindex.size != 0:
+         
+            beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
+                    + phi_s/harmonic
+            beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
+            itemindex = np.where(is_in_separatrix(GeneralParameters, 
+                                RingAndRFSection, beam.theta, beam.dE, beam.delta) 
+                                 == False)[0]
     
     
 

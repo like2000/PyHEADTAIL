@@ -46,7 +46,19 @@ if args.count("build_ext") > 0 and args.count("--inplace") == 0:
 
 # Set up extension and build
 cy_ext = [
-        
+        Extension("cython_functions.stats",
+                 ["cython_functions/stats.pyx"],
+                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
+                 #extra_compile_args=["-g"],
+                 #extra_link_args=["-g"],
+                 ),
+        Extension("cython_functions.random",
+                 ["cython_functions/random.pyx"],
+                 include_dirs=[np.get_include(), cython_gsl.get_cython_include_dir()],
+                 #extra_compile_args=["-g"],
+                 #extra_link_args=["-g"],
+                 library_dirs=[], libraries=["gsl", "gslcblas"],
+                 )
         ]
 
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}

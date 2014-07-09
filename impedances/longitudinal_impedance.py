@@ -16,7 +16,7 @@ from numpy.fft import rfft, irfft, rfftfreq
 class Induced_voltage_from_wake(object):
     '''
     Induced voltage derived from the sum of several wake fields.
-    Apart from further optimizations, these are the important results obtained
+    Apart from further optimisation, these are the important results obtained
     after the benchmarking which are applied to the following code:
     1) in general update_with_interpolation is faster than update_without_interpolation
     2) in general induced_voltage_with_convolv is faster than induced_voltage_with_matrix
@@ -27,7 +27,7 @@ class Induced_voltage_from_wake(object):
         induced_voltage_with_convolv and then update_with_interpolation
     5) if slices.mode == const_space_hist, use induced_voltage_with_convolv and
         update_with_interpolation
-    If there is not acceleration then precalc == 'on', except for the const_charge method.
+    If there is no acceleration then precalc == 'on', except for the const_charge method.
     If you have acceleration and slices.unit == z or theta, then precalc == 'off';
     if slices.unit == tau then precalc == 'on'
     '''
@@ -178,7 +178,6 @@ class Induced_voltage_from_impedance(object):
             self.frequency_fft, self.n_sampling_fft = self.frequency_array(self.slices, bunch)
             self.impedance_array = self.sum_impedances(self.frequency_fft, self.imped_sum)
               
-            
         spectrum = bunch.spectrum(self.n_sampling_fft, self.slices)
          
         ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
@@ -189,6 +188,10 @@ class Induced_voltage_from_impedance(object):
     
 
 def update_without_interpolation(bunch, induced_voltage, slices):
+    '''
+    This method can be used only if one has not used the histogram Python method 
+    for the slicing.
+    '''
     
     for i in range(0, slices.n_slices):
             
@@ -243,19 +246,19 @@ class Longitudinal_table(object):
     
     def wake_calc(self, dtau):
         
-        wake = interp(dtau, self.dtau_array - self.dtau_array[0], 
+        self.wake = interp(dtau, self.dtau_array - self.dtau_array[0], 
                       self.wake_array, left = 0, right = 0)
         
-        return wake
+        return self.wake
     
     
     def imped_calc(self, omega):
         
         Re_Z = interp(omega, self.omega_array, self.Re_Z_array, left=0, right = 0)
         Im_Z = interp(omega, self.omega_array, self.Im_Z_array, left=0, right = 0)
+        self.impedance = Re_Z + 1j * Im_Z
         
-        return Re_Z + 1j * Im_Z
-    
+        return self.impedance
     
     
 class Longitudinal_resonators(object):
@@ -274,33 +277,30 @@ class Longitudinal_resonators(object):
     
     def wake_calc(self, dtau):
         
-        wake = np.zeros(len(dtau))
+        self.wake = np.zeros(len(dtau))
         
         for i in range(0, self.n_resonators):
        
             alpha = self.omega_R[i] / (2 * self.Q[i])
             omega_bar = np.sqrt(self.omega_R[i] ** 2 - alpha ** 2)
             
-            wake += (np.sign(dtau) + 1) * self.R_S[i] * alpha * np.exp(-alpha * 
+            self.wake += (np.sign(dtau) + 1) * self.R_S[i] * alpha * np.exp(-alpha * 
                     dtau) * (np.cos(omega_bar * dtau) - alpha / omega_bar * 
                     np.sin(omega_bar * dtau))
        
-        return wake
+        return self.wake
     
     
     def imped_calc(self, omega):
         
-        impedance = np.zeros(len(omega)) + 0j
+        self.impedance = np.zeros(len(omega)) + 0j
   
-        
         for i in range(0, len(self.R_S)):
             
-            impedance[1:] +=  self.R_S[i] / (1 + 1j * self.Q[i] * \
+            self.impedance[1:] +=  self.R_S[i] / (1 + 1j * self.Q[i] * \
                     (-self.omega_R[i] / (2 * np.pi *omega[1:]) + (2 * np.pi *omega[1:]) / self.omega_R[i]))
         
-        
-            
-        return impedance
+        return self.impedance
  
 
 class Longitudinal_travelling_waves(object):
@@ -319,26 +319,26 @@ class Longitudinal_travelling_waves(object):
     
     def wake_calc(self, dtau):
         
-        wake = np.zeros(len(dtau))
+        self.wake = np.zeros(len(dtau))
         
         for i in range(0, self.n_twc):
        
             a_tilde = self.a_factor[i] / (2 * np.pi)
             indexes = np.where(dtau <= a_tilde)
-            wake[indexes] += (np.sign(dtau[indexes]) + 1) * 2 * self.R_S[i] \
+            self.wake[indexes] += (np.sign(dtau[indexes]) + 1) * 2 * self.R_S[i] \
                 / a_tilde * (1 - dtau[indexes] / a_tilde) * np.cos(2 * np.pi * 
                 self.omega_R[i] * dtau[indexes])
                  
-        return wake
+        return self.wake
     
     
     def imped_calc(self, omega):
         
-        impedance = np.zeros(len(omega)) + 0j
+        self.impedance = np.zeros(len(omega)) + 0j
         
         for i in range(0, self.n_twc):
             
-            impedance +=  self.R_S[i] * ((np.sin(self.a_factor[i] / 2 * 
+            self.impedance +=  self.R_S[i] * ((np.sin(self.a_factor[i] / 2 * 
                 (omega - self.omega_R[i])) / (self.a_factor[i] / 2 * (omega - 
                 self.omega_R[i])))**2 - 2j*(self.a_factor[i] * (omega - 
                 self.omega_R[i]) - np.sin(self.a_factor[i] * (omega - 
@@ -350,7 +350,7 @@ class Longitudinal_travelling_waves(object):
                 self.omega_R[i]))) / (self.a_factor[i] * (omega + 
                 self.omega_R[i]))**2)
             
-        return impedance       
+        return self.impedance       
     
 
 class Longitudinal_inductive_impedance(object):
@@ -367,8 +367,7 @@ class Longitudinal_inductive_impedance(object):
         
     def imped_calc(self, omega):    
         
-        print self.T0 
-        impedance = self.T0[0][self.counter] * omega * self.Z_over_n * 1j
+        self.impedance = self.T0[0][self.counter] * omega * self.Z_over_n * 1j
         
-        return impedance 
+        return self.impedance 
  

@@ -407,10 +407,10 @@ def calc_phi_s(GeneralParameters, RF_section_parameters, accelerating_systems = 
            
         phi_s = np.arcsin(acceleration_ratio)
         
-        print phi_s
-          
-        #phi_s[(eta0[1:] + eta0[0:-1])/2 > 0] = np.pi - phi_s
-    
+        index = np.where((eta0[1:] + eta0[0:-1])/2 > 0)
+        
+        phi_s[index] = np.pi - phi_s
+        
         return phi_s
      
     else:

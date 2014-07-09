@@ -20,41 +20,36 @@ from impedances.longitudinal_impedance import *
 # SIMULATION PARAMETERS
 
 # Bunch parameters
-N_b = 1.e11           # Intensity
-N_p = 5000000     # Macro-particles
-tau_0 = 180e-9       # Initial bunch length, 4 sigma [s]
-sd = .5e-4           # Initial r.m.s. momentum spread
+N_b = 1.e11          
+N_p = 1.e5           
+tau_0 = 180e-9       
+sigma_delta = .5e-4           
 particle_type = 'proton'
 
 # Machine and RF parameters
 
-gamma_transition = 4.4 #55.759505  # Transition gamma
-C = 2 * np.pi * 25.0 #26658.883        # Machine circumference [m]
-p_s = 2.12e9      # Synchronous momentum [eV]
-
+gamma_transition = 4.4  
+C = 2 * np.pi * 25.0         
+sync_momentum = 2.12e9      
 
 # Tracking details
-N_t = 3          # Number of turns to track
-dt_out = 20          # Time steps between output
-dt_plt = 20          # Time steps between plots
+N_t = 3          
+dt_plt = 1          
 
 # Derived parameters
 
-E_s = np.sqrt(p_s**2 + m_p**2 * c**4 / e**2)  # Sychronous energy [eV]
+E_s = np.sqrt(sync_momentum**2 + m_p**2 * c**4 / e**2)  #[eV]
 gamma = E_s/(m_p*c**2/e)          
 
-beta = np.sqrt(1. - 1./gamma**2)  
-T0 = C / beta / c                 # Turn period
-print T0
-sigma_theta = 2 * np.pi * tau_0 / T0      # R.m.s. theta
-sigma_dE = sd * beta**2 * E_s           # R.m.s. dE
+beta = np.sqrt(1 - 1/gamma**2)  
+T0 = C / beta / c                 
+
+sigma_theta = (np.pi * tau_0) / (2 * T0)      
+sigma_dE = sigma_delta * beta**2 * E_s           
 
 n_rf_systems = 1                                     
 harmonic_numbers = 1                         
 voltage_program = 8.e3
-       
-sync_momentum = p_s
-
 phi_offset = 0
 
 section_params = RFSectionParameters(N_t, n_rf_systems, C, harmonic_numbers, voltage_program, phi_offset, sync_momentum)
@@ -65,7 +60,7 @@ general_params = General_parameters(particle_type, N_t, C, momentum_compaction, 
 
 # MONITOR
 
-bunchmonitor = BunchMonitor('bunch', N_t+1, long_gaussian_fit = "Off")
+bunchmonitor = BunchMonitor('beam', N_t+1, statistics = "Longitudinal")
 
 # DEFINE RING
 
@@ -75,7 +70,7 @@ ring = RingAndRFSection(general_params, section_params)
 
 my_beam = Beam(general_params, N_p, N_b)
 
-longitudinal_gaussian_matched(general_params, ring, my_beam, sigma_theta*2)
+longitudinal_bigaussian(general_params, ring, my_beam, sigma_theta, sigma_dE)
 
 # DEFINE SLICES
 
@@ -137,15 +132,15 @@ for i in range(N_t):
     t0 = time.clock()
     for m in map_:
         m.track(my_beam)
-    plt.show()
     general_params.counter[0] += 1
     bunchmonitor.dump(my_beam, slice_beam)
     t1 = time.clock()
     print t1 - t0
     
     # Plot
-#     if (i % dt_plt) == 0:
-#         plot_long_phase_space(my_beam, general_params, ring, 0, 10e-9, -1.e-3, 1.e-3, xunit = 'tau', yunit = '1')
+    if (i % dt_plt) == 0:
+        plot_long_phase_space(my_beam, general_params, ring, - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, -0.5, 0.5, xunit = 'ns')
+        plot_impedance_vs_frequency(general_params, ind_volt_from_imp)
 
 print "Done!"
 

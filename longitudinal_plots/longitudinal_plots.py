@@ -15,7 +15,7 @@ from trackers.longitudinal_tracker import separatrix
 def fig_folder():
     
     # Directory where longitudinal_plots will be stored
-    dirname = 'fig'
+    dirname = 'fig' 
 
     # Try to create directory
     try:
@@ -112,7 +112,7 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
     xh = np.arange(xmin, xmax + xbin, xbin)
     ybin = (ymax - ymin)/200.
     yh = np.arange(ymin, ymax + ybin, ybin)
- 
+  
     if xunit == None or xunit == 'rad':
         axHistx.hist(beam.theta, bins=xh, histtype='step')
     elif xunit == 'm':
@@ -139,60 +139,73 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
     plt.clf()
 
 
-def plot_bunch_length_evol(bunch, h5file, nturns, unit=None):
+def plot_bunch_length_evol(beam, h5file, General_parameters, unit = None):
 
     # Directory where longitudinal_plots will be stored
     fig_folder()
 
     # Get bunch length data in metres or nanoseconds
-    t = range(1, nturns + 1) 
+    t = range(1, General_parameters.n_turns + 1) 
     storeddata = h5py.File(h5file + '.h5', 'r')
-    bl = np.array(storeddata["/Bunch/sigma_z"], dtype = np.double)
-    if unit == None or unit == 'm':
-        bl *= 4. # 4-sigma bunch length
-    elif unit == 'ns':
-        bl *= 4.e9/c/bunch.ring.beta_i(bunch) # 4-sigma bunch length
+    bl = np.array(storeddata["/Bunch/sigma_theta"], dtype = np.double)
+    if unit == None or unit == 'ns':
+        bl *= 4.e9 / beam.beta_rel / c * General_parameters.ring_radius
+    elif unit == 'm':
+        bl *= 4 * General_parameters.ring_radius
 
     # Plot
     plt.figure(1, figsize=(8,6))
     ax = plt.axes([0.12, 0.1, 0.82, 0.8])
-    ax.plot(t, bl[0:nturns], '.')
+    ax.plot(t, bl[0:General_parameters.n_turns], '.')
     ax.set_xlabel(r"No. turns [T$_0$]")
-    if unit == None or unit == 'm':
-        ax.set_ylabel (r"Bunch length, $4\sigma$ r.m.s. [m]")
-    elif unit == 'ns':
+    if unit == None or unit == 'ns':
         ax.set_ylabel (r"Bunch length, $4\sigma$ r.m.s. [ns]")
+    elif unit == 'm':
+        ax.set_ylabel (r"Bunch length, $4\sigma$ r.m.s. [m]")
     
     # Save plot
-    fign = 'fig/bunch_length_evolution_' "%d" %nturns + '.png'
+    fign = 'fig/bunch_length_evolution_' "%d" %(General_parameters.counter[0]) + '.png'
     plt.savefig(fign)
     plt.clf()
 
 
-def plot_bunch_length_evol_gaussian(bunch, h5file, nturns, unit=None):
+def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, unit = None):
 
     # Directory where longitudinal_plots will be stored
     fig_folder()
 
     # Get bunch length data in metres or nanoseconds
-    t = range(1, nturns + 1) 
+    t = range(1, General_parameters.n_turns + 1) 
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/bunch_length_gauss_theta"], dtype=np.double)
     if unit == 'ns':
-        bl *= 1.e9/c/bunch.beta_rel * bunch.ring_radius # 4-sigma bunch length
+        bl *= 1.e9/c/beam.beta_rel * General_parameters.ring_radius
 
     # Plot
     plt.figure(1, figsize=(8,6))
     ax = plt.axes([0.12, 0.1, 0.82, 0.8])
-    ax.plot(t, bl[0:nturns], '.')
+    ax.plot(t, bl[0:General_parameters.n_turns], '.')
     ax.set_xlabel(r"No. turns [T$_0$]")
-    if unit == None or unit == 'm':
-        ax.set_ylabel (r"Bunch length, $4\sigma$ Gaussian fit [m]")
+    if unit == None or unit == 'theta':
+        ax.set_ylabel (r"Bunch length, $4\sigma$ Gaussian fit [rad]")
     elif unit == 'ns':
         ax.set_ylabel (r"Bunch length, $4\sigma$ Gaussian fit [ns]")
     
     # Save plot    
-    fign = 'fig/bunch_length_evolution_Gaussian_' "%d" %nturns + '.png'
+    fign = 'fig/bunch_length_evolution_Gaussian_' "%d" %General_parameters.n_turns + '.png'
     plt.savefig(fign)
     plt.clf()
 
+
+def plot_impedance_vs_frequency(general_params, ind_volt_from_imp):
+
+    # Directory where longitudinal_plots will be stored
+    fig_folder()
+    
+    plt.plot(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_array.real, 
+             ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_array.imag)
+    
+    # Save plot
+    fign = 'fig/impedance_' "%d" %(general_params.counter[0]) + '.png'
+    plt.savefig(fign)
+    plt.clf()

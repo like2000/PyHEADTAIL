@@ -7,7 +7,7 @@ Created on 12.06.2014
 import numpy as np
 import sys
 from scipy.constants import c, e, m_p
-import general_functions.stats as cp
+import cython_functions.stats as cp
 from scipy.optimize import curve_fit
 from trackers.longitudinal_tracker import is_in_separatrix
 from numpy.fft import rfft, irfft, rfftfreq
@@ -151,7 +151,8 @@ class Beam(object):
             
             pfit = curve_fit(gauss, slices.bins_centers, 
                                    slices.n_macroparticles, p0)[0]
-            self.bl_gauss = 4*abs(pfit[2]) 
+            
+            self.bl_gauss = 4 * abs(pfit[2]) 
 
                                 
     def transv_statistics(self):
