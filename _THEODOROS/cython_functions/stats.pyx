@@ -10,17 +10,15 @@ cimport numpy as np
 cimport cython
 @cython.boundscheck(False)
 
-
 cpdef double mean(double[::1] u):
 
-    cdef int i, n = u.shape[0]
+    cdef int n = u.shape[0]
     cdef double mean_u = 0
-    
 
     for i in xrange(n):
         mean_u += u[i]
-    
-    mean_u *= 1. / n
+    if n:
+        mean_u *= 1. / n
 
     return mean_u
 
