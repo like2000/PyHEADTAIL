@@ -10,30 +10,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.constants import c, e
 from trackers.longitudinal_tracker import separatrix
+import sys
 
 
-def fig_folder():
+def fig_folder(dirname):
     
-    # Directory where longitudinal_plots will be stored
-    dirname = 'fig' 
-
     # Try to create directory
     try:
         os.makedirs(dirname)
     # Check whether already exists/creation failed
     except OSError:
         if os.path.exists(dirname):
-            pass
+            os.system('del /s/q '+ os.getcwd() +'\\'+ dirname +'\\*')
         else:
             raise
 
 
 def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
                           xmax, ymin, ymax, xunit = None, yunit = None, 
-                          separatrix_plot = None):
+                          separatrix_plot = None, dirname = 'fig'):
 
     # Directory where longitudinal_plots will be stored
-    fig_folder()
+    fig_folder(dirname)
     
     
     # Conversion from metres to nanoseconds
@@ -139,10 +137,10 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
     plt.clf()
 
 
-def plot_bunch_length_evol(beam, h5file, General_parameters, unit = None):
+def plot_bunch_length_evol(beam, h5file, General_parameters, unit = None, dirname = 'fig'):
 
     # Directory where longitudinal_plots will be stored
-    fig_folder()
+    fig_folder(dirname)
 
     # Get bunch length data in metres or nanoseconds
     t = range(1, General_parameters.n_turns + 1)
@@ -170,10 +168,10 @@ def plot_bunch_length_evol(beam, h5file, General_parameters, unit = None):
     plt.clf()
 
 
-def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, unit = None):
+def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, unit = None, dirname = 'fig'):
 
     # Directory where longitudinal_plots will be stored
-    fig_folder()
+    fig_folder(dirname)
 
     # Get bunch length data in metres or nanoseconds
     t = range(1, General_parameters.n_turns + 1) 
@@ -198,29 +196,45 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, unit = Non
     plt.clf()
 
 
-def plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option = "sum"):
+def plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "sum", 
+                                option2 = "no_spectrum", dirname = 'fig'):
 
     # Directory where longitudinal_plots will be stored
-    fig_folder()
-    
-    if option == "sum":
+    fig_folder(dirname)
+    sys.exit()
+    if option1 == "sum":
         plt.plot(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_array.real, 
                  ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_array.imag)
+        if option2 == "spectrum":
+            plt.plot(ind_volt_from_imp.frequency_fft, np.abs(ind_volt_from_imp.spectrum))
+        fign = 'fig/sum_impedance_' "%d" %(general_params.counter[0]) + '.png'
+        plt.savefig(fign, dpi=300)
+        plt.clf()
     
-    elif option == "single":
+    elif option1 == "single":
         for i in range(len(ind_volt_from_imp.single_impedance_list)):
-            plt.semilogy(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.single_impedance_list[i])
+            plt.figure(0)
+            plt.plot(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.single_impedance_list[i].real)
+            plt.figure(1)
+            plt.plot(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.single_impedance_list[i].imag)
+        fign1 = 'fig/real_impedance_' "%d" %(general_params.counter[0]) + '.png'
+        plt.figure(0)
+        if option2 == "spectrum":
+            plt.plot(ind_volt_from_imp.frequency_fft, np.abs(ind_volt_from_imp.spectrum))
+        plt.savefig(fign1, dpi=300)
+        plt.clf()
+        fign2 = 'fig/imag_impedance_' "%d" %(general_params.counter[0]) + '.png'
+        plt.figure(1)
+        if option2 == "spectrum":
+            plt.plot(ind_volt_from_imp.frequency_fft, np.abs(ind_volt_from_imp.spectrum))
+        plt.savefig(fign2, dpi=300)
+        plt.clf()
         
-    # Save plot
-    fign = 'fig/impedance_' "%d" %(general_params.counter[0]) + '.png'
-    plt.savefig(fign)
-    plt.clf()
-
-
-def plot_induced_voltage_vs_bins_centers(general_params, ind_volt_from_imp):
+   
+def plot_induced_voltage_vs_bins_centers(general_params, ind_volt_from_imp, dirname = 'fig'):
 
     # Directory where longitudinal_plots will be stored
-    fig_folder()
+    fig_folder(dirname)
     
     plt.plot(ind_volt_from_imp.slices.bins_centers, ind_volt_from_imp.ind_vol)
              
