@@ -138,6 +138,7 @@ class Induced_voltage_from_impedance(object):
         self.slices = slices
         self.acceleration = acceleration
         self.impedance_sum = impedance_sum
+        self.single_impedance_list = []
         self.frequency_step = frequency_step
         
         if self.acceleration == 'off' or self.slices.unit == 'tau':
@@ -148,11 +149,13 @@ class Induced_voltage_from_impedance(object):
             self.precalc = 'off' 
     
     
-    def sum_impedances(self, omega, imped_object_sum):
+    def sum_impedances(self, frequency, imped_object_sum):
         
-        total_impedance = np.zeros(len(omega)) + 0j
+        total_impedance = np.zeros(len(frequency)) + 0j
         for imped_object in self.impedance_sum:
-            total_impedance += imped_object.imped_calc(omega)
+            imp = imped_object.imped_calc(frequency)
+            self.single_impedance_list.append(imp)
+            total_impedance += imp
        
         return total_impedance
     
@@ -180,11 +183,11 @@ class Induced_voltage_from_impedance(object):
               
         spectrum = bunch.spectrum(self.n_sampling_fft, self.slices)
          
-        ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
+        self.ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
                     * irfft(self.impedance_array * spectrum) * self.frequency_fft[1] * 2*(len(self.frequency_fft)-1)
-        ind_vol = ind_vol[0:self.slices.n_slices]
+        self.ind_vol = self.ind_vol[0:self.slices.n_slices]
 
-        update_with_interpolation(bunch, ind_vol, self.slices)
+        update_with_interpolation(bunch, self.ind_vol, self.slices)
     
 
 def update_without_interpolation(bunch, induced_voltage, slices):
@@ -239,7 +242,7 @@ class Longitudinal_table(object):
             self.dtau_array = a
             self.wake_array = b
         else:
-            self.omega_array = a
+            self.frequency_array = a
             self.Re_Z_array = b
             self.Im_Z_array = c
     
@@ -252,10 +255,10 @@ class Longitudinal_table(object):
         return self.wake
     
     
-    def imped_calc(self, omega):
+    def imped_calc(self, frequency):
         
-        Re_Z = interp(omega, self.omega_array, self.Re_Z_array, left=0, right = 0)
-        Im_Z = interp(omega, self.omega_array, self.Im_Z_array, left=0, right = 0)
+        Re_Z = interp(frequency, self.frequency_array, self.Re_Z_array, left=0, right = 0)
+        Im_Z = interp(frequency, self.frequency_array, self.Im_Z_array, left=0, right = 0)
         self.impedance = Re_Z + 1j * Im_Z
         
         return self.impedance
@@ -265,12 +268,12 @@ class Longitudinal_resonators(object):
     '''
     
     '''
-    def __init__(self, R_S, omega_R, Q):
+    def __init__(self, R_S, frequency_R, Q):
         '''
         Constructor
         '''
         self.R_S = np.array([R_S]).flatten()
-        self.omega_R = 2 *np.pi * np.array([omega_R]).flatten()
+        self.omega_R = 2 *np.pi * np.array([frequency_R]).flatten()
         self.Q = np.array([Q]).flatten()
         self.n_resonators = len(self.R_S)
         
@@ -291,14 +294,14 @@ class Longitudinal_resonators(object):
         return self.wake
     
     
-    def imped_calc(self, omega):
+    def imped_calc(self, frequency):
         
-        self.impedance = np.zeros(len(omega)) + 0j
+        self.impedance = np.zeros(len(frequency)) + 0j
   
         for i in range(0, len(self.R_S)):
             
             self.impedance[1:] +=  self.R_S[i] / (1 + 1j * self.Q[i] * \
-                    (-self.omega_R[i] / (2 * np.pi *omega[1:]) + (2 * np.pi *omega[1:]) / self.omega_R[i]))
+                    (-self.omega_R[i] / (2 * np.pi *frequency[1:]) + (2 * np.pi *frequency[1:]) / self.omega_R[i]))
         
         return self.impedance
  
@@ -307,12 +310,12 @@ class Longitudinal_travelling_waves(object):
     '''
     
     '''
-    def __init__(self, R_S, omega_R, a_factor):
+    def __init__(self, R_S, frequency_R, a_factor):
         '''
         Constructor
         '''
         self.R_S = np.array([R_S]).flatten()
-        self.omega_R = np.array([omega_R]).flatten()
+        self.frequency_R = np.array([frequency_R]).flatten()
         self.a_factor = np.array([a_factor]).flatten()
         self.n_twc = len(self.R_S)
         
@@ -327,28 +330,28 @@ class Longitudinal_travelling_waves(object):
             indexes = np.where(dtau <= a_tilde)
             self.wake[indexes] += (np.sign(dtau[indexes]) + 1) * 2 * self.R_S[i] \
                 / a_tilde * (1 - dtau[indexes] / a_tilde) * np.cos(2 * np.pi * 
-                self.omega_R[i] * dtau[indexes])
+                self.frequency_R[i] * dtau[indexes])
                  
         return self.wake
     
     
-    def imped_calc(self, omega):
+    def imped_calc(self, frequency):
         
-        self.impedance = np.zeros(len(omega)) + 0j
+        self.impedance = np.zeros(len(frequency)) + 0j
         
         for i in range(0, self.n_twc):
             
             self.impedance +=  self.R_S[i] * ((np.sin(self.a_factor[i] / 2 * 
-                (omega - self.omega_R[i])) / (self.a_factor[i] / 2 * (omega - 
-                self.omega_R[i])))**2 - 2j*(self.a_factor[i] * (omega - 
-                self.omega_R[i]) - np.sin(self.a_factor[i] * (omega - 
-                self.omega_R[i]))) / (self.a_factor[i] * (omega - 
-                self.omega_R[i]))**2) + self.R_S[i] * ((np.sin(self.a_factor[i] 
-                / 2 * (omega + self.omega_R[i])) / (self.a_factor[i] / 2 * (
-                omega + self.omega_R[i])))**2 - 2j*(self.a_factor[i] * (omega 
-                + self.omega_R[i]) - np.sin(self.a_factor[i] * (omega + 
-                self.omega_R[i]))) / (self.a_factor[i] * (omega + 
-                self.omega_R[i]))**2)
+                (frequency - self.frequency_R[i])) / (self.a_factor[i] / 2 * (frequency - 
+                self.frequency_R[i])))**2 - 2j*(self.a_factor[i] * (frequency - 
+                self.frequency_R[i]) - np.sin(self.a_factor[i] * (frequency - 
+                self.frequency_R[i]))) / (self.a_factor[i] * (frequency - 
+                self.frequency_R[i]))**2) + self.R_S[i] * ((np.sin(self.a_factor[i] 
+                / 2 * (frequency + self.frequency_R[i])) / (self.a_factor[i] / 2 * (
+                frequency + self.frequency_R[i])))**2 - 2j*(self.a_factor[i] * (frequency 
+                + self.frequency_R[i]) - np.sin(self.a_factor[i] * (frequency + 
+                self.frequency_R[i]))) / (self.a_factor[i] * (frequency + 
+                self.frequency_R[i]))**2)
             
         return self.impedance       
     
@@ -365,9 +368,9 @@ class Longitudinal_inductive_impedance(object):
         self.counter = gen_par.counter
         self.T0 = gen_par.T0
         
-    def imped_calc(self, omega):    
+    def imped_calc(self, frequency):    
         
-        self.impedance = self.T0[0][self.counter] * omega * self.Z_over_n * 1j
+        self.impedance = self.T0[0][self.counter] * frequency * self.Z_over_n * 1j
         
         return self.impedance 
  

@@ -145,7 +145,8 @@ def plot_bunch_length_evol(beam, h5file, General_parameters, unit = None):
     fig_folder()
 
     # Get bunch length data in metres or nanoseconds
-    t = range(1, General_parameters.n_turns + 1) 
+    t = range(1, General_parameters.n_turns + 1)
+    
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/sigma_theta"], dtype = np.double)
     if unit == None or unit == 'ns':
@@ -197,15 +198,33 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, unit = Non
     plt.clf()
 
 
-def plot_impedance_vs_frequency(general_params, ind_volt_from_imp):
+def plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option = "sum"):
 
     # Directory where longitudinal_plots will be stored
     fig_folder()
     
-    plt.plot(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_array.real, 
-             ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_array.imag)
+    if option == "sum":
+        plt.plot(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_array.real, 
+                 ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_array.imag)
     
+    elif option == "single":
+        for i in range(len(ind_volt_from_imp.single_impedance_list)):
+            plt.semilogy(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.single_impedance_list[i])
+        
     # Save plot
     fign = 'fig/impedance_' "%d" %(general_params.counter[0]) + '.png'
+    plt.savefig(fign)
+    plt.clf()
+
+
+def plot_induced_voltage_vs_bins_centers(general_params, ind_volt_from_imp):
+
+    # Directory where longitudinal_plots will be stored
+    fig_folder()
+    
+    plt.plot(ind_volt_from_imp.slices.bins_centers, ind_volt_from_imp.ind_vol)
+             
+    # Save plot
+    fign = 'fig/induced_voltage_' "%d" %(general_params.counter[0]) + '.png'
     plt.savefig(fign)
     plt.clf()

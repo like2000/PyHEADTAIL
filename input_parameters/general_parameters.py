@@ -26,10 +26,10 @@ class General_parameters(object):
         
         # Attribution of mass and charge with respect to particle_type
         if self.particle_type is 'proton':
-            self.mass = m_p
+            self.mass =  m_p # [Kg]
             self.charge = e
         elif self.particle_type is 'user_input':
-            self.mass = user_mass
+            self.mass = user_mass # [Kg]
             self.charge = user_charge
         else:
             raise RuntimeError('Particle type not recognized')
