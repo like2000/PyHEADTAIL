@@ -139,7 +139,7 @@ class Induced_voltage_from_impedance(object):
         self.slices = slices
         self.acceleration = acceleration
         self.impedance_sum = impedance_sum
-        self.single_impedance_list = []
+        
         self.frequency_step = frequency_step
         
         if self.acceleration == 'off' or self.slices.unit == 'tau':
@@ -155,7 +155,6 @@ class Induced_voltage_from_impedance(object):
         total_impedance = np.zeros(len(frequency)) + 0j
         for imped_object in self.impedance_sum:
             imp = imped_object.imped_calc(frequency)
-            self.single_impedance_list.append(imp)
             total_impedance += imp
        
         return total_impedance
@@ -259,8 +258,10 @@ class Longitudinal_table(object):
     
     def imped_calc(self, frequency):
         
-        Re_Z = interp(frequency, self.frequency_array, self.Re_Z_array, left=0, right = 0)
-        Im_Z = interp(frequency, self.frequency_array, self.Im_Z_array, left=0, right = 0)
+        Re_Z = interp(frequency, self.frequency_array, self.Re_Z_array, 
+                      left=self.Re_Z_array[0], right = self.Re_Z_array[-1])
+        Im_Z = interp(frequency, self.frequency_array, self.Im_Z_array, 
+                      left=self.Im_Z_array[0], right = self.Re_Z_array[-1])
         self.impedance = Re_Z + 1j * Im_Z
         
         return self.impedance
@@ -362,13 +363,13 @@ class Longitudinal_inductive_impedance(object):
     '''
     
     '''
-    def __init__(self, Z_over_n, gen_par):
+    def __init__(self, Z_over_n, general_param):
         '''
         Constructor
         '''
         self.Z_over_n = Z_over_n
-        self.counter = gen_par.counter
-        self.T0 = gen_par.T0
+        self.counter = general_param.counter
+        self.T0 = general_param.T0
         
     def imped_calc(self, frequency):    
         

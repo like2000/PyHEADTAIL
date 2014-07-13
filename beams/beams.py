@@ -182,6 +182,10 @@ class Beam(object):
         spectr = rfft(slices.n_macroparticles, n_sampling_fft)
             
         return spectr
+    
+    def derivative(self):
+        
+        
 
 
 

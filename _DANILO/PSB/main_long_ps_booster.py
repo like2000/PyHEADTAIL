@@ -22,8 +22,8 @@ from impedances.longitudinal_impedance import *
 
 # Beam parameters
 particle_type = 'proton'
-N_b = 1.e11          
-N_p = 5.e5           
+n_particles = 1.e11          
+n_macroparticles = 5.e5           
 sigma_tau = 180e-9 / 4 # [s]     
 sigma_delta = .5e-4 # [1]          
 kin_beam_energy = 1.4e9 # [eV]
@@ -34,7 +34,7 @@ gamma_transition = 4.4  # [1]
 C = 2 * np.pi * radius  # [m]       
       
 # Tracking details
-n_turns = 100          
+n_turns = 1          
 n_turns_between_two_plots = 1          
 
 # Derived parameters
@@ -65,13 +65,13 @@ ring = RingAndRFSection(general_params, section_params)
 
 # DEFINE BEAM------------------------------------------------------------------
 
-my_beam = Beam(general_params, N_p, N_b)
+my_beam = Beam(general_params, n_macroparticles, n_particles)
 
 longitudinal_bigaussian(general_params, ring, my_beam, sigma_theta, sigma_dE)
 
 # DEFINE SLICES----------------------------------------------------------------
 
-number_slices = 2000
+number_slices = 200
 slice_beam = Slices(number_slices, cut_left = - 5.72984173562e-07 / 2, cut_right = 5.72984173562e-07 / 2, unit = 
                     "tau", mode = 'const_space_hist')
 
@@ -123,7 +123,6 @@ steps = Longitudinal_inductive_impedance(0.061, general_params)
 F_C = loadtxt('ps_booster_impedances/Finemet_cavity/Finemet.txt', dtype = float, skiprows = 1)
 
 F_C[:, 3], F_C[:, 5], F_C[:, 7] = np.pi * F_C[:, 3] / 180, np.pi * F_C[:, 5] / 180, np.pi * F_C[:, 7] / 180
-F_C[:, 2], F_C[:, 4], F_C[:, 6] = 10 ** (F_C[:, 2]/20), 10 ** (F_C[:, 4]/20), 10 ** (F_C[:, 6]/20)
 
 option = "closed loop"
 
@@ -157,7 +156,6 @@ map_ = [slice_beam] + [ind_volt_from_imp] + [ring]
 
 # TRACKING + PLOTS-------------------------------------------------------------
 
-plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option = "single")
 
 for i in range(n_turns):
     
@@ -169,11 +167,13 @@ for i in range(n_turns):
     bunchmonitor.dump(my_beam, slice_beam)
     t1 = time.clock()
     print t1 - t0
+    plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
     # Plots that change from turn to turn
     if (i % n_turns_between_two_plots) == 0:
         plot_long_phase_space(my_beam, general_params, ring, 
           - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, 
-          - my_beam.sigma_dE * 4 * 1e-6, my_beam.sigma_dE * 4 * 1e-6, xunit = 'ns')
+          - my_beam.sigma_dE * 4 * 1e-6, my_beam.sigma_dE * 4 * 1e-6, xunit = 'ns',
+          perc_plotted_points = 100)
         
 plot_bunch_length_evol(my_beam, 'beam', general_params)
 
