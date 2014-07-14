@@ -11,6 +11,7 @@ import cython_functions.stats as cp
 from scipy.optimize import curve_fit
 from trackers.longitudinal_tracker import is_in_separatrix
 from numpy.fft import rfft, irfft, rfftfreq
+from scipy import ndimage
 
 
 class Beam(object):
@@ -58,7 +59,7 @@ class Beam(object):
         self.n_macroparticles_alive = self.n_macroparticles - self.n_macroparticles_lost
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
-            
+
     # Coordinate conversions
     @property
     def z(self):
@@ -177,13 +178,8 @@ class Beam(object):
             self.id[itemindex] = 0
     
     
-    def spectrum(self, n_sampling_fft, slices):
-        
-        spectr = rfft(slices.n_macroparticles, n_sampling_fft)
-            
-        return spectr
     
-    def derivative(self):
+
         
         
 

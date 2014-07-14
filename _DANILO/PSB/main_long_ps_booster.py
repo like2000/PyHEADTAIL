@@ -34,8 +34,8 @@ gamma_transition = 4.4  # [1]
 C = 2 * np.pi * radius  # [m]       
       
 # Tracking details
-n_turns = 1          
-n_turns_between_two_plots = 1          
+n_turns = 2          
+n_turns_between_two_plots = 100          
 
 # Derived parameters
 E_0 = m_p * c**2 / e
@@ -68,6 +68,7 @@ ring = RingAndRFSection(general_params, section_params)
 my_beam = Beam(general_params, n_macroparticles, n_particles)
 
 longitudinal_bigaussian(general_params, ring, my_beam, sigma_theta, sigma_dE)
+
 
 # DEFINE SLICES----------------------------------------------------------------
 
@@ -159,7 +160,7 @@ map_ = [slice_beam] + [ind_volt_from_imp] + [ring]
 
 for i in range(n_turns):
     
-    print i
+    print i+1
     t0 = time.clock()
     for m in map_:
         m.track(my_beam)
@@ -167,15 +168,17 @@ for i in range(n_turns):
     bunchmonitor.dump(my_beam, slice_beam)
     t1 = time.clock()
     print t1 - t0
-    plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
+    #plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
+    #plot_beam_profile_derivative(general_params, slice_beam, numbers = [1, 2, 3])
+    plot_beam_profile(general_params, slice_beam)
     # Plots that change from turn to turn
-    if (i % n_turns_between_two_plots) == 0:
+    if ((i+1) % n_turns_between_two_plots) == 0:
         plot_long_phase_space(my_beam, general_params, ring, 
           - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, 
           - my_beam.sigma_dE * 4 * 1e-6, my_beam.sigma_dE * 4 * 1e-6, xunit = 'ns',
           perc_plotted_points = 100)
         
-plot_bunch_length_evol(my_beam, 'beam', general_params)
+#plot_bunch_length_evol(my_beam, 'beam', general_params)
 
 print "Done!"
 

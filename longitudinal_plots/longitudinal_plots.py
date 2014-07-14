@@ -16,6 +16,7 @@ from impedances.longitudinal_impedance import *
 if os.path.exists('temp'):
     os.system('del /s/q '+ os.getcwd() +'\\temp>null')
     
+
 def fig_folder(dirname):
     
     # Try to create directory
@@ -250,14 +251,42 @@ def plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "su
         plt.clf()
         
    
-def plot_induced_voltage_vs_bins_centers(general_params, ind_volt_from_imp, dirname = 'temp'):
+def plot_induced_voltage_vs_bins_centers(general_params, ind_volt_from_imp, style = '-', dirname = 'temp'):
 
     # Directory where longitudinal_plots will be stored
     fig_folder(dirname)
     
-    plt.plot(ind_volt_from_imp.slices.bins_centers, ind_volt_from_imp.ind_vol)
+    plt.plot(ind_volt_from_imp.slices.bins_centers, ind_volt_from_imp.ind_vol, style)
              
     # Save plot
     fign = dirname +'/induced_voltage_' "%d" %(general_params.counter[0]) + '.png'
     plt.savefig(fign)
     plt.clf()
+
+
+def plot_beam_profile(general_params, slices, style = '-', dirname = 'temp'):
+    
+    fig_folder(dirname)
+    plt.plot(slices.bins_centers, slices.n_macroparticles, style)
+    fign = dirname +'/beam_profile_' "%d" %(general_params.counter[0]) + '.png'
+    plt.savefig(fign)
+    plt.clf()
+
+
+def plot_beam_profile_derivative(general_params, slices, style = '-', dirname = 'temp', numbers = [3]):
+    
+    fig_folder(dirname)
+    if 1 in numbers:
+        x1, derivative1 = slices.beam_profile_derivative(1)
+        plt.plot(x1, derivative1, style)
+    if 2 in numbers:
+        x2, derivative2 = slices.beam_profile_derivative(2)
+        plt.plot(x2, derivative2, style)
+    if 3 in numbers:
+        x3, derivative3 = slices.beam_profile_derivative(3)
+        plt.plot(x3, derivative3, style)
+    fign = dirname +'/beam_profile_derivative_' "%d" %(general_params.counter[0]) + '.png'
+    plt.savefig(fign)
+    plt.clf()
+         
+    

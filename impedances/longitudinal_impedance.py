@@ -181,11 +181,11 @@ class Induced_voltage_from_impedance(object):
             self.frequency_fft, self.n_sampling_fft = self.frequency_array(self.slices, bunch)
             self.impedance_array = self.sum_impedances(self.frequency_fft, self.imped_sum)
           
-        self.spectrum = bunch.spectrum(self.n_sampling_fft, self.slices)
-        
+        self.spectrum = self.slices.beam_spectrum(self.n_sampling_fft)
         
         self.ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
-                    * irfft(self.impedance_array * self.spectrum) * self.frequency_fft[1] * 2*(len(self.frequency_fft)-1)
+            * irfft(self.impedance_array * self.spectrum) * self.frequency_fft[1] \
+            * 2*(len(self.frequency_fft)-1)
         self.ind_vol = self.ind_vol[0:self.slices.n_slices]
 
         update_with_interpolation(bunch, self.ind_vol, self.slices)
