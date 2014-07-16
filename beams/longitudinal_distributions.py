@@ -4,26 +4,27 @@ Created on 12.06.2014
 @author: Danilo Quartullo, Helga Timko, Alexandre Lasheen
 '''
 
+from __future__ import division
 import numpy as np
 from scipy.constants import c
-from trackers.longitudinal_tracker import is_in_separatrix
+from trackers.longitudinal_utilities import is_in_separatrix
 
 
-def longitudinal_bigaussian(GeneralParameters, RingAndRFSection, beam, sigma_x,
+def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_x,
                              sigma_y, xunit=None, yunit=None, reinsertion = 'off'):
     
-    if RingAndRFSection.drift.drift_length != GeneralParameters.ring_circumference:
+    if GeneralParameters.n_sections > 1:
         raise RuntimeError('WARNING : The longitudinal_gaussian_matched is not\
          yet properly computed for several sections !!!')
         
-    if RingAndRFSection.kick.n_rf_systems != 1:
+    if RFSectionParameters.n_rf > 1:
         raise RuntimeError('longitudinal_gaussian_matched for multiple RF is \
-        not implemeted yet')
+        not implemented yet')
     
-    counter = GeneralParameters.counter[0]
-    harmonic = RingAndRFSection.kick.harmonic_number_list[0][counter]
-    energy = GeneralParameters.energy_program[0][counter]
-    beta = GeneralParameters.beta_rel_program[0][counter]
+    counter = RFSectionParameters.counter[0]
+    harmonic = RFSectionParameters.harmonic[0,counter]
+    energy = RFSectionParameters.energy[counter]
+    beta = RFSectionParameters.beta_r[counter]
     
     if xunit == None or xunit == 'rad':
         sigma_theta = sigma_x
@@ -40,15 +41,15 @@ def longitudinal_bigaussian(GeneralParameters, RingAndRFSection, beam, sigma_x,
     
     beam.sigma_theta = sigma_theta
     beam.sigma_dE = sigma_dE
-    phi_s = RingAndRFSection.phi_s[counter]
-
+    phi_s = RFSectionParameters.phi_s[counter]
+    
     beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
                         + phi_s/harmonic
     beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
     
     if reinsertion is 'on':
     
-        itemindex = np.where(is_in_separatrix(GeneralParameters, RingAndRFSection,
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
                                      beam.theta, beam.dE, beam.delta) == False)[0]
          
         while itemindex.size != 0:
@@ -57,30 +58,30 @@ def longitudinal_bigaussian(GeneralParameters, RingAndRFSection, beam, sigma_x,
                     + phi_s/harmonic
             beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
             itemindex = np.where(is_in_separatrix(GeneralParameters, 
-                                RingAndRFSection, beam.theta, beam.dE, beam.delta) 
+                                RFSectionParameters, beam.theta, beam.dE, beam.delta) 
                                  == False)[0]
 
   
 
-def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam, 
+def longitudinal_gaussian_matched(GeneralParameters, RFSectionParameters, beam, 
                                   four_sigma_bunch_length, unit=None, reinsertion = 'off'):
     
     
-    if RingAndRFSection.drift.drift_length != GeneralParameters.ring_circumference:
+    if GeneralParameters.n_sections > 1:
         raise RuntimeError('WARNING : The longitudinal_gaussian_matched is not\
          yet properly computed for several sections !!!')
         
-    if RingAndRFSection.kick.n_rf_systems != 1:
+    if RFSectionParameters.n_rf > 1:
         raise RuntimeError('longitudinal_gaussian_matched for multiple RF is \
         not implemeted yet')
     
-    counter = GeneralParameters.counter[0]
-    harmonic = RingAndRFSection.kick.harmonic_number_list[0][counter]
-    voltage = RingAndRFSection.kick.voltage_program_list[0][counter]
-    energy = GeneralParameters.energy_program[0][counter]
-    beta = GeneralParameters.beta_rel_program[0][counter]
-    eta0 = GeneralParameters.eta0[0][counter]
-            
+    counter = RFSectionParameters.counter[0]
+    harmonic = RFSectionParameters.harmonic[0,counter]
+    energy = RFSectionParameters.energy[counter]
+    voltage = RFSectionParameters.voltage[0,counter]
+    beta = RFSectionParameters.beta_r[counter]
+    eta0 = RFSectionParameters.eta_0[counter]
+    
     if unit == None or unit == 'rad':
         sigma_theta = four_sigma_bunch_length / 4
     elif unit == 'm':
@@ -89,7 +90,7 @@ def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam,
         sigma_theta = four_sigma_bunch_length * beta * c * \
         0.25e-9 / GeneralParameters.ring_radius
     
-    phi_s = RingAndRFSection.phi_s[counter]
+    phi_s = RFSectionParameters.phi_s[counter]
   
     phi_b = harmonic*sigma_theta + phi_s
     
@@ -106,7 +107,7 @@ def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam,
     
     if reinsertion is 'on':
     
-        itemindex = np.where(is_in_separatrix(GeneralParameters, RingAndRFSection,
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
                                      beam.theta, beam.dE, beam.delta) == False)[0]
          
         while itemindex.size != 0:
@@ -115,7 +116,7 @@ def longitudinal_gaussian_matched(GeneralParameters, RingAndRFSection, beam,
                     + phi_s/harmonic
             beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
             itemindex = np.where(is_in_separatrix(GeneralParameters, 
-                                RingAndRFSection, beam.theta, beam.dE, beam.delta) 
+                                RFSectionParameters, beam.theta, beam.dE, beam.delta) 
                                  == False)[0]
     
     

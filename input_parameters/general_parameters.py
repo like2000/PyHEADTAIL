@@ -6,77 +6,119 @@
 '''
 
 from __future__ import division
-from scipy.constants import m_p, e, c
+from scipy.constants import m_p, m_e, e, c
 import numpy as np
 
 
-class General_parameters(object):
+class GeneralParameters(object):
     '''
     *Object containing all the general input parameters used for the simulation*
     '''
 
-    def __init__(self, particle_type, n_turns, ring_circumference, alpha_array, 
-                 momentum_program, user_mass = 0, user_charge = 0):
+    def __init__(self, n_turns, ring_length, alpha, momentum, 
+                 particle_type, user_mass = None, user_charge = None, 
+                 particle_type_2 = None, user_mass_2 = None, 
+                 user_charge_2 = None, number_of_sections = 1):
+
+        #: | *Number of sections defines how many longitudinal maps are done per turn.*
+        #: | *Default is one.*
+        self.n_sections = number_of_sections
         
         #: | *Particle type*
         #: | *Recognized types: 'proton' and 'user_input' to input mass and charge manually.*
         #: | *Particle mass in [kg]* :math:`: \quad m` *
         #: | *Particle charge in [C]* :math:`: \quad q` *
+        #: | *Second particle type: optional; does not affect the momentum, energy, beta, and gamma.*
         self.particle_type = particle_type
+        self.particle_type_2 = particle_type_2
         
         # Attribution of mass and charge with respect to particle_type
         if self.particle_type is 'proton':
             self.mass =  m_p # [Kg]
             self.charge = e
+        elif self.particle_type is 'electron':
+            self.mass =  m_e # [Kg]
+            self.charge = -e
         elif self.particle_type is 'user_input':
             self.mass = user_mass # [Kg]
             self.charge = user_charge
         else:
-            raise RuntimeError('Particle type not recognized')
+            raise RuntimeError('ERROR: Particle type not recognized!')
         
-        #: | *Counter to be incremented every turn in the tracking loop.* :math:`: \quad n`
-        #: | *It is defined as a list in order to be passed as a reference in the other modules.*
-        self.counter = [0]
+        if self.particle_type_2 == None:
+            pass
+        elif self.particle_type_2 is 'proton':
+            self.mass2 =  m_p # [Kg]
+            self.charge2 = e
+        elif self.particle_type_2 is 'electron':
+            self.mass2 =  m_e # [Kg]
+            self.charge2 = -e
+        elif self.particle_type_2 is 'user_input':
+            self.mass2 = user_mass_2 # [Kg]
+            self.charge2 = user_charge_2
+        else:
+            raise RuntimeError('ERROR: Second particle type not recognized!')
         
         #: *Number of turns of the simulation*
         self.n_turns = n_turns 
+
+        #: | *Momentum (program) in [eV/c] for each RF section* :math:`: \quad p_n`
+        #: | *Can be given as a single value to be assumed constant, or as a program of (n_turns + 1) terms in case of acceleration.*
+        self.momentum = np.array(momentum, ndmin =2)
         
-        #: *Ring circumference in [m]* :math:`: \quad C`
-        self.ring_circumference = ring_circumference 
+        #: *Momentum compation factor (up to 2nd order) for each RF section* :math:`: \quad \alpha_i`
+        self.alpha = np.array(alpha, ndmin =2) 
+        
+        #: | *Ring length array contains the length of the RF sections, in [m]*
+        
+        self.ring_length = ring_length
+        if isinstance(self.ring_length, float):
+            self.ring_length = [self.ring_length]
+        
+        #: | *Ring circumference is the sum of lengths* :math:`: \quad C = \sum_k L_k`
+        self.ring_circumference = np.sum(self.ring_length)
         
         #: *Ring radius in [m]* :math:`: \quad R`
-        self.ring_radius = self.ring_circumference / (2*np.pi) 
+        self.ring_radius = self.ring_circumference / (2 * np.pi)         
         
-        #: | *Momentum (program) in [eV/c]* :math:`: \quad p_n`
-        #: | *Can be given as a single value to be assumed constant, or as a program of (n_turns + 1) terms in case of acceleration.*
-        self.momentum_program = np.array(momentum_program, ndmin = 2)
+        #: *Check consistency of input data; raise error if not consistent*        
+        if self.n_sections != len(self.ring_length) or \
+            self.n_sections != self.alpha.shape[0] or \
+            self.n_sections != self.momentum.shape[0]:
+            raise RuntimeError('ERROR: Number of sections, ring length, alpha, and/or momentum data do not match!')    
         
-        #: *Momentum compation factor (up to 2nd order)* :math:`: \quad \alpha_i`
-        self.alpha_array = np.array(alpha_array) 
+        if self.momentum.size == 1:
+            self.momentum = self.momentum * np.ones(self.n_turns + 1)
         
         #: *Relativistic beta (program)* :math:`: \quad \beta_n`
         #:
         #: .. math:: \beta = \sqrt{ 1 + \frac{1}{1 + \left(\frac{mc^2}{ep}\right)^2} }
-        self.beta_rel_program = np.sqrt(1 / (1 + (self.mass * c**2)**2 / 
-                                             (self.momentum_program * e)**2))
-
+        self.beta_r = np.sqrt(1 / (1 + (self.mass * c**2)**2 / 
+                              (self.momentum * self.charge)**2))
         
         #: *Relativistic gamma (program)* :math:`: \quad \gamma_n`
         #:
         #: .. math:: \gamma = \sqrt{ 1 + \left(\frac{ep}{mc^2}\right)^2 }
-        self.gamma_rel_program = np.sqrt(1 + (self.momentum_program * e)**2 / 
-                                         (self.mass * c**2)**2) 
+        self.gamma_r = np.sqrt(1 + (self.momentum * self.charge)**2 / 
+                               (self.mass * c**2)**2) 
         
         #: *Energy (program) in [eV]* :math:`: \quad E_n`
         #:
         #: .. math:: \\E = \sqrt{ p^2 + \left(\frac{mc^2}{e}\right)^2 }
-        self.energy_program = np.sqrt(self.momentum_program**2 + 
-                                      (self.mass * c**2 / e)**2)
+        self.energy = np.sqrt(self.momentum**2 + 
+                              (self.mass * c**2 / self.charge)**2)
         
-        # Revolution period
-        self.T0 = self.ring_circumference / self.beta_rel_program / c 
+        # Revolution period 
+        self.T0 = self.ring_circumference / \
+                  np.dot(ring_length/self.ring_circumference, self.beta_r) / c
         
-        # Revolution frequency
+        print self.beta_r
+        print ring_length/self.ring_circumference
+        print self.T0 
+        
+  
+        
+        # Revolution frequency 
         self.f_rev = 1 / self.T0 
         
         #: *Slippage factor (order 0)* :math:`: \quad \eta_{0,n}`
@@ -94,24 +136,17 @@ class General_parameters(object):
         #: .. math:: \eta_2 = -\frac{\beta^2\left(5\beta^2-1\right)}{2\gamma^2} + \alpha_2 - 2\alpha_0\alpha_1 + \frac{\alpha_1}{\gamma^2} + \alpha_0^2\eta_0 - \frac{3\beta^2\alpha_0}{2\gamma^2}
         self.eta2 = 0
         
-        # Warning that higher orders for alpha_array will not be used
-        if self.alpha_array.size > 3:
+        # Warning that higher orders for alpha will not be used
+        if len(self.alpha[0]) > 3:
             print 'WARNING : Momentum compaction factor is held only up to \
                    2nd order'
         
-        # Processing the momentum program for the cases where it is constant
-        # or input as a program
-        if self.momentum_program.size == 1:
-            self.momentum_program = self.momentum_program * np.ones(self.n_turns + 1)
-            
-        try:
-            if not self.momentum_program.shape[1] == self.n_turns + 1:
-                raise RuntimeError('The input momentum program does not \
-                                    match the proper length (n_turns+1)')
-        except IndexError:
-            if not self.momentum_program.shape[0] == self.n_turns + 1:
-                raise RuntimeError('The input momentum program does not \
-                                    match the proper length (n_turns+1)')
+        
+        
+        if not self.momentum.shape[1] == self.n_turns + 1:
+            raise RuntimeError('The input momentum program does not \
+                                match the proper length (n_turns+1)')
+        
         
         # Processing the slippage factor
         self.eta_generation()
@@ -123,7 +158,7 @@ class General_parameters(object):
         | *For eta coefficients, see Lee: Accelerator Physics (Wiley).*
         '''
         
-        for i in xrange(self.alpha_array.size):
+        for i in xrange(len(self.alpha[0])):
             getattr(self, '_eta' + str(i))()
 
     
@@ -132,13 +167,11 @@ class General_parameters(object):
         *Calculation of the slippage factor (order 0) with respect to the
         momentum program and momentum compaction factor.*
         ''' 
+
+        self.eta0 = np.empty([self.n_sections, self.n_turns+1])        
+        for i in range(0, self.n_sections):
+            self.eta0[i] = self.alpha[i,0] - self.gamma_r[i]**-2
         
-        if self.alpha_array.size == 1:
-            self.eta0 = self.alpha_array - self.gamma_rel_program**-2
-            return self.eta0
-        else:
-            self.eta0 = self.alpha_array[0] - self.gamma_rel_program**-2
-            return self.eta0
    
     
     def _eta1(self):
@@ -147,10 +180,12 @@ class General_parameters(object):
         momentum program and momentum compaction factor.*
         ''' 
                 
-        self.eta1 = 3 * self.beta_rel_program**2 / (2 * self.gamma_rel_program**2) + \
-                    self.alpha_array[1] - \
-                    self.alpha_array[0] * self.eta0
-        return self.eta1
+        self.eta1 = np.empty([self.n_sections, self.n_turns+1])        
+        for i in range(0, self.n_sections):
+            self.eta1[i] = 3 * self.beta_r[i]**2 / (2 * self.gamma_r[i]**2) + \
+                    self.alpha[i,1] - \
+                    self.alpha[i,0] * self.eta0[i]
+        
     
     
     def _eta2(self):
@@ -159,10 +194,13 @@ class General_parameters(object):
         momentum program and momentum compaction factor.*
         ''' 
                 
-        self.eta2 = - self.beta_rel_program**2 * (5 * self.beta_rel_program**2 - 1) / (2 * self.gamma_rel_program**2) + \
-                    self.alpha_array[2] - 2 * self.alpha_array[0] * self.alpha_array[1] + \
-                    self.alpha_array[1] / self.gamma_rel_program**2 + \
-                    self.alpha_array[0]**2 * self.eta0 - \
-                    3 * self.beta_rel_program**2 * self.alpha_array[0] / (2 * self.gamma_rel_program**2)
-        return self.eta2
-        
+        self.eta2 = np.empty([self.n_sections, self.n_turns+1])        
+        for i in range(0, self.n_sections):
+            self.eta2[i] = - self.beta_r[i]**2 * (5 * self.beta_r[i]**2 - 1) / (2 * self.gamma_r[i]**2) + \
+                    self.alpha[i,2] - 2 * self.alpha[i,0] * self.alpha[i,1] + \
+                    self.alpha[i,1] / self.gamma_r[i]**2 + \
+                    self.alpha[i,0]**2 * self.eta0[i] - \
+                    3 * self.beta_r[i]**2 * self.alpha[i,0] / (2 * self.gamma_r[i]**2)
+         
+    
+    

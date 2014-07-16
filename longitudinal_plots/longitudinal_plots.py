@@ -4,12 +4,13 @@ Created on 12.06.2014
 @author: Helga Timko
 '''
 
+from __future__ import division
 import h5py
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.constants import c, e
-from trackers.longitudinal_tracker import separatrix
+from trackers.longitudinal_utilities import separatrix
 import sys
 from impedances.longitudinal_impedance import *
 
@@ -30,22 +31,22 @@ def fig_folder(dirname):
             raise
 
 
-def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
-                          xmax, ymin, ymax, xunit = None, yunit = None, perc_plotted_points = 100, 
+def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
+                          xmax, ymin, ymax, xunit = None, yunit = None, sampling = 1, 
                           separatrix_plot = False, histograms_plot = True, dirname = 'temp'):
 
     # Directory where longitudinal_plots will be stored
     fig_folder(dirname)
     
     # Calculate the final index of coordinate array according to perc_plotted_points
-    index = int(perc_plotted_points * beam.n_macroparticles / 100) + 1
+    #index = int(perc_plotted_points * beam.n_macroparticles / 100) + 1
     
     # Conversion from metres to nanoseconds
     if xunit == 'ns':
-        coeff = 1.e9 * General_parameters.ring_radius / (beam.beta_rel * c)
+        coeff = 1.e9 * General_parameters.ring_radius / (beam.beta_r * c)
     elif xunit == 'm':
         coeff = - General_parameters.ring_radius
-    ycoeff = beam.beta_rel**2 * beam.energy
+    ycoeff = beam.beta_r**2 * beam.energy
 
     # Definitions for placing the axes
     left, width = 0.1, 0.63
@@ -66,26 +67,26 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
     if xunit == None or xunit == 'rad':
         axScatter.set_xlabel('theta [rad]', fontsize=14)
         if yunit == None or yunit == 'MeV':
-            axScatter.scatter(beam.theta[0:index], beam.dE[0:index]/1.e6, s=1, edgecolor='none')
+            axScatter.scatter(beam.theta[::sampling], beam.dE[::sampling]/1.e6, s=1, edgecolor='none')
             axScatter.set_ylabel(r"$\Delta$E [MeV]", fontsize=14)
         elif yunit == '1': 
-            axScatter.scatter(beam.theta[0:index], beam.delta[0:index], s=1, edgecolor='none') 
+            axScatter.scatter(beam.theta[::sampling], beam.delta[::sampling], s=1, edgecolor='none') 
             axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]", fontsize=14)           
     elif xunit == 'm':
         axScatter.set_xlabel('z [m]', fontsize=14)
         if yunit == None or yunit == 'MeV':
-            axScatter.scatter(beam.z[0:index], beam.dE[0:index]/1.e6, s=1, edgecolor='none')
+            axScatter.scatter(beam.z[::sampling], beam.dE[::sampling]/1.e6, s=1, edgecolor='none')
             axScatter.set_ylabel(r"$\Delta$E [MeV]", fontsize=14)
         elif yunit == '1': 
-            axScatter.scatter(beam.z[0:index], beam.delta[0:index], s=1, edgecolor='none') 
+            axScatter.scatter(beam.z[::sampling], beam.delta[::sampling], s=1, edgecolor='none') 
             axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]", fontsize=14)              
     elif xunit == 'ns':
         axScatter.set_xlabel('Time [ns]', fontsize=14)
         if yunit == None or yunit == 'MeV':
-            axScatter.scatter(beam.theta[0:index]*coeff, beam.dE[0:index]/1.e6, s=1, edgecolor='none')
+            axScatter.scatter(beam.theta[::sampling]*coeff, beam.dE[::sampling]/1.e6, s=1, edgecolor='none')
             axScatter.set_ylabel(r"$\Delta$E [MeV]", fontsize=14)
         elif yunit == '1': 
-            axScatter.scatter(beam.theta[0:index]*coeff, beam.delta[0:index], s=1, edgecolor='none') 
+            axScatter.scatter(beam.theta[::sampling]*coeff, beam.delta[::sampling], s=1, edgecolor='none') 
             axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]", fontsize=14)           
         
     axScatter.set_xlim(xmin, xmax)
@@ -94,16 +95,16 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
     if xunit == None or xunit == 'rad':
         axScatter.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     axScatter.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.figtext(0.95,0.95,'%d turns' %(General_parameters.counter[0]), fontsize=16, ha='right', 
+    plt.figtext(0.95,0.95,'%d turns' %RFSectionParameters.counter[0], fontsize=16, ha='right', 
                 va='center') 
 
     # Separatrix
     if separatrix_plot:
         x_sep = np.linspace(xmin, xmax, 1000)
         if xunit == None or xunit == 'rad':
-            y_sep = separatrix(General_parameters, RingAndRFSection, x_sep)
+            y_sep = separatrix(General_parameters, RFSectionParameters, x_sep)
         elif xunit == 'm' or xunit == 'ns':
-            y_sep = separatrix(General_parameters, RingAndRFSection, x_sep/coeff)
+            y_sep = separatrix(General_parameters, RFSectionParameters, x_sep/coeff)
         if yunit == None or yunit == 'MeV':
             axScatter.plot(x_sep, y_sep/1.e6, 'r')
             axScatter.plot(x_sep, -1.e-6*y_sep, 'r')       
@@ -119,15 +120,15 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
         yh = np.arange(ymin, ymax + ybin, ybin)
       
         if xunit == None or xunit == 'rad':
-            axHistx.hist(beam.theta[0:index], bins=xh, histtype='step')
+            axHistx.hist(beam.theta[::sampling], bins=xh, histtype='step')
         elif xunit == 'm':
-            axHistx.hist(beam.z[0:index], bins=xh, histtype='step')       
+            axHistx.hist(beam.z[::sampling], bins=xh, histtype='step')       
         elif xunit == 'ns':
-            axHistx.hist(beam.theta[0:index]*coeff, bins=xh, histtype='step')
+            axHistx.hist(beam.theta[::sampling]*coeff, bins=xh, histtype='step')
         if yunit == None or yunit == 'MeV':
-            axHisty.hist(beam.dE[0:index]/1.e6, bins=yh, histtype='step', orientation='horizontal')
+            axHisty.hist(beam.dE[::sampling]/1.e6, bins=yh, histtype='step', orientation='horizontal')
         if yunit == '1':
-            axHisty.hist(beam.delta[0:index], bins=yh, histtype='step', orientation='horizontal')
+            axHisty.hist(beam.delta[::sampling], bins=yh, histtype='step', orientation='horizontal')
         axHistx.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         axHisty.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
         axHistx.axes.get_xaxis().set_visible(False)
@@ -139,12 +140,12 @@ def plot_long_phase_space(beam, General_parameters, RingAndRFSection, xmin,
             label.set_rotation(-90) 
  
     # Save plot
-    fign = dirname +'/long_distr_'"%d"%(General_parameters.counter[0])+'.png'
+    fign = dirname +'/long_distr_'"%d"%RFSectionParameters.counter[0]+'.png'
     plt.savefig(fign)
     plt.clf()
 
 
-def plot_bunch_length_evol(beam, h5file, General_parameters, unit = None, dirname = 'temp'):
+def plot_bunch_length_evol(counter, beam, h5file, General_parameters, unit = None, dirname = 'temp'):
 
     # Directory where longitudinal_plots will be stored
     fig_folder(dirname)
@@ -155,7 +156,7 @@ def plot_bunch_length_evol(beam, h5file, General_parameters, unit = None, dirnam
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/sigma_theta"], dtype = np.double)
     if unit == None or unit == 'ns':
-        bl *= 4.e9 / beam.beta_rel / c * General_parameters.ring_radius
+        bl *= 4.e9 / beam.beta_r / c * General_parameters.ring_radius
     elif unit == 'm':
         bl *= 4 * General_parameters.ring_radius
 
@@ -170,7 +171,7 @@ def plot_bunch_length_evol(beam, h5file, General_parameters, unit = None, dirnam
         ax.set_ylabel (r"Bunch length, $4\sigma$ r.m.s. [m]")
     
     # Save plot
-    fign = dirname +'/bunch_length_evolution_' "%d" %(General_parameters.counter[0]) + '.png'
+    fign = dirname +'/bunch_length_evolution_' "%d" %counter + '.png'
     plt.savefig(fign)
     plt.clf()
 
@@ -185,7 +186,7 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, unit = Non
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/bunch_length_gauss_theta"], dtype=np.double)
     if unit == 'ns':
-        bl *= 1.e9/c/beam.beta_rel * General_parameters.ring_radius
+        bl *= 1.e9/c/beam.beta_r * General_parameters.ring_radius
 
     # Plot
     plt.figure(1, figsize=(8,6))
@@ -203,7 +204,7 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, unit = Non
     plt.clf()
 
 
-def plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "sum", 
+def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp, option1 = "sum", 
                                 option2 = "no_spectrum", option3 = "freq_fft", style = '-', dirname = 'temp'):
 
     # Directory where longitudinal_plots will be stored
@@ -217,7 +218,7 @@ def plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "su
         if option2 == "spectrum":
             ax2 = ax1.twinx()
             ax2.plot(ind_volt_from_imp.frequency_fft, np.abs(ind_volt_from_imp.spectrum))
-        fign = dirname +'/sum_imp_vs_freq_fft' "%d" %(general_params.counter[0]) + '.png'
+        fign = dirname +'/sum_imp_vs_freq_fft' "%d" %counter + '.png'
         plt.savefig(fign, dpi=300)
         plt.clf()
     
@@ -235,14 +236,14 @@ def plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "su
                     ax0.plot(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_sum[i].impedance.real, style)
                     ax1.plot(ind_volt_from_imp.frequency_fft, ind_volt_from_imp.impedance_sum[i].impedance.imag, style)
         
-        fign1 = dirname +'/real_imp_vs_'+option3+'_' "%d" %(general_params.counter[0]) + '.png'
+        fign1 = dirname +'/real_imp_vs_'+option3+'_' "%d" %counter + '.png'
         if option2 == "spectrum":
             ax2 = ax0.twinx()
             ax2.plot(ind_volt_from_imp.frequency_fft, np.abs(ind_volt_from_imp.spectrum))
         plt.figure(0)
         plt.savefig(fign1, dpi=300)
         plt.clf()
-        fign2 = dirname +'/imag_imp_vs_'+option3+'_' "%d" %(general_params.counter[0]) + '.png'
+        fign2 = dirname +'/imag_imp_vs_'+option3+'_' "%d" %counter + '.png'
         plt.figure(1)
         if option2 == "spectrum":
             ax3 = ax1.twinx()
@@ -251,7 +252,7 @@ def plot_impedance_vs_frequency(general_params, ind_volt_from_imp, option1 = "su
         plt.clf()
         
    
-def plot_induced_voltage_vs_bins_centers(general_params, ind_volt_from_imp, style = '-', dirname = 'temp'):
+def plot_induced_voltage_vs_bins_centers(counter, general_params, ind_volt_from_imp, style = '-', dirname = 'temp'):
 
     # Directory where longitudinal_plots will be stored
     fig_folder(dirname)
@@ -259,21 +260,21 @@ def plot_induced_voltage_vs_bins_centers(general_params, ind_volt_from_imp, styl
     plt.plot(ind_volt_from_imp.slices.bins_centers, ind_volt_from_imp.ind_vol, style)
              
     # Save plot
-    fign = dirname +'/induced_voltage_' "%d" %(general_params.counter[0]) + '.png'
+    fign = dirname +'/induced_voltage_' "%d" %counter + '.png'
     plt.savefig(fign)
     plt.clf()
 
 
-def plot_beam_profile(general_params, slices, style = '-', dirname = 'temp'):
+def plot_beam_profile(counter, general_params, slices, style = '-', dirname = 'temp'):
     
     fig_folder(dirname)
     plt.plot(slices.bins_centers, slices.n_macroparticles, style)
-    fign = dirname +'/beam_profile_' "%d" %(general_params.counter[0]) + '.png'
+    fign = dirname +'/beam_profile_' "%d" %counter + '.png'
     plt.savefig(fign)
     plt.clf()
 
 
-def plot_beam_profile_derivative(general_params, slices, style = '-', dirname = 'temp', numbers = [3]):
+def plot_beam_profile_derivative(counter, general_params, slices, style = '-', dirname = 'temp', numbers = [3]):
     
     fig_folder(dirname)
     if 1 in numbers:
@@ -285,7 +286,7 @@ def plot_beam_profile_derivative(general_params, slices, style = '-', dirname = 
     if 3 in numbers:
         x3, derivative3 = slices.beam_profile_derivative(3)
         plt.plot(x3, derivative3, style)
-    fign = dirname +'/beam_profile_derivative_' "%d" %(general_params.counter[0]) + '.png'
+    fign = dirname +'/beam_profile_derivative_' "%d" %counter + '.png'
     plt.savefig(fign)
     plt.clf()
          
