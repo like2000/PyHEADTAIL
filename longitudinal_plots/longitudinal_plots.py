@@ -7,6 +7,7 @@ Created on 12.06.2014
 from __future__ import division
 import h5py
 import os
+import subprocess
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -17,11 +18,15 @@ from impedances.longitudinal_impedance import *
 
 
 
-if os.path.exists('temp'):
-    os.system('del /s/q '+ os.getcwd() +'\\temp>null')
+if os.path.exists('temp'):    
+    if "lin" in sys.platform:
+        subprocess.Popen("rm -rf temp", shell = True, executable = "/bin/bash")
+    elif "win" in sys.platform:
+        os.system('del /s/q '+ os.getcwd() +'\\temp>null')
+    else:
+        warnings.warn("You have not a Windows or Linux operating system. Aborting...")
 
-    
-
+        
 def fig_folder(dirname):
     
     # Try to create directory
