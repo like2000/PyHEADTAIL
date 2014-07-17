@@ -175,7 +175,10 @@ class Induced_voltage_from_impedance(object):
         
         power = int(np.floor(np.log2(1 / (self.frequency_step * dtau)))) + 1
         
-        return fftfreq(2 ** power, dtau)[0:2**(power-1)], 2 ** power
+        rfft_freq = fftfreq(2 ** power, dtau)[0:2**(power-1)+1]
+        rfft_freq[-1] = - rfft_freq[-1]
+        
+        return rfft_freq, 2 ** power
         
     
     def track(self, bunch):
