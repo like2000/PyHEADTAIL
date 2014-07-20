@@ -20,7 +20,7 @@ class Beam(object):
     def __init__(self, General_parameters, n_macroparticles, intensity):
         
         # Beam and ring-dependent properties
-        
+  
         self.mass = General_parameters.mass
         self.charge = General_parameters.charge
         self.ring_radius = General_parameters.ring_radius

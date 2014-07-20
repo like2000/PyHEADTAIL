@@ -1,41 +1,39 @@
 '''
+**Module to compute longitudinal intensity effects**
 
-@author: Hannes Bartosik, Danilo Quartullo, Alexandre Lasheen
-
+:Authors: **Danilo Quartullo**, **Alexandre Lasheen**, **Hannes Bartosik**
 '''
 
 from __future__ import division
 import numpy as np
 from numpy import convolve, interp
-from scipy.constants import c, e
-from scipy.constants import physical_constants
-import time
+from scipy.constants import c
 from numpy.fft import irfft, fftfreq
-import matplotlib.pyplot as plt
+import math
 
 
 class Induced_voltage_from_wake(object):
     '''
-    Induced voltage derived from the sum of several wake fields.
-    Apart from further optimisation, these are the important results obtained
-    after the benchmarking which are applied to the following code:
-    1) in general update_with_interpolation is faster than update_without_interpolation
-    2) in general induced_voltage_with_convolv is faster than induced_voltage_with_matrix
-    3) if slices.mode == const_charge, you are obliged to use 
-        induced_voltage_with_matrix, then you should use update_with_interpolation
-    4) if slices.mode == const_space, i.e. you want to calculate slices statistics
-        (otherwise slices.mode == const_space_hist is faster), you should use 
-        induced_voltage_with_convolv and then update_with_interpolation
-    5) if slices.mode == const_space_hist, use induced_voltage_with_convolv and
-        update_with_interpolation
-    If there is no acceleration then precalc == 'on', except for the const_charge method.
-    If you have acceleration and slices.coord == z or theta, then precalc == 'off';
-    if slices.coord == tau then precalc == 'on'
+    *Induced voltage derived from the sum of several wake fields.
+    Apart from further optimisations, note that:*\n
+    *1) in general update_with_interpolation is faster than update_without_interpolation*\n
+    *2) in general induced_voltage_with_convolv is faster than induced_voltage_with_matrix*\n
+    *3) if slices.mode == const_charge, you are obliged to use* 
+        *induced_voltage_with_matrix, then you should use update_with_interpolation*\n
+    *4) if slices.mode == const_space, i.e. you want to calculate slices statistics*
+        *(otherwise slices.mode == const_space_hist is faster), you should use*
+        *induced_voltage_with_convolv and then update_with_interpolation*\n
+    *5) if slices.mode == const_space_hist, use induced_voltage_with_convolv and*
+        *update_with_interpolation*
     '''
     
     def __init__(self, slices, acceleration, wake_sum, bunch):       
         '''
         Constructor
+        
+        If there is no acceleration then precalc == 'on', except for the const_charge method.
+        If you have acceleration and slices.coord == z or theta, then precalc == 'off';
+        If slices.coord == tau then precalc == 'on'
         '''
         self.slices = slices
         self.acceleration = acceleration
@@ -70,11 +68,11 @@ class Induced_voltage_from_wake(object):
     def track(self, bunch):
         
         if self.slices.mode == 'const_charge':
-            ind_vol = self.induced_voltage_with_matrix(bunch)
+            self.ind_vol = self.induced_voltage_with_matrix(bunch)
         else:
-            ind_vol = self.induced_voltage_with_convolv(bunch)
+            self.ind_vol = self.induced_voltage_with_convolv(bunch)
         
-        update_with_interpolation(bunch, ind_vol, self.slices)
+        update_with_interpolation(bunch, self.ind_vol, self.slices)
         
            
     def induced_voltage_with_matrix(self, bunch):
@@ -128,28 +126,34 @@ class Induced_voltage_from_wake(object):
     
 class Induced_voltage_from_impedance(object):
     '''
-    Induced voltage derived from the sum of several impedances.
+    *Induced voltage derived from the sum of several impedances.*
     '''
     
-    def __init__(self, slices, acceleration, impedance_sum, frequency_step, 
-                 bunch):       
+    def __init__(self, slices, acceleration, impedance_sum, frequency_step, bunch, 
+                 sum_slopes_from_induc_imp = None, deriv_mode = 2, mode = 'only_spectrum'):       
         '''
         Constructor
+        
+        
         '''
         self.slices = slices
         self.acceleration = acceleration
         self.impedance_sum = impedance_sum
-        
         self.frequency_step = frequency_step
+        self.sum_slopes_from_induc_imp = sum_slopes_from_induc_imp
+        self.deriv_mode = deriv_mode
+        self.mode = mode
         
-        if self.acceleration == 'off' or self.slices.coord == 'tau':
-                self.precalc = 'on'
-                
-                self.frequency_fft, self.n_sampling_fft = self.frequency_array(slices, bunch)
-                
-                self.impedance_array = self.sum_impedances(self.frequency_fft, self.impedance_sum)
-        else:
-            self.precalc = 'off' 
+        if self.mode != 'only_derivative':
+        
+            if self.acceleration == 'off' or self.slices.coord == 'tau':
+                    self.precalc = 'on'
+                    
+                    self.frequency_fft, self.n_sampling_fft = self.frequency_array(slices, bunch)
+                    
+                    self.impedance_array = self.sum_impedances(self.frequency_fft, self.impedance_sum)
+            else:
+                self.precalc = 'off' 
     
     
     def sum_impedances(self, frequency, imped_object_sum):
@@ -168,39 +172,74 @@ class Induced_voltage_from_impedance(object):
                     dtau = self.slices.bins_centers[1] - self.slices.bins_centers[0]
         elif self.slices.coord == 'theta':
                     dtau = (self.slices.bins_centers[1] - self.slices.bins_centers[0]) \
-                       * bunch.ring_radius / (bunch.beta_rel * c)
+                       * bunch.ring_radius / (bunch.beta_r * c)
         elif self.slices.coord == 'z':
                     dtau = (self.slices.bins_centers[1] - self.slices.bins_centers[0])\
-                       /(bunch.beta_rel * c)
+                       /(bunch.beta_r * c)
         
-        power = int(np.floor(np.log2(1 / (self.frequency_step * dtau)))) + 1
+        n = int(math.ceil(1 / (self.frequency_step * dtau) ))
         
-        rfft_freq = fftfreq(2 ** power, dtau)[0:2**(power-1)+1]
-        rfft_freq[-1] = - rfft_freq[-1]
+        if n/2 + 1 >= slices.n_slices:
+            pass
+        else:
+            print 'Warning! Resolution in frequency domain is too small, \
+                you can get an error or a truncated bunch profile'
+            
+        if n%2 == 1:
+            n += 1
         
-        return rfft_freq, 2 ** power
+        rfftfreq = fftfreq(n, dtau)[0:int(n/2+1)]
+        rfftfreq[-1] = - rfftfreq[-1]
+        
+        return rfftfreq, n
         
     
     def track(self, bunch):
+      
+        if self.mode != 'only_derivative':
         
-        if self.precalc == 'off':
-            self.frequency_fft, self.n_sampling_fft = self.frequency_array(self.slices, bunch)
-            self.impedance_array = self.sum_impedances(self.frequency_fft, self.imped_sum)
-          
-        self.spectrum = self.slices.beam_spectrum(self.n_sampling_fft)
-        
-        self.ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
-            * irfft(self.impedance_array * self.spectrum) * self.frequency_fft[1] \
-            * 2*(len(self.frequency_fft)-1)
-        self.ind_vol = self.ind_vol[0:self.slices.n_slices]
-
+            if self.precalc == 'off':
+                self.frequency_fft, self.n_sampling_fft = self.frequency_array(self.slices, bunch)
+                self.impedance_array = self.sum_impedances(self.frequency_fft, self.imped_sum)
+             
+            self.spectrum = self.slices.beam_spectrum(self.n_sampling_fft)
+            
+            self.ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
+                * irfft(self.impedance_array * self.spectrum) * self.frequency_fft[1] \
+                * 2*(len(self.frequency_fft)-1)
+            self.ind_vol = self.ind_vol[0:self.slices.n_slices]
+            
+            if self.mode == 'spectrum + derivative':
+                self.ind_vol += self.ind_vol_derivative(bunch)
+               
+        elif self.mode == 'only_derivative':
+            
+            self.ind_vol = self.ind_vol_derivative(bunch)
+            
         update_with_interpolation(bunch, self.ind_vol, self.slices)
-    
+        
+        
+    def ind_vol_derivative(self, bunch):
+         
+        ind_vol_deriv = bunch.charge / (2 * np.pi) * bunch.intensity / bunch.n_macroparticles * \
+                            self.sum_slopes_from_induc_imp * \
+                            self.slices.beam_profile_derivative(self.deriv_mode)[1] / \
+                            (self.slices.bins_centers[1] - self.slices.bins_centers[0]) 
+        
+        if self.slices.coord == 'tau':
+            pass
+        elif self.slices.coord == 'theta':
+            ind_vol_deriv *= (bunch.beta_r * c /  bunch.ring_radius) ** 2
+        elif self.slices.coord == 'z':
+            ind_vol_deriv *= (bunch.beta_r * c) ** 2
+        
+        return ind_vol_deriv
+
 
 def update_without_interpolation(bunch, induced_voltage, slices):
     '''
-    This method can be used only if one has not used the histogram Python method 
-    for the slicing.
+    *Other method to update the energy of the particles; this method can be used
+     only if one has not used slices.mode == const_space_hist for the slicing.*
     '''
     
     for i in range(0, slices.n_slices):
@@ -210,7 +249,10 @@ def update_without_interpolation(bunch, induced_voltage, slices):
     
     
 def update_with_interpolation(bunch, induced_voltage, slices):
-    
+    '''
+    *Method to update the energy of the particles through interpolation of
+     the induced voltage.*
+    '''
     temp1 = slices.bins_centers[0]
     temp2 = slices.bins_centers[-1]
     slices.bins_centers[0] = slices.edges[0]
@@ -238,7 +280,7 @@ def update_with_interpolation(bunch, induced_voltage, slices):
     
 class Longitudinal_table(object):
     '''
-    classdocs
+    *Intensity effects from impedance and wake tables.*
     '''
     
     def __init__(self, a, b, c = None):       
@@ -275,7 +317,7 @@ class Longitudinal_table(object):
     
 class Longitudinal_resonators(object):
     '''
-    
+    *Intensity effects from resonators.*
     '''
     def __init__(self, R_S, frequency_R, Q):
         '''
@@ -317,7 +359,7 @@ class Longitudinal_resonators(object):
 
 class Longitudinal_travelling_waves(object):
     '''
-    
+    *Intensity effects from travelling waves.*
     '''
     def __init__(self, R_S, frequency_R, a_factor):
         '''
@@ -367,20 +409,21 @@ class Longitudinal_travelling_waves(object):
 
 class Longitudinal_inductive_impedance(object):
     '''
-    
+    *Longitudinal inductive impedance.*
     '''
-    def __init__(self, Z_over_n, general_param):
+    def __init__(self, Z_over_frequency):
         '''
         Constructor
         '''
-        self.Z_over_n = Z_over_n
-        self.counter = 0
-        self.T0 = general_param.T0
+        self.Z_over_frequency = Z_over_frequency
+        
         
     def imped_calc(self, frequency):    
         
-        self.impedance = self.T0[0][self.counter] * frequency * self.Z_over_n * 1j
-        self.counter += 1
+        self.impedance = frequency * self.Z_over_frequency * 1j
         
-        return self.impedance 
+        return self.impedance
+
+
+
  

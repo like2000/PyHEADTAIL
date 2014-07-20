@@ -17,12 +17,13 @@ from beams.slices import *
 from impedances.longitudinal_impedance import *
 
 
+
 # SIMULATION PARAMETERS -------------------------------------------------------
 
 # Beam parameters
 particle_type = 'proton'
-n_particles = 1.e11          
-n_macroparticles = 5.e5           
+n_particles = int(1e11)          
+n_macroparticles = int(5e5)
 sigma_tau = 180e-9 / 4 # [s]     
 sigma_delta = .5e-4 # [1]          
 kin_beam_energy = 1.4e9 # [eV]
@@ -33,7 +34,7 @@ gamma_transition = 4.4  # [1]
 C = 2 * np.pi * radius  # [m]       
       
 # Tracking details
-n_turns = 2          
+n_turns = 5          
 n_turns_between_two_plots = 1          
 
 # Derived parameters
@@ -75,8 +76,9 @@ longitudinal_bigaussian(general_params, RF_sct_par, my_beam, sigma_theta, sigma_
 
 # DEFINE SLICES----------------------------------------------------------------
 
-number_slices = 200
-slice_beam = Slices(number_slices, cut_left = - 5.72984173562e-07 / 2, cut_right = 5.72984173562e-07 / 2, coord = 
+number_slices = 100
+slice_beam = Slices(number_slices, cut_left = - 5.72984173562e-07 / 2, 
+                    cut_right = 5.72984173562e-07 / 2, coord = 
                     "tau", mode = 'const_space_hist')
 
 
@@ -86,41 +88,41 @@ var = str(kin_beam_energy / 1e9)
 
 # ejection kicker
 Ekicker = np.loadtxt('ps_booster_impedances/ejection kicker/Ekicker_' + var + 'GeV.txt'
-        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
         complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
 
 Ekicker_table = Longitudinal_table(Ekicker[:,0].real, Ekicker[:,1].real, Ekicker[:,1].imag)
 
 # ejection kicker cables
 Ekicker_cables = np.loadtxt('ps_booster_impedances/ejection kicker cables/Ekicker_cables_' + var + 'GeV.txt'
-        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
         complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
 
 Ekicker_cables_table = Longitudinal_table(Ekicker_cables[:,0].real, Ekicker_cables[:,1].real, Ekicker_cables[:,1].imag)
 
 # KSW kickers
 KSW = np.loadtxt('ps_booster_impedances/KSW/KSW_' + var + 'GeV.txt'
-        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
         complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
 
 KSW_table = Longitudinal_table(KSW[:,0].real, KSW[:,1].real, KSW[:,1].imag)
 
 # resistive wall
 RW = np.loadtxt('ps_booster_impedances/resistive wall/RW_' + var + 'GeV.txt'
-        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
         complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
 
 RW_table = Longitudinal_table(RW[:,0].real, RW[:,1].real, RW[:,1].imag)
 
 # indirect space charge
 ISC = np.loadtxt('ps_booster_impedances/Indirect space charge/ISC_' + var + 'GeV.txt'
-        , dtype=complex, converters = dict(zip((0, 1), (lambda s: 
+        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
         complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
 
 ISC_table = Longitudinal_table(ISC[:,0].real, ISC[:,1].real, ISC[:,1].imag)
 
 # steps
-steps = Longitudinal_inductive_impedance(0.061, general_params)
+steps = Longitudinal_inductive_impedance(34.6669349520904 / 10e9) # input in [Ohm/Hz]
 
 # Finemet cavity
 
@@ -145,12 +147,25 @@ elif option == "shorted":
 else:
     pass
 
+# direct space charge
+dir_space_charge = Longitudinal_inductive_impedance( - (376.730313462 *  
+                    general_params.T0[0, 0]) / (general_params.beta_r[0,0] *
+                     general_params.gamma_r[0,0]**2))       # input in [Ohm/Hz]
+
 
 # INDUCED VOLTAGE FROM IMPEDANCE------------------------------------------------
 
-sum_impedance = [Ekicker_table] + [Ekicker_cables_table] + [KSW_table] + [RW_table] + [steps] + [F_C_table]
+# impedance to be used for ind_volt calculation through the profile spectrum
+sum_impedance = [Ekicker_table] + [Ekicker_cables_table] + [KSW_table] \
+                 + [RW_table] + [F_C_table] + [ISC_table] 
 
-ind_volt_from_imp = Induced_voltage_from_impedance(slice_beam, "off", sum_impedance, 2e6, my_beam)
+# impedance to be used for ind_volt calculation through the profile derivative
+sum_slopes_from_induc_imp = (376.730313462 * general_params.T0[0, 0]) / \
+        (my_beam.beta_r * my_beam.gamma_r**2) - \
+        34.6669349520904 / 10e9    # direct space charge plus steps, in [Ohm/Hz]
+
+ind_volt_from_imp = Induced_voltage_from_impedance(slice_beam, "off", sum_impedance, 2e5, my_beam, 
+                 sum_slopes_from_induc_imp, mode = 'spectrum + derivative')
 
 
 # ACCELERATION MAP-------------------------------------------------------------
@@ -158,9 +173,7 @@ ind_volt_from_imp = Induced_voltage_from_impedance(slice_beam, "off", sum_impeda
 map_ = [slice_beam] + [ind_volt_from_imp] + [ring_RF_section]
 
 
-
 # TRACKING + PLOTS-------------------------------------------------------------
-
 
 for i in range(n_turns):
     
@@ -168,20 +181,25 @@ for i in range(n_turns):
     t0 = time.clock()
     for m in map_:
         m.track(my_beam)
-
     bunchmonitor.dump(my_beam, slice_beam)
     t1 = time.clock()
     print t1 - t0
-    plot_impedance_vs_frequency(i+1, general_params, ind_volt_from_imp, option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
-    plot_beam_profile_derivative(i+1, general_params, slice_beam, numbers = [1, 2, 3])
-    plot_beam_profile(i+1, general_params, slice_beam)
-    # Plots that change from turn to turn
+    # Plots
     if ((i+1) % n_turns_between_two_plots) == 0:
+        
         plot_long_phase_space(my_beam, general_params, RF_sct_par, 
           - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, 
           - my_beam.sigma_dE * 4 * 1e-6, my_beam.sigma_dE * 4 * 1e-6, xunit = 'ns')
         
-plot_bunch_length_evol(my_beam, 'beam', general_params, n_turns)
+        plot_impedance_vs_frequency(i+1, general_params, ind_volt_from_imp, 
+          option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
+        
+        plot_induced_voltage_vs_bins_centers(i+1, general_params, ind_volt_from_imp, style = '-')
+        
+        plot_beam_profile(i+1, general_params, slice_beam)
+        
+        plot_bunch_length_evol(my_beam, 'beam', general_params, n_turns)
+
 
 print "Done!"
 
