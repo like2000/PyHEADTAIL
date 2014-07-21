@@ -31,10 +31,15 @@ class Induced_voltage_from_wake(object):
         '''
         Constructor
         
-        If there is no acceleration then precalc == 'on', except for the const_charge method.
-        If you have acceleration and slices.coord == z or theta, then precalc == 'off';
-        If slices.coord == tau then precalc == 'on'
+        If there is no acceleration then obviously precalc == 'on', 
+        except for the const_charge method where the distances between the 
+        slide centers change from turn to turn.
+        If there is acceleration and slices.coord == z or theta, then precalc == 'off';
+        If slices.coord == tau then precalc == 'on since the wake, at least for
+        the analytic formulas presented in the code, doesn't depend on the energy
+        of the beam.
         '''
+        
         self.slices = slices
         self.acceleration = acceleration
         self.wake_sum = wake_sum
@@ -58,6 +63,7 @@ class Induced_voltage_from_wake(object):
     
     def sum_wakes(self, translation, wake_object_sum):
         
+        
         total_wake = np.zeros(len(translation))
         for wake_object in self.wake_sum:
             total_wake += wake_object.wake_calc(translation)
@@ -66,6 +72,11 @@ class Induced_voltage_from_wake(object):
     
     
     def track(self, bunch):
+        '''
+        Note that if slices.mode = 'const_charge' one is obliged to use the
+        matrix method for the calculation of the induced voltage; otherwise
+        update_with_interpolation is faster.
+        '''
         
         if self.slices.mode == 'const_charge':
             self.ind_vol = self.induced_voltage_with_matrix(bunch)
@@ -76,6 +87,11 @@ class Induced_voltage_from_wake(object):
         
            
     def induced_voltage_with_matrix(self, bunch):
+        '''
+        Method to calculate the induced voltage from wakes with the matrix method;
+        note that if slices.coord = z one has to "fix" the usual method, since
+        the head and the tail of the bunch are inverted.
+        '''
         
         if self.slices.coord == 'tau':
             dtau_matrix = self.slices.bins_centers - \
@@ -95,7 +111,12 @@ class Induced_voltage_from_wake(object):
     
     
     def induced_voltage_with_convolv(self, bunch): 
-    
+        '''
+        Method to calculate the induced voltage from wakes with convolution;
+        note that if slices.coord = z one has to "fix" the usual method, since
+        the head and the tail of the bunch are inverted.
+        '''
+        
         if self.precalc == 'off':
             
             if self.slices.coord == 'tau':
@@ -129,14 +150,20 @@ class Induced_voltage_from_impedance(object):
     *Induced voltage derived from the sum of several impedances.*
     '''
     
-    def __init__(self, slices, precalculation, impedance_sum, frequency_step, 
+    def __init__(self, slices, impedance_sum, frequency_step, 
                  sum_slopes_from_induc_imp = None, deriv_mode = 2, mode = 'only_spectrum'):       
         '''
         Constructor
         
+        Frequency_step is equal to 1/(dist_centers * n) where dist_centers is
+        the distance between the centers of two consecutive slides and (n/2 + 1)
+        is the number of sampling points for the frequency array; see the 
+        frequency_array method.
+        Sum_slopes_from_induc_imp is the sum of all the inductances derived from
+        all the inductive impedance, included space charge; see in addition the
+        ind_vol_derivative method.
         '''
         self.slices = slices
-        self.precalc = precalculation
         self.impedance_sum = impedance_sum
         self.frequency_step = frequency_step
         self.sum_slopes_from_induc_imp = sum_slopes_from_induc_imp
@@ -146,10 +173,7 @@ class Induced_voltage_from_impedance(object):
         if self.mode != 'only_derivative':
             
             self.frequency_fft, self.n_sampling_fft = self.frequency_array(slices)
-            
-            if self.precalc == 'on':
-                    
-                    self.impedance_array = self.sum_impedances(self.frequency_fft, \
+            self.impedance_array = self.sum_impedances(self.frequency_fft, \
                                            self.impedance_sum)
             
     
@@ -164,6 +188,12 @@ class Induced_voltage_from_impedance(object):
     
     
     def frequency_array(self, slices):
+        '''
+        Method to calculate the sampling frequency array through the rfftfreq
+        Python command. Since this command is not included in older version
+        of Numpy, the similar fftfreq has been used with some fixes to obtain
+        the same result as rfftfreq.
+        '''
         
         dcenters = self.slices.bins_centers[1] - self.slices.bins_centers[0]
         
@@ -185,13 +215,14 @@ class Induced_voltage_from_impedance(object):
         
     
     def track(self, bunch):
-      
+        '''
+        Method to calculate the induced voltage through the bunch spectrum, or
+        the derivative of profile, or both; these three choices are represented
+        by the mode 'only_spectrum', 'only_derivative', 'spectrum + derivative'
+        respectively.
+        '''
         if self.mode != 'only_derivative':
         
-            if self.precalc == 'off':
-                
-                self.impedance_array = self.sum_impedances(self.frequency_fft, self.imped_sum)
-             
             self.spectrum = self.slices.beam_spectrum(self.n_sampling_fft)
             
             self.ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
@@ -218,6 +249,10 @@ class Induced_voltage_from_impedance(object):
         
         
     def ind_vol_derivative(self, bunch):
+        '''
+        Method to calculate the induced voltage through the derivative of the
+        profile; the impedance must be of inductive type.
+        '''
         
         ind_vol_deriv = bunch.charge / (2 * np.pi) * bunch.intensity / bunch.n_macroparticles * \
                             self.sum_slopes_from_induc_imp * \
@@ -237,7 +272,9 @@ class Induced_voltage_from_impedance(object):
 def update_without_interpolation(bunch, induced_voltage, slices):
     '''
     *Other method to update the energy of the particles; this method can be used
-     only if one has not used slices.mode == const_space_hist for the slicing.*
+     only if one has not used slices.mode == const_space_hist for the slicing.
+     Maybe this method could be optimised through Cython or trying to avoid
+     the for loop.*
     '''
     
     for i in range(0, slices.n_slices):
@@ -249,8 +286,11 @@ def update_without_interpolation(bunch, induced_voltage, slices):
 def update_with_interpolation(bunch, induced_voltage, slices):
     '''
     *Method to update the energy of the particles through interpolation of
-     the induced voltage.*
+     the induced voltage. Note that there is a fix to prevent that one neglects
+     all the particles situated between the first edge and the first slice center
+     and between the last edge and the last slice center*
     '''
+    
     temp1 = slices.bins_centers[0]
     temp2 = slices.bins_centers[-1]
     slices.bins_centers[0] = slices.edges[0]
@@ -284,7 +324,11 @@ class Longitudinal_table(object):
     def __init__(self, a, b, c = None):       
         '''
         Constructor
+        
+        If this constructor takes just two arguments, then a wake table is passed;
+        if it takes three arguments, then an impedance table is passed.
         '''
+        
         if c == None:
             self.dtau_array = a
             self.wake_array = b
@@ -303,7 +347,10 @@ class Longitudinal_table(object):
     
     
     def imped_calc(self, frequency):
-        
+        '''
+        Note that we add the point (f, Z(f)) = (0, 0) to the frequency and 
+        impedance arrays derived from the table.
+        '''
         self.frequency_array = np.hstack((0, self.frequency_array))
         self.Re_Z_array = np.hstack((0, self.Re_Z_array))
         self.Im_Z_array = np.hstack((0, self.Im_Z_array))
@@ -318,8 +365,10 @@ class Longitudinal_table(object):
     
 class Longitudinal_resonators(object):
     '''
-    *Intensity effects from resonators.*
+    *Intensity effects from resonators, analytic formulas for both wake
+    and impedance..*
     '''
+    
     def __init__(self, R_S, frequency_R, Q):
         '''
         Constructor
@@ -360,7 +409,8 @@ class Longitudinal_resonators(object):
 
 class Longitudinal_travelling_waves(object):
     '''
-    *Intensity effects from travelling waves.*
+    *Intensity effects from travelling waves, analytic formulas for both wake
+    and impedance.*
     '''
     def __init__(self, R_S, frequency_R, a_factor):
         '''

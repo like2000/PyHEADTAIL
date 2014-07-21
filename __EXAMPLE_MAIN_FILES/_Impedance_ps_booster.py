@@ -129,7 +129,7 @@ sum_slopes_from_induc_imp = (376.730313462 * general_params.T0[0, 0]) / \
         (my_beam.beta_r * my_beam.gamma_r**2) - \
         34.6669349520904 / 10e9    # direct space charge plus steps, in [Ohm/Hz]
 
-ind_volt_from_imp = Induced_voltage_from_impedance(slice_beam, "on", sum_impedance, 2e5,
+ind_volt_from_imp = Induced_voltage_from_impedance(slice_beam, sum_impedance, 2e5,
                  sum_slopes_from_induc_imp, mode = 'spectrum + derivative')
 
 
