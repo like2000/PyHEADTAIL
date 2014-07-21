@@ -1,7 +1,7 @@
 '''
-Created on 12.06.2014
+**Module containing the fundamental beam class with methods to compute beam statistics**
 
-@author: Kevin Li, Danilo Quartullo, Helga Timko, ALexandre Lasheen
+:Authors: **Kevin Li**, **Danilo Quartullo**, **Helga Timko**, **ALexandre Lasheen**
 '''
 
 from __future__ import division

@@ -47,10 +47,10 @@ class Induced_voltage_from_wake(object):
                     dtau = self.slices.bins_centers - self.slices.bins_centers[0]
                 elif self.slices.coord == 'theta':
                     dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
-                       * bunch.ring_radius / (bunch.beta_rel * c)
+                       * bunch.ring_radius / (bunch.beta_r * c)
                 elif self.slices.coord == 'z':
                     dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
-                       / (bunch.beta_rel * c)
+                       / (bunch.beta_r * c)
                 self.wake_array = self.sum_wakes(dtau, self.wake_sum)
             else:
                 self.precalc = 'off' 
@@ -83,10 +83,10 @@ class Induced_voltage_from_wake(object):
             self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
         elif self.slices.coord == 'z':
             dtau_matrix = (np.transpose([self.slices.bins_centers]) - \
-                           self.slices.bins_centers) / (bunch.beta_rel * c)
+                           self.slices.bins_centers) / (bunch.beta_r * c)
             self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
         elif self.slices.coord == 'theta':
-            dtau_matrix = bunch.ring_radius / (bunch.beta_rel * c) * \
+            dtau_matrix = bunch.ring_radius / (bunch.beta_r * c) * \
             (self.slices.bins_centers - np.transpose([self.slices.bins_centers])) 
             self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
         
@@ -104,7 +104,7 @@ class Induced_voltage_from_wake(object):
             
             elif self.slices.coord == 'z':
                 dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
-                       /(bunch.beta_rel * c)
+                       /(bunch.beta_r * c)
                 self.wake_array = self.sum_wakes(dtau, self.wake_sum)
                 reversed_array = self.wake_array[::-1]
                 return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
@@ -112,7 +112,7 @@ class Induced_voltage_from_wake(object):
             
             elif self.slices.coord == 'theta':
                 dtau = (self.slices.bins_centers - self.slices.bins_centers[0]) \
-                       * bunch.ring_radius / (bunch.beta_rel * c)
+                       * bunch.ring_radius / (bunch.beta_r * c)
                 self.wake_array = self.sum_wakes(dtau, self.wake_sum)
         
         if self.precalc == 'on' and self.slices.coord == 'z':
@@ -129,15 +129,14 @@ class Induced_voltage_from_impedance(object):
     *Induced voltage derived from the sum of several impedances.*
     '''
     
-    def __init__(self, slices, acceleration, impedance_sum, frequency_step, bunch, 
+    def __init__(self, slices, precalculation, impedance_sum, frequency_step, 
                  sum_slopes_from_induc_imp = None, deriv_mode = 2, mode = 'only_spectrum'):       
         '''
         Constructor
         
-        
         '''
         self.slices = slices
-        self.acceleration = acceleration
+        self.precalc = precalculation
         self.impedance_sum = impedance_sum
         self.frequency_step = frequency_step
         self.sum_slopes_from_induc_imp = sum_slopes_from_induc_imp
@@ -145,16 +144,14 @@ class Induced_voltage_from_impedance(object):
         self.mode = mode
         
         if self.mode != 'only_derivative':
-        
-            if self.acceleration == 'off' or self.slices.coord == 'tau':
-                    self.precalc = 'on'
+            
+            self.frequency_fft, self.n_sampling_fft = self.frequency_array(slices)
+            
+            if self.precalc == 'on':
                     
-                    self.frequency_fft, self.n_sampling_fft = self.frequency_array(slices, bunch)
-                    
-                    self.impedance_array = self.sum_impedances(self.frequency_fft, self.impedance_sum)
-            else:
-                self.precalc = 'off' 
-    
+                    self.impedance_array = self.sum_impedances(self.frequency_fft, \
+                                           self.impedance_sum)
+            
     
     def sum_impedances(self, frequency, imped_object_sum):
         
@@ -166,18 +163,11 @@ class Induced_voltage_from_impedance(object):
         return total_impedance
     
     
-    def frequency_array(self, slices, bunch):
+    def frequency_array(self, slices):
         
-        if self.slices.coord == 'tau':
-                    dtau = self.slices.bins_centers[1] - self.slices.bins_centers[0]
-        elif self.slices.coord == 'theta':
-                    dtau = (self.slices.bins_centers[1] - self.slices.bins_centers[0]) \
-                       * bunch.ring_radius / (bunch.beta_r * c)
-        elif self.slices.coord == 'z':
-                    dtau = (self.slices.bins_centers[1] - self.slices.bins_centers[0])\
-                       /(bunch.beta_r * c)
+        dcenters = self.slices.bins_centers[1] - self.slices.bins_centers[0]
         
-        n = int(math.ceil(1 / (self.frequency_step * dtau) ))
+        n = int(math.ceil(1 / (self.frequency_step * dcenters) ))
         
         if n/2 + 1 >= slices.n_slices:
             pass
@@ -188,7 +178,7 @@ class Induced_voltage_from_impedance(object):
         if n%2 == 1:
             n += 1
         
-        rfftfreq = fftfreq(n, dtau)[0:int(n/2+1)]
+        rfftfreq = fftfreq(n, dcenters)[0:int(n/2+1)]
         rfftfreq[-1] = - rfftfreq[-1]
         
         return rfftfreq, n
@@ -199,16 +189,24 @@ class Induced_voltage_from_impedance(object):
         if self.mode != 'only_derivative':
         
             if self.precalc == 'off':
-                self.frequency_fft, self.n_sampling_fft = self.frequency_array(self.slices, bunch)
+                
                 self.impedance_array = self.sum_impedances(self.frequency_fft, self.imped_sum)
              
             self.spectrum = self.slices.beam_spectrum(self.n_sampling_fft)
             
             self.ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
                 * irfft(self.impedance_array * self.spectrum) * self.frequency_fft[1] \
-                * 2*(len(self.frequency_fft)-1)
+                * 2*(len(self.frequency_fft)-1) 
+            
             self.ind_vol = self.ind_vol[0:self.slices.n_slices]
             
+            if self.slices.coord == 'tau':
+                pass
+            elif self.slices.coord == 'theta':
+                self.ind_vol *= (bunch.beta_r * c / bunch.ring_radius) ** 2
+            elif self.slices.coord == 'z':
+                self.ind_vol *= (bunch.beta_r * c) ** 2
+                self.ind_vol = self.ind_vol[::-1]
             if self.mode == 'spectrum + derivative':
                 self.ind_vol += self.ind_vol_derivative(bunch)
                
@@ -220,7 +218,7 @@ class Induced_voltage_from_impedance(object):
         
         
     def ind_vol_derivative(self, bunch):
-         
+        
         ind_vol_deriv = bunch.charge / (2 * np.pi) * bunch.intensity / bunch.n_macroparticles * \
                             self.sum_slopes_from_induc_imp * \
                             self.slices.beam_profile_derivative(self.deriv_mode)[1] / \
@@ -306,10 +304,13 @@ class Longitudinal_table(object):
     
     def imped_calc(self, frequency):
         
-        Re_Z = interp(frequency, self.frequency_array, self.Re_Z_array, 
-                      left=self.Re_Z_array[0], right = self.Re_Z_array[-1])
-        Im_Z = interp(frequency, self.frequency_array, self.Im_Z_array, 
-                      left=self.Im_Z_array[0], right = self.Re_Z_array[-1])
+        self.frequency_array = np.hstack((0, self.frequency_array))
+        self.Re_Z_array = np.hstack((0, self.Re_Z_array))
+        self.Im_Z_array = np.hstack((0, self.Im_Z_array))
+        Re_Z = interp(frequency, self.frequency_array, 
+                      self.Re_Z_array, right = self.Re_Z_array[-1])
+        Im_Z = interp(frequency, self.frequency_array, 
+                      self.Im_Z_array, right = self.Im_Z_array[-1])
         self.impedance = Re_Z + 1j * Im_Z
         
         return self.impedance

@@ -1,7 +1,8 @@
 '''
-Created on 12.06.2014
+**Module to plot different bunch features **
 
-@author: Helga Timko
+:Authors: **Helga Timko**, **Danilo Quartullo**
+
 '''
 
 from __future__ import division
@@ -257,6 +258,41 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices,
     fign = dirname +'/bunch_length_Gaussian.png'
     plt.savefig(fign)
     plt.clf()
+
+
+
+def plot_position_evol(counter, beam, h5file, General_parameters, unit = None, style = '-', dirname = 'fig'): 
+ 
+    # Directory where longitudinal_plots will be stored 
+    fig_folder(dirname) 
+ 
+    # Get position data in metres or nanoseconds 
+    t = range(1, General_parameters.n_turns + 1) 
+     
+    storeddata = h5py.File(h5file + '.h5', 'r') 
+    pos = np.array(storeddata["/Bunch/mean_theta"], dtype = np.double) 
+    if unit == None or unit == 'ns': 
+        pos *= 1.e9 / beam.beta_r / c * General_parameters.ring_radius 
+    elif unit == 'm': 
+        pos *= General_parameters.ring_radius 
+         
+    pos[counter:] = np.nan 
+ 
+    # Plot 
+    plt.figure(1, figsize=(8,6)) 
+    ax = plt.axes([0.12, 0.1, 0.82, 0.8]) 
+    ax.plot(t[0:counter], pos[0:counter], style) 
+    ax.set_xlabel(r"No. turns [T$_0$]") 
+    ax.set_xlim((1,General_parameters.n_turns + 1)) 
+    if unit == None or unit == 'ns': 
+        ax.set_ylabel (r"Position [ns]") 
+    elif unit == 'm': 
+        ax.set_ylabel (r"Position [m]") 
+     
+    # Save plot 
+    fign = 'fig/position_evolution_' "%d" %counter + '.png' 
+    plt.savefig(fign) 
+    plt.clf() 
 
 
 
