@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -13,7 +15,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
+        URL_ROOT:    '',
         VERSION:     'embryo',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -86,7 +88,7 @@ Qs is forced to be constant.</p>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p><em>Definition of an RF station and part of the ring until the next station, 
 see figure.</em></p>
-<a class="reference internal image-reference" href="_images/ring_and_RFstation.png"><img alt="_images/ring_and_RFstation.png" class="align-center" src="_images/ring_and_RFstation.png" style="width: 600px; height: 600px;" /></a>
+<img alt="_images/ring_and_RFstation.png" class="align-center" src="_images/ring_and_RFstation.png" style="width: 600px; height: 600px;" />
 <p><em>The time step is fixed to be one turn, but the tracking can consist of 
 multiple RingAndRFSection objects. In this case, the user should make sure 
 that the lengths of the stations sum up exactly to the circumference or use
@@ -98,7 +100,7 @@ and finally a drift kick between stations.</em></p>
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.acceleration_kick">
 <tt class="descname">acceleration_kick</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.acceleration_kick" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Acceleration kick</em> <img class="math" src="_images/math/d14f0e1f2aef8e7b90bd212bd211d6c2ef7ded8b.png" alt=": \quad - &lt;\beta&gt; \Delta p"/></p>
+<dd><p><em>Acceleration kick</em> <img class="math" src="_images/math/054deb314de61f61ad8deb9d72eb9c635e1ab2fe.png" alt=": \quad - &lt;\beta&gt; \Delta p"/></p>
 </dd></dl>
 
 <dl class="attribute">
@@ -118,7 +120,7 @@ and finally a drift kick between stations.</em></p>
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.beta_ratio">
 <tt class="descname">beta_ratio</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.beta_ratio" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Beta ratio</em>  <img class="math" src="_images/math/6be4ab4f1448684bfdee571a1a4de8926da5b471.png" alt=": \quad \frac{\beta_{n+1}}{\beta_{n}}"/></p>
+<dd><p><em>Beta ratio</em>  <img class="math" src="_images/math/54cfe2890cfb174c99e13f012fd5e8c496ba4f09.png" alt=": \quad \frac{\beta_{n+1}}{\beta_{n}}"/></p>
 </dd></dl>
 
 <dl class="attribute">
@@ -139,16 +141,16 @@ the slippage factor may be of higher orders; and simple, where beta
 is approximatively one and the slippage factor is of order 0. Corresponding
 to the equations:</em></p>
 <div class="math">
-<p><img src="_images/math/d9fc059e2a96275ab2652bf9819535d9dfc71a87.png" alt="\theta_{n+1} = \frac{\beta_{n+1}}{\beta_n}\theta_n + 2\pi\left(\frac{1}{1 - \eta\delta_n} - 1\right)\frac{L}{C} \quad \text{(full)}"/></p>
+<p><img src="_images/math/af801d05e771f201285be4e64b83668aa190bae6.png" alt="\theta_{n+1} = \frac{\beta_{n+1}}{\beta_n}\theta_n + 2\pi\left(\frac{1}{1 - \eta\delta_n} - 1\right)\frac{L}{C} \quad \text{(full)}"/></p>
 </div><div class="math">
-<p><img src="_images/math/c9c6393edb765908c21c11dacb63b58968d5f594.png" alt="\approx&gt; \theta_{n+1} = \theta_n + 2\pi\eta_0\delta_n\frac{L}{C} \quad \text{(simple)}"/></p>
+<p><img src="_images/math/527183dfa330ce745b561a860ea6602021a5e82b.png" alt="\approx&gt; \theta_{n+1} = \theta_n + 2\pi\eta_0\delta_n\frac{L}{C} \quad \text{(simple)}"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.harmonic">
 <tt class="descname">harmonic</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.harmonic" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
-<div class="line"><em>Harmonic number list</em> <img class="math" src="_images/math/c9506daaecc3817ed13d53783d60ff6791db7467.png" alt=": \quad h_{j,n}"/></div>
+<div class="line"><em>Harmonic number list</em> <img class="math" src="_images/math/25e5d948404472ca9570cd1cc66117d880adf3c7.png" alt=": \quad h_{j,n}"/></div>
 </div>
 </dd></dl>
 
@@ -160,7 +162,7 @@ of the ring. The kicks are summed over the different harmonic RF systems
 in the station. The cavity phase can be shifted by the user via phi_offset.
 The increment in energy is given by the discrete equation of motion:</em></p>
 <div class="math">
-<p><img src="_images/math/e8758b5ab6b768bcd90ac618eb65c9d2c84956ff.png" alt="\Delta E_{n+1} = \Delta E_n + \sum_{j=0}^{n_{RF}}{V_{j,n}\,\sin{\left(h_{j,n}\,\theta + \phi_{j,n}\right)}}"/></p>
+<p><img src="_images/math/0a60c58fecc87f4035e6a3186d8cea410db1af8c.png" alt="\Delta E_{n+1} = \Delta E_n + \sum_{j=0}^{n_{RF}}{V_{j,n}\,\sin{\left(h_{j,n}\,\theta + \phi_{j,n}\right)}}"/></p>
 </div></dd></dl>
 
 <dl class="method">
@@ -174,7 +176,7 @@ RF station, so the average beta is used in the calculation of the kick.
 An extra increment in the equation of motion with respect to the Kick
 object is given by:</em></p>
 <div class="math">
-<p><img src="_images/math/42a7e666cc9999a913aa327d6aeca151a63074f3.png" alt="\Delta E_{n+1} = \Delta E_n + \beta_{av} \Delta p_{n\rightarrow n+1}"/></p>
+<p><img src="_images/math/87dfa386167dbed575e96d9013fea5a3d1edff8a.png" alt="\Delta E_{n+1} = \Delta E_n + \beta_{av} \Delta p_{n\rightarrow n+1}"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
@@ -183,7 +185,7 @@ object is given by:</em></p>
 <dd><div class="line-block">
 <div class="line"><em>Import RF section parameters for RF kick</em></div>
 <div class="line"><em>Length ratio between drift and ring circumference</em></div>
-<div class="line"><img class="math" src="_images/math/9cb5f68bdf652f6c98c1eb4d68b9543f96070eed.png" alt=": \quad \frac{L}{C}"/></div>
+<div class="line"><img class="math" src="_images/math/2c7b130203bfbe568b8412d92ccae33f92f22bfc.png" alt=": \quad \frac{L}{C}"/></div>
 </div>
 </dd></dl>
 
@@ -192,7 +194,7 @@ object is given by:</em></p>
 <tt class="descname">momentum</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.momentum" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
 <div class="line"><em>Import RF section parameters for accelerating kick</em></div>
-<div class="line"><em>Momentum (program) in [eV/c]</em> <img class="math" src="_images/math/1f277b736b89c035a6281257482c62fae9b39379.png" alt=": \quad p_n"/></div>
+<div class="line"><em>Momentum (program) in [eV/c]</em> <img class="math" src="_images/math/361fd32ae6699bbe97221e1cfecf8a23d1d4dfe9.png" alt=": \quad p_n"/></div>
 </div>
 </dd></dl>
 
@@ -200,7 +202,7 @@ object is given by:</em></p>
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.n_rf">
 <tt class="descname">n_rf</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.n_rf" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
-<div class="line"><em>Number of RF systems in the RF station</em> <img class="math" src="_images/math/853d257587d5899ca63c3e58693f8072803e4374.png" alt=": \quad n_{RF}"/></div>
+<div class="line"><em>Number of RF systems in the RF station</em> <img class="math" src="_images/math/bc61b3d408bd3809fe76c340c5170bbc30fe967e.png" alt=": \quad n_{RF}"/></div>
 </div>
 </dd></dl>
 
@@ -208,7 +210,7 @@ object is given by:</em></p>
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.phi_offset">
 <tt class="descname">phi_offset</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.phi_offset" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
-<div class="line"><em>Phase offset list in [rad]</em> <img class="math" src="_images/math/b3deeeab5ec1d645037170dcb989a120e95c4095.png" alt=": \quad \phi_{j,n}"/></div>
+<div class="line"><em>Phase offset list in [rad]</em> <img class="math" src="_images/math/e13ad736f8769505eca84d3c9bc1cbd677394c4a.png" alt=": \quad \phi_{j,n}"/></div>
 </div>
 </dd></dl>
 
@@ -231,7 +233,7 @@ object is given by:</em></p>
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.voltage">
 <tt class="descname">voltage</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.voltage" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
-<div class="line"><em>Voltage program list in [V]</em> <img class="math" src="_images/math/d2add272866c10eb85e9e9b1f6613876a538629a.png" alt=": \quad V_{j,n}"/></div>
+<div class="line"><em>Voltage program list in [V]</em> <img class="math" src="_images/math/68d6de66610585864a30f3b99b7b82cb01a8ca19.png" alt=": \quad V_{j,n}"/></div>
 </div>
 </dd></dl>
 
@@ -350,7 +352,7 @@ To be generalized.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2014, CERN.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

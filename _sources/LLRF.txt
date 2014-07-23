@@ -13,6 +13,15 @@ LLRF.RF_noise module
     :show-inheritance:
 
 
+LLRF.plot_llrf module
+--------------------
+
+.. automodule:: LLRF.plot_llrf
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 Module contents
 ---------------
 

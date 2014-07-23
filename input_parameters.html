@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -13,7 +15,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
+        URL_ROOT:    '',
         VERSION:     'embryo',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -25,7 +27,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="PyHEADTAIL embryo documentation" href="index.html" />
     <link rel="up" title="&lt;no title&gt;" href="modules.html" />
-    <link rel="next" title="longitudinal_plots package" href="longitudinal_plots.html" />
+    <link rel="next" title="monitors package" href="monitors.html" />
     <link rel="prev" title="impedances package" href="impedances.html" /> 
   </head>
   <body>
@@ -39,7 +41,7 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="longitudinal_plots.html" title="longitudinal_plots package"
+          <a href="monitors.html" title="monitors package"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="impedances.html" title="impedances package"
@@ -78,47 +80,47 @@
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.alpha">
 <tt class="descname">alpha</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.alpha" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Momentum compation factor (up to 2nd order) for each RF section</em> <img class="math" src="_images/math/0de55683978b71240b3d39e68d5cdd3e01a735a6.png" alt=": \quad \alpha_i"/></p>
+<dd><p><em>Momentum compation factor (up to 2nd order) for each RF section</em> <img class="math" src="_images/math/33ca2923a9500672316b79997bbdb8efe8a92f90.png" alt=": \quad \alpha_i"/></p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.beta_r">
 <tt class="descname">beta_r</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.beta_r" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Relativistic beta (program)</em> <img class="math" src="_images/math/0ffb98ed69724b13b974424d0295bc28fca69ea4.png" alt=": \quad \beta_n"/></p>
+<dd><p><em>Relativistic beta (program)</em> <img class="math" src="_images/math/d42be4c55e75b9d264926528aab289c8b0605c58.png" alt=": \quad \beta_n"/></p>
 <div class="math">
-<p><img src="_images/math/5f778bf8c736e8cd5678584d3b18087d852d282e.png" alt="\beta = \sqrt{ 1 + \frac{1}{1 + \left(\frac{mc^2}{ep}\right)^2} }"/></p>
+<p><img src="_images/math/9130415a0a849a49744c28b3d5a33ffc7dfb9786.png" alt="\beta = \sqrt{ 1 + \frac{1}{1 + \left(\frac{mc^2}{ep}\right)^2} }"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.energy">
 <tt class="descname">energy</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.energy" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Energy (program) in [eV]</em> <img class="math" src="_images/math/8cf084964554df084c68f855b802a9a8cd09cea4.png" alt=": \quad E_n"/></p>
+<dd><p><em>Energy (program) in [eV]</em> <img class="math" src="_images/math/3903246f7b2bb8b641d574a719b9f5f8f1242d4b.png" alt=": \quad E_n"/></p>
 <div class="math">
-<p><img src="_images/math/34501ab0e3f2117d09d97e1fa544cffb1ffd8d4a.png" alt="\\E = \sqrt{ p^2 + \left(\frac{mc^2}{e}\right)^2 }"/></p>
+<p><img src="_images/math/4dca51f170b10d5870394d15453a0c63553527d3.png" alt="\\E = \sqrt{ p^2 + \left(\frac{mc^2}{e}\right)^2 }"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.eta0">
 <tt class="descname">eta0</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.eta0" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Slippage factor (order 0)</em> <img class="math" src="_images/math/5d159246743dc03474d543f51a8c37c5f414abe3.png" alt=": \quad \eta_{0,n}"/></p>
+<dd><p><em>Slippage factor (order 0)</em> <img class="math" src="_images/math/c837062fdedae9b0ae1c714ea25bd1278ef87130.png" alt=": \quad \eta_{0,n}"/></p>
 <div class="math">
-<p><img src="_images/math/437bb1b0df6ef6e2ac86664c0671add85570a2e1.png" alt="\eta_0 = \alpha_0 - \frac{1}{\gamma^2}"/></p>
+<p><img src="_images/math/5a14579b2ab0885c814f160828ffef405334abd9.png" alt="\eta_0 = \alpha_0 - \frac{1}{\gamma^2}"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.eta1">
 <tt class="descname">eta1</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.eta1" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Slippage factor (order 1)</em> <img class="math" src="_images/math/8c9cfc47f08b115a29119e9cb829df4c24ed9156.png" alt=": \quad \eta_{1,n}"/></p>
+<dd><p><em>Slippage factor (order 1)</em> <img class="math" src="_images/math/7e58d5af05e90db0ba1dce5ef04724b0051e1c75.png" alt=": \quad \eta_{1,n}"/></p>
 <div class="math">
-<p><img src="_images/math/7ebdae54fc9455c4c3e10ad3f9f41cce32525dd3.png" alt="\eta_1 = \frac{3\beta^2}{2\gamma^2} + \alpha_1 - \alpha_0\eta_0"/></p>
+<p><img src="_images/math/7d78e0b041ff8a0155499bc3591fa319e550497d.png" alt="\eta_1 = \frac{3\beta^2}{2\gamma^2} + \alpha_1 - \alpha_0\eta_0"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.eta2">
 <tt class="descname">eta2</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.eta2" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Slippage factor (order 2)</em> <img class="math" src="_images/math/ebad5e5b4054a7759460d977be64ab477b2b60ae.png" alt=": \quad \eta_{2,n}"/></p>
+<dd><p><em>Slippage factor (order 2)</em> <img class="math" src="_images/math/31d1b7cc23324a474bf55e7a56d6256a2ef01584.png" alt=": \quad \eta_{2,n}"/></p>
 <div class="math">
-<p><img src="_images/math/6889512aafaba13ada8c94c10747e2bf765668b4.png" alt="\eta_2 = -\frac{\beta^2\left(5\beta^2-1\right)}{2\gamma^2} + \alpha_2 - 2\alpha_0\alpha_1 + \frac{\alpha_1}{\gamma^2} + \alpha_0^2\eta_0 - \frac{3\beta^2\alpha_0}{2\gamma^2}"/></p>
+<p><img src="_images/math/c312a1ef1adf297afa8889f5d49b8c3322f911b9.png" alt="\eta_2 = -\frac{\beta^2\left(5\beta^2-1\right)}{2\gamma^2} + \alpha_2 - 2\alpha_0\alpha_1 + \frac{\alpha_1}{\gamma^2} + \alpha_0^2\eta_0 - \frac{3\beta^2\alpha_0}{2\gamma^2}"/></p>
 </div></dd></dl>
 
 <dl class="method">
@@ -133,16 +135,16 @@
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.gamma_r">
 <tt class="descname">gamma_r</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.gamma_r" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Relativistic gamma (program)</em> <img class="math" src="_images/math/9778a75885a386c3df2c4f8593dd430810c84267.png" alt=": \quad \gamma_n"/></p>
+<dd><p><em>Relativistic gamma (program)</em> <img class="math" src="_images/math/efe53ff7da34a7bbc6cd038a16ebffe9b9f5d149.png" alt=": \quad \gamma_n"/></p>
 <div class="math">
-<p><img src="_images/math/87a437203a717b437b23eb323a43d327672e2bb9.png" alt="\gamma = \sqrt{ 1 + \left(\frac{ep}{mc^2}\right)^2 }"/></p>
+<p><img src="_images/math/f95ac8d1b40876b0c3475a2ce6720afa1de6bb0e.png" alt="\gamma = \sqrt{ 1 + \left(\frac{ep}{mc^2}\right)^2 }"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.momentum">
 <tt class="descname">momentum</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.momentum" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
-<div class="line"><em>Momentum (program) in [eV/c] for each RF section</em> <img class="math" src="_images/math/1f277b736b89c035a6281257482c62fae9b39379.png" alt=": \quad p_n"/></div>
+<div class="line"><em>Momentum (program) in [eV/c] for each RF section</em> <img class="math" src="_images/math/361fd32ae6699bbe97221e1cfecf8a23d1d4dfe9.png" alt=": \quad p_n"/></div>
 <div class="line"><em>Can be given as a single value to be assumed constant, or as a program of (n_turns + 1) terms in case of acceleration.</em></div>
 </div>
 </dd></dl>
@@ -168,8 +170,8 @@
 <dd><div class="line-block">
 <div class="line"><em>Particle type</em></div>
 <div class="line"><em>Recognized types: &#8216;proton&#8217; and &#8216;user_input&#8217; to input mass and charge manually.</em></div>
-<div class="line"><em>Particle mass in [kg]</em> <img class="math" src="_images/math/14713f14db19f5cfe210e39a77487bd0fccf6067.png" alt=": \quad m"/> *</div>
-<div class="line"><em>Particle charge in [C]</em> <img class="math" src="_images/math/5b3e5eac5f4645e8343d437315ba16f9e2e6c1a2.png" alt=": \quad q"/> *</div>
+<div class="line"><em>Particle mass in [kg]</em> <img class="math" src="_images/math/fd8b8614b16737cb1c163dabf0488dd098352dd6.png" alt=": \quad m"/> *</div>
+<div class="line"><em>Particle charge in [C]</em> <img class="math" src="_images/math/d73f748e5292e3084aebb9a06d37ef9c131911fe.png" alt=": \quad q"/> *</div>
 <div class="line"><em>Second particle type: optional; does not affect the momentum, energy, beta, and gamma.</em></div>
 </div>
 </dd></dl>
@@ -178,7 +180,7 @@
 <dt id="input_parameters.general_parameters.GeneralParameters.ring_circumference">
 <tt class="descname">ring_circumference</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.ring_circumference" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
-<div class="line"><em>Ring circumference is the sum of lengths</em> <img class="math" src="_images/math/28b28659028749d9703ca77b4cf2226826756489.png" alt=": \quad C = \sum_k L_k"/></div>
+<div class="line"><em>Ring circumference is the sum of lengths</em> <img class="math" src="_images/math/4e4131587509663235cd0cc19b98312c806f6dda.png" alt=": \quad C = \sum_k L_k"/></div>
 </div>
 </dd></dl>
 
@@ -193,7 +195,7 @@
 <dl class="attribute">
 <dt id="input_parameters.general_parameters.GeneralParameters.ring_radius">
 <tt class="descname">ring_radius</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.general_parameters.GeneralParameters.ring_radius" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Ring radius in [m]</em> <img class="math" src="_images/math/df7f254ce45e22a091e178eb2756c591e647705a.png" alt=": \quad R"/></p>
+<dd><p><em>Ring radius in [m]</em> <img class="math" src="_images/math/532b75684e9accafaa47eab67086d5b6f311415f.png" alt=": \quad R"/></p>
 </dd></dl>
 
 </dd></dl>
@@ -250,14 +252,14 @@ for one full ring.</em></p>
 <dd><p><em>The slippage factor is calculated as a function of the relative momentum
 (delta) of the beam. By definition, the slippage factor is:</em></p>
 <div class="math">
-<p><img src="_images/math/9c42f5027e3134f8bdd223d50d3a6331cc8412d2.png" alt="\eta = \sum_{i}(\eta_i \, \delta^i)"/></p>
+<p><img src="_images/math/3e57ebe9887e2e77bd76638452aca10d55775c32.png" alt="\eta = \sum_{i}(\eta_i \, \delta^i)"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
 <dt id="input_parameters.rf_parameters.RFSectionParameters.momentum">
 <tt class="descname">momentum</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.rf_parameters.RFSectionParameters.momentum" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
-<div class="line"><em>Momentum program in [eV/c]</em> <img class="math" src="_images/math/363e3cecc91b2aef1a3f76081919b0e8620f6133.png" alt=": \quad p_{j,n}"/></div>
+<div class="line"><em>Momentum program in [eV/c]</em> <img class="math" src="_images/math/4e585f588b427a96d1d30dbd24da9d1ef8702207.png" alt=": \quad p_{j,n}"/></div>
 </div>
 </dd></dl>
 
@@ -265,8 +267,8 @@ for one full ring.</em></p>
 <dt id="input_parameters.rf_parameters.RFSectionParameters.n_rf">
 <tt class="descname">n_rf</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.rf_parameters.RFSectionParameters.n_rf" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
-<div class="line"><em>Number of RF systems in the section</em> <img class="math" src="_images/math/853d257587d5899ca63c3e58693f8072803e4374.png" alt=": \quad n_{RF}"/></div>
-<div class="line"><em>Counter for RF is:</em> <img class="math" src="_images/math/d32c78b759903e3f4bd4fd2ce0b86358f7500c5d.png" alt="j"/></div>
+<div class="line"><em>Number of RF systems in the section</em> <img class="math" src="_images/math/bc61b3d408bd3809fe76c340c5170bbc30fe967e.png" alt=": \quad n_{RF}"/></div>
+<div class="line"><em>Counter for RF is:</em> <img class="math" src="_images/math/8122aa89ea6e80784c6513d22787ad86e36ad0cc.png" alt="j"/></div>
 </div>
 </dd></dl>
 
@@ -275,7 +277,7 @@ for one full ring.</em></p>
 <tt class="descname">n_turns</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.rf_parameters.RFSectionParameters.n_turns" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
 <div class="line"><em>Number of turns for the simulation</em></div>
-<div class="line"><em>Counter for turns is:</em> <img class="math" src="_images/math/413f8a8e40062a9090d9d50b88bc7b551b314c26.png" alt="n"/></div>
+<div class="line"><em>Counter for turns is:</em> <img class="math" src="_images/math/174fadd07fd54c9afe288e96558c92e0c1da733a.png" alt="n"/></div>
 </div>
 </dd></dl>
 
@@ -283,7 +285,7 @@ for one full ring.</em></p>
 <dt id="input_parameters.rf_parameters.RFSectionParameters.p_increment">
 <tt class="descname">p_increment</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.rf_parameters.RFSectionParameters.p_increment" title="Permalink to this definition">¶</a></dt>
 <dd><p><em>Momentum increment (acceleration/deceleration) between two turns,
-for one section in [eV/c]</em> <img class="math" src="_images/math/9753f23dad1ff20e765eae6f44b98d1b173995c4.png" alt=": \quad \Delta p_{n\rightarrow n+1}"/></p>
+for one section in [eV/c]</em> <img class="math" src="_images/math/07f479d220461a409a829a1b96e615db5401220c.png" alt=": \quad \Delta p_{n\rightarrow n+1}"/></p>
 </dd></dl>
 
 <dl class="attribute">
@@ -296,7 +298,7 @@ transition and the momentum program.</em></p>
 <dl class="attribute">
 <dt id="input_parameters.rf_parameters.RFSectionParameters.section_length">
 <tt class="descname">section_length</tt><em class="property"> = None</em><a class="headerlink" href="#input_parameters.rf_parameters.RFSectionParameters.section_length" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Length of the section in [m]</em> <img class="math" src="_images/math/ea6a558509a8e3efae86782c247a6d0bc51d8b6e.png" alt=": \quad L_i"/></p>
+<dd><p><em>Length of the section in [m]</em> <img class="math" src="_images/math/6102da17a17a98a35b756cd55e0bd8b80af1195c.png" alt=": \quad L_i"/></p>
 </dd></dl>
 
 <dl class="attribute">
@@ -357,8 +359,8 @@ Uses beta, energy averaged over the turn.</p>
   <p class="topless"><a href="impedances.html"
                         title="previous chapter">impedances package</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="longitudinal_plots.html"
-                        title="next chapter">longitudinal_plots package</a></p>
+  <p class="topless"><a href="monitors.html"
+                        title="next chapter">monitors package</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/input_parameters.txt"
@@ -391,7 +393,7 @@ Uses beta, energy averaged over the turn.</p>
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="longitudinal_plots.html" title="longitudinal_plots package"
+          <a href="monitors.html" title="monitors package"
              >next</a> |</li>
         <li class="right" >
           <a href="impedances.html" title="impedances package"
@@ -402,7 +404,7 @@ Uses beta, energy averaged over the turn.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2014, CERN.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

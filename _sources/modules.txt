@@ -9,6 +9,5 @@
    cython_functions
    impedances
    input_parameters
-   longitudinal_plots
    monitors
    trackers
