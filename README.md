@@ -1,3 +1,14 @@
+Implementation in this branch
+=============================
+
+- Major:
+  - None
+- Normal:
+  - None
+- Minor:
+  - Updated .gitignore
+
+
 PYHEADTAIL LONGITUDINAL v1.0
 ==========
 
