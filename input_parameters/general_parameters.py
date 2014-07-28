@@ -112,11 +112,11 @@ class GeneralParameters(object):
         self.energy = np.sqrt(self.momentum**2 + 
                               (self.mass * c**2 / self.charge)**2)
         
-        #: *Revolution period* 
+        #: *Revolution period* :math:`: \quad T_0 = \frac{C}{\beta c}`
         self.t_rev = self.ring_circumference / \
                      np.dot(self.ring_length/self.ring_circumference, self.beta_r) / c 
         
-        #: *Revolution frequency* 
+        #: *Revolution frequency* :math:`: \quad f_0 = \frac{1}{T_0}`
         self.f_rev = 1 / self.t_rev 
         
         #: *Slippage factor (order 0)* :math:`: \quad \eta_{0,n}`
@@ -150,8 +150,8 @@ class GeneralParameters(object):
                 
     def eta_generation(self):
         '''
-        |*Pre-processing of the slippage factor parameters with respect to the input momentum compaction factor (up to 2nd order) and the momentum program.*
-        |*For eta coefficients, see Lee: Accelerator Physics (Wiley).*
+        | *Pre-processing of the slippage factor parameters with respect to the input momentum compaction factor (up to 2nd order) and the momentum program.*
+        | *For eta coefficients, see Lee: Accelerator Physics (Wiley).*
         '''
         
         for i in xrange(len(self.alpha[0])):

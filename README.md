@@ -6,7 +6,7 @@ Implementation in this branch
 - Normal:
   - PEP8 changes:
     - Changing LLRF module name to llrf
-    - Changing GeneralParameters.T0 to t_rev
+    - Changing GeneralParameters.T0 to t_rev + correcting the calculation method
 - Minor:
   - Updated .gitignore
   - Documentation
