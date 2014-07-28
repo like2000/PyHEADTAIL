@@ -1,22 +1,22 @@
-LLRF package
+llrf package
 ============
 
 Submodules
 ----------
 
-LLRF.RF_noise module
+llrf.RF_noise module
 --------------------
 
-.. automodule:: LLRF.RF_noise
+.. automodule:: llrf.RF_noise
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-LLRF.plot_llrf module
---------------------
+llrf.plot_llrf module
+---------------------
 
-.. automodule:: LLRF.plot_llrf
+.. automodule:: llrf.plot_llrf
     :members:
     :undoc-members:
     :show-inheritance:
@@ -25,7 +25,7 @@ LLRF.plot_llrf module
 Module contents
 ---------------
 
-.. automodule:: LLRF
+.. automodule:: llrf
     :members:
     :undoc-members:
     :show-inheritance:

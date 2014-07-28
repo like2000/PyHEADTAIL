@@ -6,8 +6,11 @@ Implementation in this branch
 - Normal:
   - PEP8 changes:
     - Changing LLRF module name to llrf
+    - Changing GeneralParameters.T0 to t_rev
 - Minor:
   - Updated .gitignore
+  - Documentation
+  	- Small corrections in input_paramters.general_parameters
 
 
 PYHEADTAIL LONGITUDINAL v1.0

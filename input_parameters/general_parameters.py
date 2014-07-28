@@ -2,7 +2,6 @@
 **Module gathering all the general input parameters used for the simulation**
 
 :Authors: **Alexandre Lasheen**, **Danilo Quartullo**
-
 '''
 
 from __future__ import division
@@ -13,7 +12,7 @@ import warnings
 
 class GeneralParameters(object):
     '''
-    *Object containing all the general input parameters used for the simulation*
+    *Object containing all the general input parameters used for the simulation.*
     '''
 
     def __init__(self, n_turns, ring_length, alpha, momentum, 
@@ -27,10 +26,12 @@ class GeneralParameters(object):
         
         #: | *Particle type*
         #: | *Recognized types: 'proton' and 'user_input' to input mass and charge manually.*
-        #: | *Particle mass in [kg]* :math:`: \quad m` *
-        #: | *Particle charge in [C]* :math:`: \quad q` *
-        #: | *Second particle type: optional; does not affect the momentum, energy, beta, and gamma.*
+        #: | *Particle mass in [kg]* :math:`: \quad m`
+        #: | *Particle charge in [C]* :math:`: \quad q`
         self.particle_type = particle_type
+        
+        #: *Second particle type: optional; does not affect the momentum, 
+        #: energy, beta, and gamma.*
         self.particle_type_2 = particle_type_2
         
         # Attribution of mass and charge with respect to particle_type
@@ -67,26 +68,28 @@ class GeneralParameters(object):
         #: | *Can be given as a single value to be assumed constant, or as a program of (n_turns + 1) terms in case of acceleration.*
         self.momentum = np.array(momentum, ndmin =2)
 
-        #: *Momentum compation factor (up to 2nd order) for each RF section* :math:`: \quad \alpha_i`
+        #: | *Momentum compaction factor (up to 2nd order) for each RF section* :math:`: \quad \alpha_i`
+        #: | *Should be given as a list for multi-station (each element of the list can contain up to 2nd order)*
         self.alpha = np.array(alpha, ndmin =2) 
 
-        #: | *Ring length array contains the length of the RF sections, in [m]*
-        
+        #: | *Ring length contains the length of the RF sections, in [m]*
+        #: | *Should be given as a list for multi-station*
         self.ring_length = ring_length
         if isinstance(self.ring_length, float):
             self.ring_length = [self.ring_length]
         
-        #: | *Ring circumference is the sum of lengths* :math:`: \quad C = \sum_k L_k`
+        #: | *Ring circumference is the sum of section lengths* :math:`: \quad C = \sum_k L_k`
         self.ring_circumference = np.sum(self.ring_length)
         
         #: *Ring radius in [m]* :math:`: \quad R`
         self.ring_radius = self.ring_circumference / (2 * np.pi)         
         
-        #: *Check consistency of input data; raise error if not consistent*        
+        # Check consistency of input data; raise error if not consistent        
         if self.n_sections != len(self.ring_length) or \
-            self.n_sections != self.alpha.shape[0] or \
-            self.n_sections != self.momentum.shape[0]:
-            raise RuntimeError('ERROR: Number of sections, ring length, alpha, and/or momentum data do not match!')    
+           self.n_sections != self.alpha.shape[0] or \
+           self.n_sections != self.momentum.shape[0]:
+            raise RuntimeError('ERROR: Number of sections, ring length, alpha, \
+                               and/or momentum data do not match!')    
         
         if self.momentum.size == 1:
             self.momentum = self.momentum * np.ones(self.n_turns + 1)
@@ -109,14 +112,12 @@ class GeneralParameters(object):
         self.energy = np.sqrt(self.momentum**2 + 
                               (self.mass * c**2 / self.charge)**2)
         
-        # Revolution period 
-        self.T0 = self.ring_circumference / \
-                  np.dot(ring_length/self.ring_circumference, self.beta_r) / c 
+        #: *Revolution period* 
+        self.t_rev = self.ring_circumference / \
+                     np.dot(self.ring_length/self.ring_circumference, self.beta_r) / c 
         
-  
-        
-        # Revolution frequency 
-        self.f_rev = 1 / self.T0 
+        #: *Revolution frequency* 
+        self.f_rev = 1 / self.t_rev 
         
         #: *Slippage factor (order 0)* :math:`: \quad \eta_{0,n}`
         #:
@@ -136,19 +137,21 @@ class GeneralParameters(object):
         # Warning that higher orders for alpha will not be used
         if len(self.alpha[0]) > 3:
             warnings.filterwarnings("once")
-            warnings.warn("WARNING: Momentum compaction factor is implemented only up to 2nd order")        
+            warnings.warn("WARNING: Momentum compaction factor is implemented \
+                          only up to 2nd order")        
         
         if not self.momentum.shape[1] == self.n_turns + 1:
-            raise RuntimeError('The input momentum program does not \
-                                match the proper length (n_turns+1)')        
+            raise RuntimeError('The input momentum program does not match the \
+                               proper length (n_turns+1)')   
+                 
         # Processing the slippage factor
         self.eta_generation()
                 
                 
     def eta_generation(self):
         '''
-        | *Pre-processing of the slippage factor parameters with respect to the input momentum compaction factor (up to 2nd order) and the momentum program.*
-        | *For eta coefficients, see Lee: Accelerator Physics (Wiley).*
+        |*Pre-processing of the slippage factor parameters with respect to the input momentum compaction factor (up to 2nd order) and the momentum program.*
+        |*For eta coefficients, see Lee: Accelerator Physics (Wiley).*
         '''
         
         for i in xrange(len(self.alpha[0])):
@@ -176,8 +179,8 @@ class GeneralParameters(object):
         self.eta1 = np.empty([self.n_sections, self.n_turns+1])        
         for i in range(0, self.n_sections):
             self.eta1[i] = 3 * self.beta_r[i]**2 / (2 * self.gamma_r[i]**2) + \
-                    self.alpha[i,1] - \
-                    self.alpha[i,0] * self.eta0[i]
+                           self.alpha[i,1] - \
+                           self.alpha[i,0] * self.eta0[i]
         
     
     
@@ -190,10 +193,10 @@ class GeneralParameters(object):
         self.eta2 = np.empty([self.n_sections, self.n_turns+1])        
         for i in range(0, self.n_sections):
             self.eta2[i] = - self.beta_r[i]**2 * (5 * self.beta_r[i]**2 - 1) / (2 * self.gamma_r[i]**2) + \
-                    self.alpha[i,2] - 2 * self.alpha[i,0] * self.alpha[i,1] + \
-                    self.alpha[i,1] / self.gamma_r[i]**2 + \
-                    self.alpha[i,0]**2 * self.eta0[i] - \
-                    3 * self.beta_r[i]**2 * self.alpha[i,0] / (2 * self.gamma_r[i]**2)
+                           self.alpha[i,2] - 2 * self.alpha[i,0] * self.alpha[i,1] + \
+                           self.alpha[i,1] / self.gamma_r[i]**2 + \
+                           self.alpha[i,0]**2 * self.eta0[i] - \
+                           3 * self.beta_r[i]**2 * self.alpha[i,0] / (2 * self.gamma_r[i]**2)
          
     
     
