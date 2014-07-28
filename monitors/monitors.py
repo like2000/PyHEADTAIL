@@ -1,44 +1,41 @@
 '''
-@author: Kevin Li, Michael Schenk
-@date: 11.02.2014
+**Module to save beam statistics in h5 file**
+
+:Authors: **Kevin Li**, **Michael Schenk**, **Danilo Quartullo**
 '''
 
 import h5py as hp
 import numpy as np
-
-
-from abc import ABCMeta, abstractmethod
+import abc
 
 
 class Monitor(object):
-
-    @abstractmethod
+    
+    __metaclass__ = abc.ABCMeta
+    
+    @abc.abstractmethod
     def dump(self, bunch):
         pass
 
 
 class BunchMonitor(Monitor):
 
-    def __init__(self, filename, n_steps, dictionary = None, statistics = "All", long_gaussian_fit = "Off"):
+    def __init__(self, filename, n_steps, statistics = "All", long_gaussian_fit = "Off"):
+        
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
         self.i_steps = 0
         self.statistics = statistics
         self.long_gaussian_fit = long_gaussian_fit 
-
-        if dictionary:
-            for key in dictionary:
-                self.h5file.attrs[key] = dictionary[key]
-
         self.h5file.create_group('Bunch')
 
-    def dump(self, bunch):
+    def dump(self, bunch, slices = None):
         
         if self.statistics == "All":
-            bunch.longit_statistics(self.long_gaussian_fit)
+            bunch.longit_statistics(self.long_gaussian_fit, slices)
             bunch.transv_statistics()
         elif self.statistics == "Longitudinal":
-            bunch.longit_statistics(self.long_gaussian_fit)
+            bunch.longit_statistics(self.long_gaussian_fit, slices)
         else:
             bunch.transv_statistics()
         
@@ -55,7 +52,7 @@ class BunchMonitor(Monitor):
         
         h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
         
-        if self.statistics != "Longitudinal": 
+        if self.statistics == "All" or self.statistics == "Transverse": 
             # Transverse statistics
             h5group.create_dataset("mean_x",   dims, compression="gzip", compression_opts=9)
             h5group.create_dataset("mean_xp",  dims, compression="gzip", compression_opts=9)
