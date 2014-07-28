@@ -4,7 +4,8 @@ Implementation in this branch
 - Major:
   - None
 - Normal:
-  - None
+  - PEP8 changes:
+    - Changing LLRF module name to llrf
 - Minor:
   - Updated .gitignore
 
