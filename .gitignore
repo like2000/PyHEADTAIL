@@ -1,5 +1,6 @@
 # Compiled files #
 ##################
+build/
 *.pyc
 
 # Cython files #
@@ -7,3 +8,8 @@
 stats.pyd
 stats.c
 stats.html
+
+# Eclise PyDev files #
+################
+.project
+.pydevproject
