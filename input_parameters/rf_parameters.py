@@ -49,9 +49,8 @@ class RFSectionParameters(object):
     def __init__(self, GeneralParameters, n_rf, 
                  harmonic, voltage, phi_offset, section_index = 1):
         
-        #: | *Counter to keep track of time step (used in momentum and voltage)*
-        #: | *It is defined as a list in order to be passed by reference to other modules.*
-        self.counter = [0]
+        #: *Reference to the counter from GeneralParameters*
+        self.counter = GeneralParameters.counter
         
         #: | *Index of the RF section -- has to be unique*
         #: | *Counter for RF section is:* :math:`k`

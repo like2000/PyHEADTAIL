@@ -31,7 +31,7 @@ class RingAndRFSection(object):
         
     def __init__(self, RFSectionParameters):
         
-        #: *Counter to keep track of time step (used in momentum and voltage)*
+        #: *Reference to the counter from GeneralParameters*
         self.counter = RFSectionParameters.counter
         
         ### Import RF section parameters for RF kick
@@ -178,11 +178,10 @@ class RingAndRFSection(object):
         |
         | *Updates the relativistic information of the beam.*
         '''
+        
         self.kick(beam)
         self.kick_acceleration(beam)
         self.drift(beam)
-
-        self.counter[0] += 1
 
         # Updating the beam synchronous momentum etc.
         beam.beta_r = self.beta_r[self.counter[0]]

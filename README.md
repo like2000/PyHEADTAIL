@@ -14,6 +14,7 @@ Implementation in this branch
   	- Moved eta_tracking from rf_parameters to longitudinal_tracker (transparent)
   	- Changed documentation in order to refer to the RFSectionParameters documentation (transparent)
   	- Added a method that chooses the solver to be 'simple' or 'full' wrt the input order
+  - Moved the counter back to general parameters and passed by reference
   
 - Minor (can be implemented in a transparent way):
   - Updated .gitignore
@@ -24,9 +25,7 @@ Implementation in this branch
   - Changed general_parameters to GeneralParameters as an input for RFSectionParameters
   - Changed rf_params to RFSectionParameters as an input for RingAndRFSection
   - Secured the cases where the user input momentum compaction with higher orders than 2
-  
-- Thoughts
-  - Changing the counter location, or leave it only in the longitudinal_tracker but not needed as a list anymore.
+
 
 
 PYHEADTAIL LONGITUDINAL v1.0

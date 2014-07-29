@@ -19,7 +19,11 @@ class GeneralParameters(object):
                  particle_type, user_mass = None, user_charge = None, 
                  particle_type_2 = None, user_mass_2 = None, 
                  user_charge_2 = None, number_of_sections = 1):
-
+        
+        #: | *Counter to keep track of time step (used in momentum and voltage)*
+        #: | *It is defined as a list in order to be passed by reference to other modules.*
+        self.counter = [0]
+        
         #: | *Number of sections defines how many longitudinal maps are done per turn.*
         #: | *Default is one.*
         self.n_sections = number_of_sections
