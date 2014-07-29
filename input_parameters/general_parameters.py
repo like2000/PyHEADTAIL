@@ -66,6 +66,7 @@ class GeneralParameters(object):
 
         #: | *Momentum (program) in [eV/c] for each RF section* :math:`: \quad p_n`
         #: | *Can be given as a single value to be assumed constant, or as a program of (n_turns + 1) terms in case of acceleration.*
+        #: | *In case of several sections, a list of single values, or a list of (n_turns + 1) programs needs to be inputed.*
         self.momentum = np.array(momentum, ndmin =2)
 
         #: | *Momentum compaction factor (up to 2nd order) for each RF section* :math:`: \quad \alpha_i`

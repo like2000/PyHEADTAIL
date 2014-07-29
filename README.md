@@ -1,16 +1,22 @@
 Implementation in this branch
 =============================
 
-- Major:
+- Major (feature implementation that may need further review and agreement):
   - None
-- Normal:
+  
+- Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - PEP8 changes:
     - Changing LLRF module name to llrf
     - Changing GeneralParameters.T0 to t_rev + correcting the calculation method
-- Minor:
+    - Changing RFSectionParameters.sno to section_index
+  - Putting section_number as an option in RFSectionParameters input + changing its name to section_index
+  
+- Minor (can be implemented in a transparent way):
   - Updated .gitignore
   - Documentation
   	- Small corrections in input_paramters.general_parameters
+  	- Small corrections in input_paramters.rf_parameters
+  - Changing general_parameters to GeneralParameters as an input for RFSectionParameters
 
 
 PYHEADTAIL LONGITUDINAL v1.0
