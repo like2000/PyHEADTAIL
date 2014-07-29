@@ -70,8 +70,11 @@ class GeneralParameters(object):
         self.momentum = np.array(momentum, ndmin =2)
 
         #: | *Momentum compaction factor (up to 2nd order) for each RF section* :math:`: \quad \alpha_i`
-        #: | *Should be given as a list for multi-station (each element of the list can contain up to 2nd order)*
+        #: | *Should be given as a list for multi-station (each element of the list can contain up to 2nd order but must contain the same orders)*
         self.alpha = np.array(alpha, ndmin =2) 
+        
+        #: *Number of orders for the momentum compaction*
+        self.alpha_order = self.alpha.shape[1]
 
         #: | *Ring length contains the length of the RF sections, in [m]*
         #: | *Should be given as a list for multi-station*
@@ -113,12 +116,15 @@ class GeneralParameters(object):
         self.energy = np.sqrt(self.momentum**2 + 
                               (self.mass * c**2 / self.charge)**2)
         
-        #: *Revolution period* :math:`: \quad T_0 = \frac{C}{\beta c}`
+        #: *Revolution period [s]* :math:`: \quad T_0 = \frac{C}{\beta c}`
         self.t_rev = self.ring_circumference / \
                      np.dot(self.ring_length/self.ring_circumference, self.beta_r) / c 
         
-        #: *Revolution frequency* :math:`: \quad f_0 = \frac{1}{T_0}`
-        self.f_rev = 1 / self.t_rev 
+        #: *Revolution frequency [Hz]* :math:`: \quad f_0 = \frac{1}{T_0}`
+        self.f_rev = 1 / self.t_rev
+        
+        #: *Revolution angular frequency [rad/s]* :math:`: \quad \omega_0 = 2\pi f_0`
+        self.omega_rev = 2 * np.pi * self.f_rev
         
         #: *Slippage factor (order 0)* :math:`: \quad \eta_{0,n}`
         #:
@@ -136,10 +142,11 @@ class GeneralParameters(object):
         self.eta2 = 0
         
         # Warning that higher orders for alpha will not be used
-        if len(self.alpha[0]) > 3:
+        if self.alpha_order > 3:
             warnings.filterwarnings("once")
             warnings.warn("WARNING: Momentum compaction factor is implemented \
-                          only up to 2nd order")        
+                          only up to 2nd order")
+            self.alpha_order = 3        
         
         if not self.momentum.shape[1] == self.n_turns + 1:
             raise RuntimeError('The input momentum program does not match the \
@@ -155,7 +162,7 @@ class GeneralParameters(object):
         | *For eta coefficients, see Lee: Accelerator Physics (Wiley).*
         '''
         
-        for i in xrange(len(self.alpha[0])):
+        for i in xrange(self.alpha_order):
             getattr(self, '_eta' + str(i))()
 
     

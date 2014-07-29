@@ -76,21 +76,21 @@ class RFSectionParameters(object):
         #: for one section in [eV/c]* :math:`: \quad \Delta p_{n\rightarrow n+1}`
         self.p_increment = np.diff(self.momentum)
         
-        #: *Copy (from GeneralParameters) of the relativistic parameter for the
-        #: section* :math:`: \quad \beta_{k,n}`
+        #: *Copy of the relativistic beta for the section (from 
+        #: GeneralParameters)* :math:`: \quad \beta_{k,n}`
         self.beta_r = GeneralParameters.beta_r[self.section_index]
         
-        #: *Copy (from GeneralParameters) of the relativistic parameter for the
-        #: section* :math:`: \quad \gamma_{k,n}`
+        #: *Copy of the relativistic gamma for the section (from 
+        #: GeneralParameters)* :math:`: \quad \gamma_{k,n}`
         self.gamma_r = GeneralParameters.gamma_r[self.section_index]
         
-        #: *Copy (from GeneralParameters) of the relativistic parameter for the
-        #: section* :math:`: \quad E_{k,n}`
+        #: *Copy of the relativistic energy for the section (from 
+        #: GeneralParameters)* :math:`: \quad E_{k,n}`
         self.energy = GeneralParameters.energy[self.section_index]
         
         #: *Average beta value between then end and the beginning of the section*
         self.beta_av = (self.beta_r[1:] + self.beta_r[0:-1])/2
-
+        
         #: *Slippage factor (order 0) for the given RF section*
         self.eta_0 = 0
         #: *Slippage factor (order 1) for the given RF section*
@@ -98,11 +98,12 @@ class RFSectionParameters(object):
         #: *Slippage factor (order 2) for the given RF section*
         self.eta_2 = 0
         
-        # Attributing the proper values to the slippage factor
-        self.alpha_order = len(GeneralParameters.alpha[self.section_index])
+        #: *Copy of the order of alpha for the section (from GeneralParameters)*
+        self.alpha_order = GeneralParameters.alpha_order
         for i in xrange( self.alpha_order ):
             dummy = getattr(GeneralParameters, 'eta' + str(i))
-            setattr(self, "eta_%s" %i, dummy[self.section_index])     
+            setattr(self, "eta_%s" %i, dummy[self.section_index])
+            
         
         #: | *Number of RF systems in the section* :math:`: \quad n_{RF}`
         #: | *Counter for RF is:* :math:`j`
@@ -154,27 +155,7 @@ class RFSectionParameters(object):
             
         #: *Synchronous phase for this section, calculated from the gamma
         #: transition and the momentum program.*
-        self.phi_s = calc_phi_s(self)  
-
-
-    def eta_tracking(self, delta):
-        '''
-        *The slippage factor is calculated as a function of the relative momentum
-        (delta) of the beam. By definition, the slippage factor is:*
-        
-        .. math:: 
-            \eta = \sum_{i}(\eta_i \, \delta^i)
-    
-        '''
-        
-        if self.alpha_order == 1:
-            return self.eta_0[self.counter]
-        else:
-            eta = 0
-            for i in xrange( self.alpha_order ):
-                eta_i = getattr(self, 'eta_' + str(i))[self.counter]
-                eta  += eta_i * (delta**i)
-            return eta          
+        self.phi_s = calc_phi_s(self)   
 
 
 def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):

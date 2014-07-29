@@ -6,17 +6,27 @@ Implementation in this branch
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - PEP8 changes:
-    - Changing LLRF module name to llrf
-    - Changing GeneralParameters.T0 to t_rev + correcting the calculation method
-    - Changing RFSectionParameters.sno to section_index
-  - Putting section_number as an option in RFSectionParameters input + changing its name to section_index
+    - Changed LLRF module name to llrf
+    - Changed GeneralParameters.T0 to t_rev + correcting the calculation method
+    - Changed RFSectionParameters.sno to section_index
+  - Put section_number as an option in RFSectionParameters input + changing its name to section_index
+  - Optimization of the longitudinal_tracker.RingAndRFSection object
+  	- Moved eta_tracking from rf_parameters to longitudinal_tracker (transparent)
+  	- Changed documentation in order to refer to the RFSectionParameters documentation (transparent)
+  	- Added a method that chooses the solver to be 'simple' or 'full' wrt the input order
   
 - Minor (can be implemented in a transparent way):
   - Updated .gitignore
   - Documentation
   	- Small corrections in input_paramters.general_parameters
   	- Small corrections in input_paramters.rf_parameters
-  - Changing general_parameters to GeneralParameters as an input for RFSectionParameters
+  	- Small corrections in trackers.longitudinal_tracker
+  - Changed general_parameters to GeneralParameters as an input for RFSectionParameters
+  - Changed rf_params to RFSectionParameters as an input for RingAndRFSection
+  - Secured the cases where the user input momentum compaction with higher orders than 2
+  
+- Thoughts
+  - Changing the counter location, or leave it only in the longitudinal_tracker but not needed as a list anymore.
 
 
 PYHEADTAIL LONGITUDINAL v1.0
