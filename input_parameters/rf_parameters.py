@@ -49,9 +49,10 @@ class RFSectionParameters(object):
     def __init__(self, GeneralParameters, n_rf, 
                  harmonic, voltage, phi_offset, section_index = 1):
         
-        #: *Reference to the counter from GeneralParameters*
-        self.counter = GeneralParameters.counter
-        
+        #: | *Counter to keep track of time step (used in momentum and voltage)*
+        #: | *Definined as a list in order to be passed by reference.*
+        self.counter = [0]
+                
         #: | *Index of the RF section -- has to be unique*
         #: | *Counter for RF section is:* :math:`k`
         #: | *In the user input, the section_index goes from 1 to k*
@@ -87,8 +88,8 @@ class RFSectionParameters(object):
         #: GeneralParameters)* :math:`: \quad E_{k,n}`
         self.energy = GeneralParameters.energy[self.section_index]
         
-        #: *Average beta value between then end and the beginning of the section*
-        self.beta_av = (self.beta_r[1:] + self.beta_r[0:-1])/2
+        #: *Copy of the average beta (from GeneralParameters)*
+        self.beta_av = GeneralParameters.beta_av[self.section_index]
         
         #: *Slippage factor (order 0) for the given RF section*
         self.eta_0 = 0

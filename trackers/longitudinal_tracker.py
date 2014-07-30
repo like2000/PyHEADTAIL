@@ -29,9 +29,9 @@ class RingAndRFSection(object):
     and finally a drift kick between stations.*
     '''
         
-    def __init__(self, RFSectionParameters):
+    def __init__(self, RFSectionParameters, solver = 'full'):
         
-        #: *Reference to the counter from GeneralParameters*
+        #: *Copy of the counter (from RFSectionParameters)*
         self.counter = RFSectionParameters.counter
         
         ### Import RF section parameters for RF kick
@@ -79,9 +79,9 @@ class RingAndRFSection(object):
         #: | *Choice of solver for the drift*
         #: | *Set to 'simple' if only 0th order of slippage factor eta*
         #: | *Set to 'full' if higher orders of slippage factor eta*
-        self.solver = 'simple'
-        if self.alpha_order > 1:
-            self.solver = 'full'         
+        self.solver = solver
+        if self.alpha_order == 1:
+            self.solver = 'simple'         
         
                    
     def kick(self, beam):
@@ -162,11 +162,11 @@ class RingAndRFSection(object):
         '''
         
         if self.alpha_order == 1:
-            return self.eta_0[self.counter]
+            return self.eta_0[self.counter[0]]
         else:
             eta = 0
             for i in xrange( self.alpha_order ):
-                eta_i = getattr(self, 'eta_' + str(i))[self.counter]
+                eta_i = getattr(self, 'eta_' + str(i))[self.counter[0]]
                 eta  += eta_i * (delta**i)
             return eta  
         
@@ -182,7 +182,9 @@ class RingAndRFSection(object):
         self.kick(beam)
         self.kick_acceleration(beam)
         self.drift(beam)
-
+        
+        self.counter[0] += 1
+        
         # Updating the beam synchronous momentum etc.
         beam.beta_r = self.beta_r[self.counter[0]]
         beam.gamma_r = self.gamma_r[self.counter[0]]

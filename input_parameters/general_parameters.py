@@ -20,10 +20,6 @@ class GeneralParameters(object):
                  particle_type_2 = None, user_mass_2 = None, 
                  user_charge_2 = None, number_of_sections = 1):
         
-        #: | *Counter to keep track of time step (used in momentum and voltage)*
-        #: | *It is defined as a list in order to be passed by reference to other modules.*
-        self.counter = [0]
-        
         #: | *Number of sections defines how many longitudinal maps are done per turn.*
         #: | *Default is one.*
         self.n_sections = number_of_sections
@@ -120,13 +116,15 @@ class GeneralParameters(object):
         self.energy = np.sqrt(self.momentum**2 + 
                               (self.mass * c**2 / self.charge)**2)
         
-        #: *Revolution period [s]* :math:`: \quad T_0 = \frac{C}{\beta c}`
-        self.t_rev = self.ring_circumference / \
-                     np.dot(self.ring_length/self.ring_circumference, self.beta_r) / c 
+        #: *Average beta value between then end and the beginning of the section*
+        self.beta_av = (self.beta_r[:,1:] + self.beta_r[:,0:-1])/2
         
+        #: *Revolution period [s]* :math:`: \quad T_0 = \frac{C}{\beta c}`
+        self.t_rev = np.dot(self.ring_length, 1/self.beta_av) / c
+ 
         #: *Revolution frequency [Hz]* :math:`: \quad f_0 = \frac{1}{T_0}`
         self.f_rev = 1 / self.t_rev
-        
+         
         #: *Revolution angular frequency [rad/s]* :math:`: \quad \omega_0 = 2\pi f_0`
         self.omega_rev = 2 * np.pi * self.f_rev
         

@@ -28,7 +28,6 @@ Implementation in this branch (longitudinal tracking)
   	- Moved eta_tracking from rf_parameters to longitudinal_tracker (transparent)
   	- Changed documentation in order to refer to the RFSectionParameters documentation (transparent)
   	- Added a method that chooses the solver to be 'simple' or 'full' wrt the input order
-  - Moved the counter back to general parameters and passed by reference
   
 - Minor (can be implemented in a transparent way):
   - Updated .gitignore
