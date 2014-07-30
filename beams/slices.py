@@ -7,7 +7,6 @@
 from __future__ import division
 import numpy as np
 from random import sample
-# import cython_functions.stats as cp
 from scipy.constants import c
 from numpy.fft import rfft
 from scipy import ndimage
@@ -16,87 +15,82 @@ from scipy import ndimage
 
 class Slices(object):
     '''
-    Slices class that controls longitudinal discretisation of a bunch.
+    *Slices class that controls longitudinal discretisation of a bunch. This
+    include the bunch profiling (including computation of bunch spectrum,
+    derivative, and profile fitting) and the computation of statistics per
+    slice.*
     '''
 
     def __init__(self, n_slices, n_sigma = None, cut_left = None, 
-                 cut_right = None, coord = "theta", 
-                 mode = 'const_space_hist'):
-
+                 cut_right = None, coord = "theta", mode = 'const_space',
+                 statistics_option = 'off', fit_option = 'off'):
+        
+        
+        #: *Number of slices*
         self.n_slices = n_slices
-        self.n_sigma = n_sigma
-        self.coord = coord
+        
+        #: | *Slicing computation mode*
+        #: | *The options are: 'const_space' (default), 'const_charge'.*
         self.mode = mode
         
-        self.bunch = None
-        self.sorted = False
+        #: *Left edge of the slicing (is an optionnal input, in case you use
+        #: the 'const_space' mode).*
+        self.cut_left = cut_left
+        
+        #: *Right edge of the slicing (is an optionnal input, in case you use
+        #: the 'const_space' mode).*
+        self.cut_right = cut_right
+        
+        #: *Optionnal input parameters, corresponding to the number of*
+        #: :math:`\sigma_{RMS}` *of the bunch to slice (this will overwrite
+        #: any input of cut_left and cut_right).*
+        self.n_sigma = n_sigma
+        
+        #: | *Type of coordinates in which the slicing is done.*
+        #: | *The options are: 'theta' (default), 'tau', 'z'.*
+        self.coord = coord
+        
+        if mode is 'const_space':
+            if self.n_sigma is not None:
+                pass
+            elif cut_left is not None and cut_right is not None:
+                pass
+        
+        #: *Compute statistics option allows to compute mean_theta, mean_dE, 
+        #: sigma_theta and sigma_dE properties each turn.*
+        self.statistics_option = statistics_option
+        
+        if self.statistics_option is 'on':
+            #: *Average theta position of the particles in each slice (needs 
+            #: the compute_statistics_option to be 'on').*
+            self.mean_theta = np.empty(n_slices)
+            #: *Average dE position of the particles in each slice (needs 
+            #: the compute_statistics_option to be 'on').*
+            self.mean_dE = np.empty(n_slices)
+            #: *RMS theta position of the particles in each slice (needs 
+            #: the compute_statistics_option to be 'on').*
+            self.sigma_theta = np.empty(n_slices)
+            #: *RMS dE position of the particles in each slice (needs 
+            #: the compute_statistics_option to be 'on').*
+            self.sigma_dE = np.empty(n_slices)
+            
+        #: *Fit option allows to fit the bunch profile, with the options
+        #: 'off' (default), 'gaussian'.*
+        self.fit_option = fit_option
+            
+        if self.fit_option is 'gaussian':
+            #: *Bunch length with a gaussian fit (needs fit_option to be 
+            #: 'gaussian' defined as* :math:`\tau_{gauss} = 4\sigma`)
+            self.bl_gauss = 0
 
-#         self.mean_x = np.empty(n_slices)
-#         self.mean_xp = np.empty(n_slices)
-#         self.mean_y = np.empty(n_slices)
-#         self.mean_yp = np.empty(n_slices)
-        self.mean_theta = np.empty(n_slices)
-        self.mean_dE = np.empty(n_slices)
-        
-#         self.sigma_x = np.empty(n_slices)
-#         self.sigma_y = np.empty(n_slices)
-        self.sigma_theta = np.empty(n_slices)
-        self.sigma_dE = np.empty(n_slices)
-        
-#         self.epsn_x = np.empty(n_slices)
-#         self.epsn_y = np.empty(n_slices)
-#         self.eps_rms_l = np.empty(n_slices)
-        
-        if cut_left != None and cut_right != None:
-            self.cut_left = cut_left
-            self.cut_right = cut_right
-            if mode != 'const_charge':
-                self.edges = np.linspace(cut_left, cut_right, self.n_slices + 1)
-                self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
+#         if cut_left is not None and cut_right is not None:
+#             self.cut_left = cut_left
+#             self.cut_right = cut_right
+#             if mode != 'const_charge':
+#                 self.edges = np.linspace(cut_left, cut_right, self.n_slices + 1)
+#                 self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
                 
-        
-        
-    @property    
-    def mean_z(self):
-        return - self.mean_theta * self.bunch.ring_radius 
-    @mean_z.setter
-    def mean_z(self, value):
-        self.mean_theta = - value / self.bunch.ring_radius 
-    
-    @property    
-    def mean_tau(self):
-        return self.mean_theta * self.ring_radius / (self.beta_rel * c)
-    @mean_tau.setter
-    def mean_tau(self, value):
-        self.mean_theta = value * self.beta_rel * c / self.ring_radius
-
-    @property
-    def mean_delta(self):
-        return self.mean_dE / (self.bunch.beta_rel**2 * self.bunch.energy)
-    @mean_delta.setter
-    def mean_delta(self, value):
-        self.mean_dE = value * self.bunch.beta_rel**2 * self.bunch.energy
-    
-    @property    
-    def sigma_z(self):
-        return - self.sigma_theta * self.bunch.ring_radius 
-    @sigma_z.setter
-    def sigma_z(self, value):
-        self.sigma_theta = - value / self.bunch.ring_radius 
-    
-    @property
-    def sigma_tau(self):
-        return self.sigma_theta * self.ring_radius / (self.beta_rel * c)
-    @sigma_tau.setter
-    def sigma_tau(self, value):
-        self.sigma_theta = value * self.beta_rel * c / self.ring_radius
-    
-    @property
-    def sigma_delta(self):
-        return self.sigma_dE / (self.bunch.beta_rel**2 * self.bunch.energy)
-    @sigma_delta.setter
-    def sigma_delta(self, value):
-        self.sigma_dE = value * self.bunch.beta_rel**2 * self.bunch.energy
+        self.sorted = False
     
     
     def set_longitudinal_cuts(self, bunch):
@@ -243,34 +237,34 @@ class Slices(object):
 
 
 #     def compute_statistics(self, bunch):
-#         
+#          
 #         if self.sorted == False:
 #             self.sort_particles(bunch)
-# 
+#  
 #         index = self.first_index_in_bin[0] + \
 #                 np.cumsum(np.append(0, self.n_macroparticles))
-# 
+#  
 #         for i in xrange(self.n_slices):
-#            
+#             
 #             x  = bunch.x[index[i]:index[i + 1]]
 #             xp = bunch.xp[index[i]:index[i + 1]]
 #             y  = bunch.y[index[i]:index[i + 1]]
 #             yp = bunch.yp[index[i]:index[i + 1]]
 #             theta  = bunch.theta[index[i]:index[i + 1]]
 #             dE = bunch.dE[index[i]:index[i + 1]]
-# 
+#  
 #             self.mean_x[i] = np.mean(x)
 #             self.mean_xp[i] = np.mean(xp)
 #             self.mean_y[i] = np.mean(y)
 #             self.mean_yp[i] = np.mean(yp)
 #             self.mean_theta[i] = np.mean(theta)
 #             self.mean_dE[i] = np.mean(dE)
-# 
+#  
 #             self.sigma_x[i] = np.std(x)
 #             self.sigma_y[i] = np.std(y)
 #             self.sigma_theta[i] = np.std(theta)
 #             self.sigma_dE[i] = np.std(dE)
-# 
+#  
 #             self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma_rel * \
 #                                 bunch.beta_rel * 1e6
 #             self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma_rel * \
@@ -321,5 +315,55 @@ class Slices(object):
             derivative = np.gradient(self.n_macroparticles, dist_centers)
             
         return x, derivative
+    
+    
+    @property    
+    def mean_z(self):
+        '''*Average z position of the particles in each slice (needs 
+        the compute_statistics_option to be 'on', the head and tail are
+        reversed compared to theta and an tau coordinates).*'''
+        return - self.mean_theta * self.bunch.ring_radius 
+    @mean_z.setter
+    def mean_z(self, value):
+        self.mean_theta = - value / self.bunch.ring_radius 
+    
+    @property    
+    def mean_tau(self):
+        '''*Average tau position of the particles in each slice (needs 
+        the compute_statistics_option to be 'on').*'''
+        return self.mean_theta * self.ring_radius / (self.beta_rel * c)
+    @mean_tau.setter
+    def mean_tau(self, value):
+        self.mean_theta = value * self.beta_rel * c / self.ring_radius
+
+    @property
+    def mean_delta(self):
+        '''*Average delta position of the particles in each slice (needs 
+        the compute_statistics_option to be 'on').*'''
+        return self.mean_dE / (self.bunch.beta_rel**2 * self.bunch.energy)
+    @mean_delta.setter
+    def mean_delta(self, value):
+        self.mean_dE = value * self.bunch.beta_rel**2 * self.bunch.energy
+    
+    @property    
+    def sigma_z(self):
+        return - self.sigma_theta * self.bunch.ring_radius 
+    @sigma_z.setter
+    def sigma_z(self, value):
+        self.sigma_theta = - value / self.bunch.ring_radius 
+    
+    @property
+    def sigma_tau(self):
+        return self.sigma_theta * self.ring_radius / (self.beta_rel * c)
+    @sigma_tau.setter
+    def sigma_tau(self, value):
+        self.sigma_theta = value * self.beta_rel * c / self.ring_radius
+    
+    @property
+    def sigma_delta(self):
+        return self.sigma_dE / (self.bunch.beta_rel**2 * self.bunch.energy)
+    @sigma_delta.setter
+    def sigma_delta(self, value):
+        self.sigma_dE = value * self.bunch.beta_rel**2 * self.bunch.energy
     
         
