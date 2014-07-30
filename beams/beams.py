@@ -42,7 +42,10 @@ class Beam(object):
         self.yp = np.empty([n_macroparticles])
         self.theta = np.empty([n_macroparticles])
         self.dE = np.empty([n_macroparticles])
-     
+        
+        self.transverse_is_defined = False
+        self.longitudinal_is_defined = False
+        
         # Transverse and longitudinal properties, statistics       
         
         self.alpha_x = 0

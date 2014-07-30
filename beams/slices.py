@@ -1,35 +1,28 @@
 '''
-@authors: Hannes Bartosik,
-          Kevin Li,
-          Michael Schenk
-          Danilo Quartullo
-@date:    06/01/2014
+**Module to compute longitudinal beam slicing**
+
+:Authors: **Hannes Bartosik**, **Kevin Li**, **Michael Schenk**, **Danilo Quartullo**, **Alexandre Lasheen**
 '''
+
 from __future__ import division
 import numpy as np
 from random import sample
-import cython_functions.stats as cp
+# import cython_functions.stats as cp
 from scipy.constants import c
-import sys
-import time
 from numpy.fft import rfft
 from scipy import ndimage
-from numpy import delete
 
 
 
 class Slices(object):
     '''
-    Slices class that controlls longitudinal discretization of a bunch.
+    Slices class that controls longitudinal discretisation of a bunch.
     '''
 
     def __init__(self, n_slices, n_sigma = None, cut_left = None, 
                  cut_right = None, coord = "theta", 
                  mode = 'const_space_hist'):
-        '''
-        Constructor
-        '''
-        
+
         self.n_slices = n_slices
         self.n_sigma = n_sigma
         self.coord = coord
@@ -38,21 +31,21 @@ class Slices(object):
         self.bunch = None
         self.sorted = False
 
-        self.mean_x = np.empty(n_slices)
-        self.mean_xp = np.empty(n_slices)
-        self.mean_y = np.empty(n_slices)
-        self.mean_yp = np.empty(n_slices)
+#         self.mean_x = np.empty(n_slices)
+#         self.mean_xp = np.empty(n_slices)
+#         self.mean_y = np.empty(n_slices)
+#         self.mean_yp = np.empty(n_slices)
         self.mean_theta = np.empty(n_slices)
         self.mean_dE = np.empty(n_slices)
         
-        self.sigma_x = np.empty(n_slices)
-        self.sigma_y = np.empty(n_slices)
+#         self.sigma_x = np.empty(n_slices)
+#         self.sigma_y = np.empty(n_slices)
         self.sigma_theta = np.empty(n_slices)
         self.sigma_dE = np.empty(n_slices)
         
-        self.epsn_x = np.empty(n_slices)
-        self.epsn_y = np.empty(n_slices)
-        self.eps_rms_l = np.empty(n_slices)
+#         self.epsn_x = np.empty(n_slices)
+#         self.epsn_y = np.empty(n_slices)
+#         self.eps_rms_l = np.empty(n_slices)
         
         if cut_left != None and cut_right != None:
             self.cut_left = cut_left
@@ -60,6 +53,8 @@ class Slices(object):
             if mode != 'const_charge':
                 self.edges = np.linspace(cut_left, cut_right, self.n_slices + 1)
                 self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
+                
+        
         
     @property    
     def mean_z(self):
@@ -124,18 +119,18 @@ class Slices(object):
             if self.coord == "theta":
                 mean_theta = np.mean(bunch.theta)
                 sigma_theta = np.std(bunch.theta)
-                cut_left = mean_theta - self.n_sigma * sigma_theta
-                cut_right = mean_theta + self.n_sigma * sigma_theta
+                cut_left = mean_theta - self.n_sigma * sigma_theta / 2
+                cut_right = mean_theta + self.n_sigma * sigma_theta / 2
             elif self.coord == "z":
                 mean_z = np.mean(bunch.z)
                 sigma_z = np.std(bunch.z)
-                cut_left = mean_z - self.n_sigma * sigma_z
-                cut_right = mean_z + self.n_sigma * sigma_z
+                cut_left = mean_z - self.n_sigma * sigma_z / 2
+                cut_right = mean_z + self.n_sigma * sigma_z / 2
             else:
                 mean_tau = np.mean(bunch.tau)
                 sigma_tau = np.std(bunch.tau)
-                cut_left = mean_tau - self.n_sigma * sigma_tau
-                cut_right = mean_tau + self.n_sigma * sigma_tau
+                cut_left = mean_tau - self.n_sigma * sigma_tau / 2
+                cut_right = mean_tau + self.n_sigma * sigma_tau / 2
             
         return cut_left, cut_right
 
@@ -149,7 +144,6 @@ class Slices(object):
             self.edges = np.linspace(cut_left, cut_right, self.n_slices + 1)
             self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
         
-        t0 = time.clock()
         if self.sorted == False:
             self.sort_particles(bunch)
             self.sorted = True
@@ -239,51 +233,50 @@ class Slices(object):
         self.bunch = bunch
        
         if self.mode == 'const_charge':
-            self._slice_constant_charge(bunch)
+            self.slice_constant_charge(bunch)
         elif self.mode == 'const_space':
             self.slice_constant_space(bunch)
         elif self.mode == 'const_space_hist':
             self.slice_constant_space_histogram(bunch)
         else:
-            print 'Choose one of the three slicing methods!'
-            sys.exit()
+            raise RuntimeError('Choose one of the three slicing methods!')
 
 
-    def compute_statistics(self, bunch):
-        
-        if self.sorted == False:
-            self.sort_particles(bunch)
-
-        index = self.first_index_in_bin[0] + \
-                np.cumsum(np.append(0, self.n_macroparticles))
-
-        for i in xrange(self.n_slices):
-           
-            x  = bunch.x[index[i]:index[i + 1]]
-            xp = bunch.xp[index[i]:index[i + 1]]
-            y  = bunch.y[index[i]:index[i + 1]]
-            yp = bunch.yp[index[i]:index[i + 1]]
-            theta  = bunch.theta[index[i]:index[i + 1]]
-            dE = bunch.dE[index[i]:index[i + 1]]
-
-            self.mean_x[i] = np.mean(x)
-            self.mean_xp[i] = np.mean(xp)
-            self.mean_y[i] = np.mean(y)
-            self.mean_yp[i] = np.mean(yp)
-            self.mean_theta[i] = np.mean(theta)
-            self.mean_dE[i] = np.mean(dE)
-
-            self.sigma_x[i] = np.std(x)
-            self.sigma_y[i] = np.std(y)
-            self.sigma_theta[i] = np.std(theta)
-            self.sigma_dE[i] = np.std(dE)
-
-            self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma_rel * \
-                                bunch.beta_rel * 1e6
-            self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma_rel * \
-                                bunch.beta_rel * 1e6
-            self.eps_rms_l[i] = np.pi * self.sigma_dE[i] * self.sigma_theta[i] \
-                                * bunch.ring_radius / (bunch.beta_rel * c)
+#     def compute_statistics(self, bunch):
+#         
+#         if self.sorted == False:
+#             self.sort_particles(bunch)
+# 
+#         index = self.first_index_in_bin[0] + \
+#                 np.cumsum(np.append(0, self.n_macroparticles))
+# 
+#         for i in xrange(self.n_slices):
+#            
+#             x  = bunch.x[index[i]:index[i + 1]]
+#             xp = bunch.xp[index[i]:index[i + 1]]
+#             y  = bunch.y[index[i]:index[i + 1]]
+#             yp = bunch.yp[index[i]:index[i + 1]]
+#             theta  = bunch.theta[index[i]:index[i + 1]]
+#             dE = bunch.dE[index[i]:index[i + 1]]
+# 
+#             self.mean_x[i] = np.mean(x)
+#             self.mean_xp[i] = np.mean(xp)
+#             self.mean_y[i] = np.mean(y)
+#             self.mean_yp[i] = np.mean(yp)
+#             self.mean_theta[i] = np.mean(theta)
+#             self.mean_dE[i] = np.mean(dE)
+# 
+#             self.sigma_x[i] = np.std(x)
+#             self.sigma_y[i] = np.std(y)
+#             self.sigma_theta[i] = np.std(theta)
+#             self.sigma_dE[i] = np.std(dE)
+# 
+#             self.epsn_x[i] = cp.emittance(x, xp) * bunch.gamma_rel * \
+#                                 bunch.beta_rel * 1e6
+#             self.epsn_y[i] = cp.emittance(y, yp) * bunch.gamma_rel * \
+#                                 bunch.beta_rel * 1e6
+#             self.eps_rms_l[i] = np.pi * self.sigma_dE[i] * self.sigma_theta[i] \
+#                                 * bunch.ring_radius / (bunch.beta_rel * c)
 
     
     def sort_particles(self, bunch):
@@ -296,10 +289,10 @@ class Slices(object):
             
             argsorted = np.argsort(bunch.z)
         
-        bunch.x = bunch.x.take(argsorted)
-        bunch.xp = bunch.xp.take(argsorted)
-        bunch.y = bunch.y.take(argsorted)
-        bunch.yp = bunch.yp.take(argsorted)
+#         bunch.x = bunch.x.take(argsorted)
+#         bunch.xp = bunch.xp.take(argsorted)
+#         bunch.y = bunch.y.take(argsorted)
+#         bunch.yp = bunch.yp.take(argsorted)
         bunch.theta = bunch.theta.take(argsorted)
         bunch.dE = bunch.dE.take(argsorted)
         bunch.id = bunch.id.take(argsorted)

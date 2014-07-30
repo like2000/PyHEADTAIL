@@ -1,4 +1,18 @@
-Implementation in this branch
+Implementation in this branch (intensity effects)
+=============================
+
+- Major (feature implementation that may need further review and agreement):
+  - Commented transverse calculations from slices (need agreement with transverse development)
+  
+- Normal (small changes that are not transparent, the example main files should be adapted accordingly):
+  - None
+  
+- Minor (can be implemented in a transparent way):
+  - Corrected cut_left and cut_right calculation for n_sigma (divided by 2)
+  - Added in the beam class if longitudinal/transverse is defined (only definition, not used for the moment)
+  
+  
+Implementation in this branch (longitudinal tracking)
 =============================
 
 - Major (feature implementation that may need further review and agreement):
