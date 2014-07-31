@@ -3,6 +3,7 @@ Implementation in this branch (intensity effects)
 
 - Major (feature implementation that may need further review and agreement):
   - Deleted transverse calculations from slices (need agreement with transverse development)
+  - Reorganisation of the Slices module
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - None
