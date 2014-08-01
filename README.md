@@ -4,6 +4,10 @@ Implementation in this branch (intensity effects)
 - Major (feature implementation that may need further review and agreement):
   - Deleted transverse calculations from slices (need agreement with transverse development)
   - Reorganisation of the Slices module
+  	- Constant_space_histogram is slow (will be removed)
+  	- Constant_space is now reference (and is constant frame also)
+  	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
+  	- Gaussian fit inside the slice module (and the track method updates the bunch length in Beams class)
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - None

@@ -50,8 +50,10 @@ class Slices(object):
         self.n_sigma = n_sigma
         
         #: | *Type of coordinates in which the slicing is done.*
-        #: | *The options are: 'theta' (default), 'tau', 'z'.*
+        #: | *The options are: 'theta' (default), 'tau', 'z' (default if constant_charge).*
         self.coord = coord
+        if self.mode is 'const_charge':
+            self.coord = 'z'
         
         #: *Number of macroparticles per slice (~profile).*
         self.n_macroparticles = np.empty(n_slices)
@@ -109,15 +111,11 @@ class Slices(object):
         *The frame is defined by :math:`n\sigma_{RMS}` or manually by the user.
         If not, a default frame consisting of taking the whole bunch +5% of the 
         maximum distance between two particles in the bunch will be taken.*
-        
-        *Be careful that because the frame is not changing, a bunch with
-        increasing bunch length might not be sliced properly as part of it
-        might be out of the frame.*
         '''
         
         if self.n_sigma is None:
             
-            self.sort_particles(self.Beam)
+            self.sort_particles()
             
             if self.coord == "theta":
                 self.cut_left = self.Beam.theta[0] - 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
@@ -155,33 +153,20 @@ class Slices(object):
         to their longitudinal position and counted in each bin. This allows
         also to calculate the statistics of the particles for each bin (if 
         statistics_option is 'on') and fit the profile (e.g. Gaussian).*
+        
+        *Be careful that because the frame is not changing, a bunch with
+        increasing bunch length might not be sliced properly as part of it
+        might be out of the frame.*
         '''
 
         self.sort_particles()
 
         if self.coord == 'z':
             first_index_in_bin = np.searchsorted(self.Beam.z, self.edges)
-#             if self.cut_right <= self.Beam.z[-1] and \
-#                   self.cut_right == self.Beam.z[self.first_index_in_bin[-1]]:
-#                 list_z = self.Beam.z[self.first_index_in_bin[-1]:].tolist()
-#                 self.first_index_in_bin[-1] += list_z.count(self.Beam.z[
-#                                                 self.first_index_in_bin[-1]])
-            
         elif self.coord == 'theta':
             first_index_in_bin = np.searchsorted(self.Beam.theta, self.edges)
-#             if self.cut_right <= self.Beam.theta[-1] and \
-#                   self.cut_right == self.Beam.theta[self.first_index_in_bin[-1]]:
-#                 list_theta = self.Beam.theta[self.first_index_in_bin[-1]:].tolist()
-#                 self.first_index_in_bin[-1] += list_theta.count(self.Beam.theta[self.first_index_in_bin[-1]])
-            
-        
         else:
             first_index_in_bin = np.searchsorted(self.Beam.tau, self.edges)
-#             if self.cut_right <= self.Beam.tau[-1] and \
-#                   self.cut_right == self.Beam.tau[self.first_index_in_bin[-1]]:
-#                 list_tau = self.Beam.tau[self.first_index_in_bin[-1]:].tolist()
-#                 self.first_index_in_bin[-1] += list_tau.count(self.Beam.tau[
-#                                                 self.first_index_in_bin[-1]])
             
         self.n_macroparticles = np.diff(first_index_in_bin)
         
@@ -199,37 +184,46 @@ class Slices(object):
             self.n_macroparticles = np.histogram(self.Beam.tau, self.edges)[0]
  
         
-#     def slice_constant_charge(self):
-#         
-#         try:
-#             cut_left, cut_right = self.cut_left, self.cut_right
-#         except AttributeError:
-#             cut_left, cut_right = self.set_longitudinal_cuts(Beam)
-#         
-#         if self.sorted == False:
-#             self.sort_particles(Beam)
-#             self.sorted = True
-# 
-#         n_cut_left = np.searchsorted(Beam.z, cut_left)
-#         n_cut_right = np.searchsorted(Beam.z, cut_right)
-#         
-#         q0 = self.n_macroparticles - (n_cut_right - n_cut_left)
-#         if (cut_right == Beam.z[n_cut_right]):
-#             list_z = Beam.z[n_cut_right:].tolist()
-#             q0 += list_z.count(Beam.z[n_cut_right])
-#         
-#         ix = sample(range(self.n_slices), q0 % self.n_slices)
-#         self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices)
-#         self.n_macroparticles[ix] += 1
-# 
-#         n_macroparticles_all = np.hstack((n_cut_left, self.n_macroparticles))
-#         self.first_index_in_bin = np.cumsum(n_macroparticles_all)
-#         
-#         self.edges = (Beam.z[self.first_index_in_bin[1:-1] - 1] + 
-#                         Beam.z[self.first_index_in_bin[1: -1]]) / 2
-#         self.edges = np.hstack((cut_left, self.edges, cut_right))
-#         self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
-
+    def slice_constant_charge(self):
+        '''
+        *Constant charge slicing. This method consist in slicing with varying
+        bin sizes that adapts in order to have the same number of particles
+        in each bin*
+        
+        *Must be updated in order to take into account potential losses (in order
+        for the frame size not to diverge) and for different types of coordinates
+        (only z coordinate for the moment)*
+        '''
+        
+        self.coord = 'z'
+        self.cut_left = None
+        self.cut_right = None
+        self.n_sigma = None
+        
+        self.set_longitudinal_cuts()
+        
+        # 1. n_macroparticles - distribute macroparticles uniformly along slices.
+        # Must be integer. Distribute remaining particles randomly among slices with indices 'ix'.
+        n_cut_left = 0 # number of particles cut left, to be adapted for losses
+        n_cut_right = 0 # number of particles cut right, to be adapted for losses
+          
+        q0 = self.Beam.n_macroparticles - n_cut_right - n_cut_left
+         
+        ix = sample(range(self.n_slices), q0 % self.n_slices)
+        self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices)
+        self.n_macroparticles[ix] += 1
+        
+        # 2. edges
+        # Get indices of the particles defining the bin edges
+        n_macroparticles_all = np.hstack((n_cut_left, self.n_macroparticles, n_cut_right))
+        first_index_in_bin = np.cumsum(n_macroparticles_all)
+        first_particle_index_in_slice = first_index_in_bin[:-1]
+        first_particle_index_in_slice = (first_particle_index_in_slice).astype(int)
+         
+        self.edges[1:-1] = (self.Beam.z[(first_particle_index_in_slice - 1)[1:-1]] + self.Beam.z[first_particle_index_in_slice[1:-1]]) / 2
+        self.edges[0], self.edges[-1] = self.cut_left, self.cut_right
+        self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
+    
 
     def track(self, Beam):
 
@@ -240,7 +234,7 @@ class Slices(object):
         elif self.mode == 'const_space_hist':
             self.slice_constant_space_histogram()
         else:
-            raise RuntimeError('Choose one of the three slicing methods!')
+            raise RuntimeError('Choose one proper slicing mode!')
 
 
     def sort_particles(self):
@@ -267,6 +261,30 @@ class Slices(object):
         '''
         
         pass
+    
+#         ##### Gaussian fit to theta-profile
+#         if gaussian_fit == "On":
+#             
+#             if slices == None:
+#                 warnings.filterwarnings("once")                
+#                 warnings.warn("WARNING: The Gaussian bunch length fit cannot be calculated without slices!")
+#             else:
+#                 try:
+#                     if slices.coord == "theta":
+#                         p0 = [max(slices.n_macroparticles), self.mean_theta, self.sigma_theta]                
+#                         pfit = curve_fit(gauss, slices.bins_centers, 
+#                                          slices.n_macroparticles, p0)[0]
+#                     elif slices.coord == "tau":
+#                         p0 = [max(slices.n_macroparticles), self.mean_tau, self.sigma_tau]                
+#                         pfit = curve_fit(gauss, slices.bins_centers, 
+#                                          slices.n_macroparticles, p0)[0]  
+#                     elif slices.coord == "z":
+#                         p0 = [max(slices.n_macroparticles), self.mean_z, self.sigma_z]                
+#                         pfit = curve_fit(gauss, slices.bins_centers, 
+#                                          slices.n_macroparticles, p0)[0]                                    
+#                     self.bl_gauss = 4 * abs(pfit[2]) 
+#                 except:
+#                     self.bl_gauss = 0 
 
     
     
@@ -347,32 +365,14 @@ class Slices(object):
 
 
 def gauss(x, *p):
+    '''
+    *Defined as:*
+    
+    .. math:: A \, e^{\\frac{\\left(x-x_0\\right)^2}{2\\sigma_x^2}}
+    
+    '''
+    
     A, x0, sx = p
     return A*np.exp(-(x-x0)**2/2./sx**2) 
-
-
-#         ##### Gaussian fit to theta-profile
-#         if gaussian_fit == "On":
-#             
-#             if slices == None:
-#                 warnings.filterwarnings("once")                
-#                 warnings.warn("WARNING: The Gaussian bunch length fit cannot be calculated without slices!")
-#             else:
-#                 try:
-#                     if slices.coord == "theta":
-#                         p0 = [max(slices.n_macroparticles), self.mean_theta, self.sigma_theta]                
-#                         pfit = curve_fit(gauss, slices.bins_centers, 
-#                                          slices.n_macroparticles, p0)[0]
-#                     elif slices.coord == "tau":
-#                         p0 = [max(slices.n_macroparticles), self.mean_tau, self.sigma_tau]                
-#                         pfit = curve_fit(gauss, slices.bins_centers, 
-#                                          slices.n_macroparticles, p0)[0]  
-#                     elif slices.coord == "z":
-#                         p0 = [max(slices.n_macroparticles), self.mean_z, self.sigma_z]                
-#                         pfit = curve_fit(gauss, slices.bins_centers, 
-#                                          slices.n_macroparticles, p0)[0]                                    
-#                     self.bl_gauss = 4 * abs(pfit[2]) 
-#                 except:
-#                     self.bl_gauss = 0 
     
         

@@ -6,6 +6,9 @@ SPS test case
 from __future__ import division
 import numpy as np
 import time
+import matplotlib.pyplot as plt
+import os
+os.chdir('C:\work\git\PyHEADTAIL_alasheen\_Alex')
 
 # PyHEADTAIL imports
 from input_parameters.general_parameters import GeneralParameters 
@@ -70,32 +73,37 @@ longitudinal_gaussian_matched(general_params, rf_params_dummy, my_beam, tau_0,
                               unit='ns')
 
 # Slicing
-slicing = Slices(n_slices, cut_left = cut_left, cut_right = cut_right, mode = 'const_space')
-
+slicing = Slices(my_beam, n_slices, cut_left = cut_left, cut_right = cut_right, mode = 'const_space') 
+# slicing = Slices(my_beam, n_slices, mode = 'const_charge') 
+ 
 # Total simulation map
-sim_map =  [longitudinal_tracker] + [slicing]
-
-
+sim_map = [longitudinal_tracker] + [slicing] # 
+ 
 # Tracking ---------------------------------------------------------------------
-
+ 
+plt.figure()
+plt.ion()
 for i in range(n_turns):
-     
+       
     if i % 100 == 0:
         print i
         t0 = time.clock()
-         
+           
     # Track
     for m in sim_map:
         m.track(my_beam)
-        
+          
     if i % 100 == 0:
         t1 = time.clock()
         print t1-t0
-        
+          
     if i % plot_step == 0:
-        plot_long_phase_space(my_beam, general_params, rf_params, 
-                              0., 5., -150, 150, xunit='ns', separatrix_plot = 'True')
-
+        plt.plot(slicing.bins_centers, slicing.n_macroparticles)
+#         plt.plot(slicing.edges[:-1]-slicing.edges[1:])
+        plt.pause(0.0001)
+#         plt.show()
+#         plot_long_phase_space(my_beam, general_params, rf_params, 
+#                               0., 5., -150, 150, xunit='ns', separatrix_plot = 'True')
 
 
 
