@@ -149,6 +149,27 @@ class SliceMonitor(Monitor):
 
         self.i_steps += 1
 
+    def dump_tmp(self, bunch):
+        if not self.slices:
+            self.slices = bunch.slices
+
+        # These methods may be called several times in different places of the code. Ok. for now.
+        #bunch.compute_statistics()
+        #self.slices.update_slices(bunch)
+        #self.slices.compute_statistics(bunch)
+
+        if not self.i_steps:
+            n_steps = self.n_steps
+            n_slices = self.slices.n_slices
+
+            self.create_data_tmp(self.h5file['Slices'], (n_slices, n_steps))
+
+            self.write_data_tmp(self.slices, self.h5file['Slices'], self.i_steps, rank=2)
+        else:
+            self.write_data_tmp(self.slices, self.h5file['Slices'], self.i_steps, rank=2)
+
+        self.i_steps += 1
+
     def create_data(self, h5group, dims):
         h5group.create_dataset("mean_x",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_xp",  dims, compression="gzip", compression_opts=9)
@@ -165,6 +186,10 @@ class SliceMonitor(Monitor):
         h5group.create_dataset("epsn_z",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
 
+    def create_data_tmp(self, h5group, dims):
+        #h5group.create_dataset("bins_centers",   dims, compression="gzip", compression_opts=9)
+        h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
+        
     def write_data(self, data, h5group, i_steps, rank=1):
         if rank == 1:
             h5group["mean_x"][i_steps]   = data.mean_x
@@ -198,6 +223,13 @@ class SliceMonitor(Monitor):
             h5group["n_macroparticles"][:,i_steps] = data.n_macroparticles
         else:
             raise ValueError("Rank > 2 not supported!")
+
+    def write_data_tmp(self, data, h5group, i_steps, rank=2):
+        if rank == 2:
+            #h5group["bins_centers"][:,i_steps]   = data.bins_centers
+            h5group["n_macroparticles"][:,i_steps] = data.n_macroparticles
+        else:
+            raise ValueError("Rank != 2 not supported!")
 
     def close(self):
         self.h5file.close()
