@@ -10,6 +10,7 @@ from random import sample
 from scipy.constants import c
 from numpy.fft import rfft
 from scipy import ndimage
+from scipy.optimize import curve_fit
 
 
 class Slices(object):
@@ -88,19 +89,30 @@ class Slices(object):
             #: *RMS dE position of the particles in each slice (needs 
             #: the compute_statistics_option to be 'on').*
             self.sigma_dE = np.empty(n_slices)
+            #: *RMS dE position of the particles in each slice (needs 
+            #: the compute_statistics_option to be 'on').*
+            self.eps_rms_l = np.empty(n_slices)
             
         #: *Fit option allows to fit the Beam profile, with the options
         #: 'off' (default), 'gaussian'.*
         self.fit_option = fit_option
-            
-        if self.fit_option is 'gaussian':
+        
+        # Pre-processing Beam longitudinal statistics
+        self.Beam.longit_statistics()
+        
+        if self.mode is not 'const_charge' and self.fit_option is 'gaussian':    
             #: *Beam length with a gaussian fit (needs fit_option to be 
             #: 'gaussian' defined as* :math:`\tau_{gauss} = 4\sigma`)
             self.bl_gauss = 0
             #: *Beam position with a gaussian fit (needs fit_option to be 
             #: 'gaussian')*
             self.bp_gauss = 0
-                
+            #: *Gaussian parameters list obtained from fit*
+            self.pfit_gauss = 0
+                    
+        # Use of track in order to pre-process the slicing at injection
+        self.track(self.Beam)
+        
 
     def set_longitudinal_cuts(self):
         '''
@@ -165,7 +177,7 @@ class Slices(object):
             first_index_in_bin = np.searchsorted(self.Beam.z, self.edges)
         elif self.coord == 'theta':
             first_index_in_bin = np.searchsorted(self.Beam.theta, self.edges)
-        else:
+        elif self.coord == 'tau':
             first_index_in_bin = np.searchsorted(self.Beam.tau, self.edges)
             
         self.n_macroparticles = np.diff(first_index_in_bin)
@@ -220,12 +232,18 @@ class Slices(object):
         first_particle_index_in_slice = first_index_in_bin[:-1]
         first_particle_index_in_slice = (first_particle_index_in_slice).astype(int)
          
-        self.edges[1:-1] = (self.Beam.z[(first_particle_index_in_slice - 1)[1:-1]] + self.Beam.z[first_particle_index_in_slice[1:-1]]) / 2
+        self.edges[1:-1] = (self.Beam.z[(first_particle_index_in_slice - 1)[1:-1]] + 
+                            self.Beam.z[first_particle_index_in_slice[1:-1]]) / 2
         self.edges[0], self.edges[-1] = self.cut_left, self.cut_right
         self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
     
 
     def track(self, Beam):
+        '''
+        *Track method in order to update the slicing along with the tracker.
+        This will update the beam properties (bunch length obtained from the
+        fit, etc.).*
+        '''
 
         if self.mode == 'const_charge':
             self.slice_constant_charge()
@@ -235,6 +253,14 @@ class Slices(object):
             self.slice_constant_space_histogram()
         else:
             raise RuntimeError('Choose one proper slicing mode!')
+        
+        if self.fit_option is 'gaussian':
+            self.gaussian_fit()
+            self.Beam.bl_gauss = self.bl_gauss
+            self.Beam.bp_gauss = self.bp_gauss
+            
+        if self.statistics_option is 'on':
+            self.compute_statistics()
 
 
     def sort_particles(self):
@@ -259,36 +285,28 @@ class Slices(object):
         *Gaussian fit of the profile, in order to get the bunch length and
         position.*
         '''
-        
-        pass
-    
-#         ##### Gaussian fit to theta-profile
-#         if gaussian_fit == "On":
-#             
-#             if slices == None:
-#                 warnings.filterwarnings("once")                
-#                 warnings.warn("WARNING: The Gaussian bunch length fit cannot be calculated without slices!")
-#             else:
-#                 try:
-#                     if slices.coord == "theta":
-#                         p0 = [max(slices.n_macroparticles), self.mean_theta, self.sigma_theta]                
-#                         pfit = curve_fit(gauss, slices.bins_centers, 
-#                                          slices.n_macroparticles, p0)[0]
-#                     elif slices.coord == "tau":
-#                         p0 = [max(slices.n_macroparticles), self.mean_tau, self.sigma_tau]                
-#                         pfit = curve_fit(gauss, slices.bins_centers, 
-#                                          slices.n_macroparticles, p0)[0]  
-#                     elif slices.coord == "z":
-#                         p0 = [max(slices.n_macroparticles), self.mean_z, self.sigma_z]                
-#                         pfit = curve_fit(gauss, slices.bins_centers, 
-#                                          slices.n_macroparticles, p0)[0]                                    
-#                     self.bl_gauss = 4 * abs(pfit[2]) 
-#                 except:
-#                     self.bl_gauss = 0 
+            
+        if self.bl_gauss is 0 and self.bp_gauss is 0:
+            if self.coord is 'theta':
+                p0 = [max(self.n_macroparticles), self.Beam.mean_theta, self.Beam.sigma_theta]
+            elif self.coord is 'tau':
+                p0 = [max(self.n_macroparticles), self.Beam.mean_tau, self.Beam.sigma_tau]
+            elif self.coord is 'z':
+                p0 = [max(self.n_macroparticles), self.Beam.mean_z, self.Beam.sigma_z]
+        else:
+            p0 = [max(self.n_macroparticles), self.bp_gauss, self.bl_gauss/4]
+                                                                
+        self.pfit_gauss = curve_fit(gauss, self.bins_centers, self.n_macroparticles, p0)[0] 
+        self.bl_gauss = 4 * abs(self.pfit_gauss[2]) 
+        self.bp_gauss = abs(self.pfit_gauss[1])
 
     
     
     def beam_spectrum(self, n_sampling_fft):
+        '''
+        *Beam spectrum calculation, to be extended (normalized profile, different
+        coordinates, etc.)*
+        '''
          
         spectrum = rfft(self.n_macroparticles, n_sampling_fft)
              
@@ -306,12 +324,40 @@ class Slices(object):
          
         if mode == 1:
             x = self.bins_centers
-            derivative = ndimage.gaussian_filter1d(self.n_macroparticles, sigma=1, order=1, mode='wrap') / dist_centers
+            derivative = ndimage.gaussian_filter1d(self.n_macroparticles, sigma=1, 
+                                                   order=1, mode='wrap') / dist_centers
         if mode == 2:
             x = self.bins_centers
             derivative = np.gradient(self.n_macroparticles, dist_centers)
              
         return x, derivative
+    
+    
+    def compute_statistics(self):
+        '''
+        *Compute statistics of each slice (average position of the particles
+        in a slice and sigma_rms.*
+        
+        *Improvement is needed in order to include losses, and transverse
+        statistics calculation. Be also careful that empty slices will
+        result with NaN values for the statistics.*
+        '''
+        
+        index = np.cumsum(np.append(0, self.n_macroparticles))
+
+        for i in xrange(self.n_slices):
+           
+            theta  = self.Beam.theta[index[i]:index[i + 1]]
+            dE = self.Beam.dE[index[i]:index[i + 1]]
+
+            self.mean_theta[i] = np.mean(theta)
+            self.mean_dE[i] = np.mean(dE)
+
+            self.sigma_theta[i] = np.std(theta)
+            self.sigma_dE[i] = np.std(dE)
+
+            self.eps_rms_l[i] = np.pi * self.sigma_dE[i] * self.sigma_theta[i] \
+                                * self.Beam.ring_radius / (self.Beam.beta_r * c)
      
      
     @property    
@@ -320,48 +366,39 @@ class Slices(object):
         the compute_statistics_option to be 'on', the head and tail are
         reversed compared to theta and an tau coordinates).*'''
         return - self.mean_theta * self.Beam.ring_radius 
-    @mean_z.setter
-    def mean_z(self, value):
-        self.mean_theta = - value / self.Beam.ring_radius 
      
     @property    
     def mean_tau(self):
         '''*Average tau position of the particles in each slice (needs 
         the compute_statistics_option to be 'on').*'''
         return self.mean_theta * self.Beam.ring_radius / (self.Beam.beta_rel * c)
-    @mean_tau.setter
-    def mean_tau(self, value):
-        self.mean_theta = value * self.Beam.beta_rel * c / self.Beam.ring_radius
+
  
     @property
     def mean_delta(self):
         '''*Average delta position of the particles in each slice (needs 
         the compute_statistics_option to be 'on').*'''
         return self.mean_dE / (self.Beam.beta_rel**2 * self.Beam.energy)
-    @mean_delta.setter
-    def mean_delta(self, value):
-        self.mean_dE = value * self.Beam.beta_rel**2 * self.Beam.energy
+
      
     @property    
     def sigma_z(self):
+        '''*RMS z position of the particles in each slice (needs 
+        the compute_statistics_option to be 'on').*'''
         return - self.sigma_theta * self.Beam.ring_radius 
-    @sigma_z.setter
-    def sigma_z(self, value):
-        self.sigma_theta = - value / self.Beam.ring_radius 
      
     @property
     def sigma_tau(self):
+        '''*RMS tau position of the particles in each slice (needs 
+        the compute_statistics_option to be 'on').*'''
         return self.sigma_theta * self.Beam.ring_radius / (self.Beam.beta_rel * c)
-    @sigma_tau.setter
-    def sigma_tau(self, value):
-        self.sigma_theta = value * self.Beam.beta_rel * c / self.Beam.ring_radius
      
     @property
     def sigma_delta(self):
+        '''*RMS delta position of the particles in each slice (needs 
+        the compute_statistics_option to be 'on').*'''
         return self.sigma_dE / (self.Beam.beta_rel**2 * self.Beam.energy)
-    @sigma_delta.setter
-    def sigma_delta(self, value):
-        self.sigma_dE = value * self.Beam.beta_rel**2 * self.Beam.energy
+
 
 
 def gauss(x, *p):

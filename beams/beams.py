@@ -54,6 +54,8 @@ class Beam(object):
         self.alpha_y = 0
         self.beta_y = 0
         self.epsn_y = 0
+        self.mean_theta = 0
+        self.mean_dE = 0
         self.sigma_theta = 0
         self.sigma_dE = 0
         
@@ -90,7 +92,6 @@ class Beam(object):
         self.theta = value * self.beta_r * c / self.ring_radius
 
     # Statistics
-    
     @property    
     def mean_z(self):
         return - self.mean_theta * self.ring_radius
@@ -134,7 +135,7 @@ class Beam(object):
         self.sigma_theta = value * self.beta_r * c / self.ring_radius
 
     
-    def longit_statistics(self, gaussian_fit="Off", slices=None):
+    def longit_statistics(self):
         
         # Statistics only for particles that are not flagged as lost
         itemindex = np.where(self.id != 0)[0]
@@ -147,44 +148,7 @@ class Beam(object):
         self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
                         * self.ring_radius / (self.beta_r * c) # in eVs
 
-        ##### Gaussian fit to theta-profile
-        if gaussian_fit == "On":
-            
-            if slices == None:
-                warnings.filterwarnings("once")                
-                warnings.warn("WARNING: The Gaussian bunch length fit cannot be calculated without slices!")
-            else:
-                try:
-                    if slices.coord == "theta":
-                        p0 = [max(slices.n_macroparticles), self.mean_theta, self.sigma_theta]                
-                        pfit = curve_fit(gauss, slices.bins_centers, 
-                                         slices.n_macroparticles, p0)[0]
-                    elif slices.coord == "tau":
-                        p0 = [max(slices.n_macroparticles), self.mean_tau, self.sigma_tau]                
-                        pfit = curve_fit(gauss, slices.bins_centers, 
-                                         slices.n_macroparticles, p0)[0]  
-                    elif slices.coord == "z":
-                        p0 = [max(slices.n_macroparticles), self.mean_z, self.sigma_z]                
-                        pfit = curve_fit(gauss, slices.bins_centers, 
-                                         slices.n_macroparticles, p0)[0]                                    
-                    self.bl_gauss = 4 * abs(pfit[2]) 
-                except:
-                    self.bl_gauss = 0 
-                    
-                                
-    def transv_statistics(self):
-        
-        self.mean_x = np.mean(self.x)
-        self.mean_xp = np.mean(self.xp)
-        self.mean_y = np.mean(self.y)
-        self.mean_yp = np.mean(self.yp)
-        self.sigma_x = np.std(self.x)
-        self.sigma_y = np.std(self.y)
-        self.epsn_x_xp = cp.emittance(self.x, self.xp) * self.gamma_r \
-                        * self.beta_r * 1e6
-        self.epsn_y_yp = cp.emittance(self.y, self.yp) * self.gamma_r \
-                        * self.beta_r * 1e6
-    
+
     def losses_separatrix(self, GeneralParameters, RFSectionParameters):
         
         itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
@@ -199,12 +163,6 @@ class Beam(object):
         
         if itemindex.size != 0:          
             self.id[itemindex] = 0       
-        
-        
-def gauss(x, *p):
-    A, x0, sx = p
-    return A*np.exp(-(x-x0)**2/2./sx**2) 
-                
 
 
 
