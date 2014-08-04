@@ -182,7 +182,7 @@ class Slices(object):
                                                 self.first_index_in_bin[-1]])
             
         self.n_macroparticles = np.diff(self.first_index_in_bin)
-        
+                
         
     def slice_constant_space_histogram(self, bunch):
         

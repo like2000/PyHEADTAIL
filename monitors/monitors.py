@@ -189,7 +189,7 @@ class SliceMonitor(Monitor):
     def create_data_tmp(self, h5group, dims):
         #h5group.create_dataset("bins_centers",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
-        
+       
     def write_data(self, data, h5group, i_steps, rank=1):
         if rank == 1:
             h5group["mean_x"][i_steps]   = data.mean_x
