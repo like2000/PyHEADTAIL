@@ -3,11 +3,13 @@ Implementation in this branch (intensity effects)
 
 - Major (feature implementation that may need further review and agreement):
   - Deleted transverse calculations from slices (need agreement with transverse development)
-  - Reorganisation of the Slices module
-  	- Constant_space_histogram is not faster than constant_space (and as it gives less info, can be removed)
+  - Reorganisation of the slices module
+  	- Constant_space_histogram is not faster than constant_space for 1e5 macroparticles, but faster for 1e6
   	- Constant_space is now the reference (and is constant frame also)
   	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
   	- Gaussian fit inside the slice module (and the track method updates the bunch length in Beams class)
+  - Reorganisation of the longitudinal_impedance module
+    - Renamed the classes
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - None
@@ -17,6 +19,9 @@ Implementation in this branch (intensity effects)
   - Added in the beam class if longitudinal/transverse is defined (only definition, not used for the moment)
   - Documentation:
   	- Slices module done
+  	
+- Thoughts
+  - Smoothing in the slicing can be done (by weighing the particles in the bins)
   
   
 Implementation in this branch (longitudinal tracking)

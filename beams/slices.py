@@ -68,7 +68,7 @@ class Slices(object):
         # Pre-processing the slicing (for const_space only)
         if self.cut_left is None and self.cut_right is None:
             self.set_longitudinal_cuts()
-        if self.mode is 'const_space' or self.mode is 'const_space_hist':
+        if self.mode is not 'const_charge':
             self.edges = np.linspace(self.cut_left, self.cut_right, self.n_slices + 1)
             self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
         
@@ -76,7 +76,10 @@ class Slices(object):
         #: sigma_theta and sigma_dE properties each turn.*
         self.statistics_option = statistics_option
         
-        if self.statistics_option is 'on':
+        if self.statistics_option is 'on' and self.mode is 'const_space_hist':
+            raise RuntimeError('Slice compute statistics does not work with \
+                                the const_space_hist mode !')
+        elif self.statistics_option is 'on':
             #: *Average theta position of the particles in each slice (needs 
             #: the compute_statistics_option to be 'on').*
             self.mean_theta = np.empty(n_slices)
@@ -185,7 +188,13 @@ class Slices(object):
 
     def slice_constant_space_histogram(self):
         '''
-        *Appears to be slower than the constant_space version, to be removed...*
+        *Constant space slicing with the built-in numpy histogram function,
+        with a constant frame. This gives the same profile as the 
+        slice_constant_space method, but no compute statistics possibilities
+        (the index of the particles is needed).*
+        
+        *This method is faster than the classic slice_constant_space method 
+        for high number of particles (~1e6).*
         '''
         
         if self.coord == 'theta':
