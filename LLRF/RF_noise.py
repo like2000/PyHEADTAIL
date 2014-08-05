@@ -20,14 +20,16 @@ class Phase_noise(object):
     Both hermitian to real and complex to complex FFTs are available.*
     '''    
     
-    def __init__(self, frequency_array, real_part_of_spectrum, seed=None):
+    def __init__(self, frequency_array, real_part_of_spectrum, seed1=None, 
+                 seed2=None):
 
         self.f = frequency_array # in Hz
         self.ReS = real_part_of_spectrum # in rad^2/Hz
         
         self.nf = len(self.ReS)
         self.fmax = self.f[self.nf-1]
-        self.seed = seed
+        self.seed1 = seed1
+        self.seed2 = seed2
         self.nt = 0
         self.dt = 0
         
@@ -86,8 +88,9 @@ class Phase_noise(object):
             w_k(t) = \exp(2 \pi i r_k^{(1)}) \sqrt{-2 \ln(r_k^{(2)})} \text{case 'c'},           
         
         '''
-        rnd.RandomState(self.seed)
+        rnd.seed(self.seed1)
         r1 = rnd.random_sample(self.nt)
+        rnd.seed(self.seed2)
         r2 = rnd.random_sample(self.nt)
         if transform==None or transform=='r':
             Gt = np.cos(2*np.pi*r1) * np.sqrt(-2*np.log(r2))     

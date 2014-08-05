@@ -3,6 +3,7 @@
 
 
 import time 
+import numpy as np
 
 from LLRF.RF_noise import *
 from input_parameters.general_parameters import *
@@ -13,6 +14,7 @@ from beams.longitudinal_distributions import *
 from beams.slices import *
 from monitors.monitors import *
 from longitudinal_plots.longitudinal_plots import *
+
 
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
@@ -30,15 +32,14 @@ gamma_t = 55.759505  # Transition gamma
 alpha = 1./gamma_t/gamma_t        # First order mom. comp. factor
 
 # Tracking details
-N_t = 20001           # Number of turns to track
-dt_plt = 2000         # Time steps between plots
-
+N_t = 201           # Number of turns to track
+dt_plt = 200         # Time steps between plots
 
 
 # Pre-processing: RF phase noise -----------------------------------------------
 f = np.arange(0, 5.6227612455e+03, 1.12455000e-02)
 spectrum = np.concatenate((1.11100000e-07 * np.ones(4980), np.zeros(495021)))
-noise_t, noise_dphi = Phase_noise(f, spectrum).spectrum_to_phase_noise()
+noise_t, noise_dphi = Phase_noise(f, spectrum, seed1=1234, seed2=7564).spectrum_to_phase_noise()
 
 # Hermitian vs complex FFT (gives the same result)
 # plot_noise_spectrum(f, spectrum, sampling=100)
@@ -48,17 +49,18 @@ noise_t, noise_dphi = Phase_noise(f, spectrum).spectrum_to_phase_noise()
 # f2 = np.arange(0, 2*5.62275e+03, 1.12455000e-02)
 # spectrum2 = np.concatenate(( 1.11100000e-07 * np.ones(4980), np.zeros(990040), 1.11100000e-07 * np.ones(4980) ))
 # noise_t2, noise_dphi2 = Phase_noise(f2, spectrum2).spectrum_to_phase_noise(transform='c')
-# os.rename('fig/noise_spectrum.png', 'fig/noise_spectrum_r.png')
-# os.rename('fig/phase_noise.png', 'fig/phase_noise_r.png')
+# os.rename('temp/noise_spectrum.png', 'temp/noise_spectrum_r.png')
+# os.rename('temp/phase_noise.png', 'temp/phase_noise_r.png')
 # plot_noise_spectrum(f2, spectrum2, sampling=100)
 # plot_phase_noise(noise_t2, noise_dphi2, sampling=100)
 # print "Sigma of noise 2 is %.4e" %np.std(noise_dphi)
 # print "Time step of noise 2 is %.4e" %noise_t[1]
-# os.rename('fig/noise_spectrum.png', 'fig/noise_spectrum_c.png')
-# os.rename('fig/phase_noise.png', 'fig/phase_noise_c.png')
+# os.rename('temp/noise_spectrum.png', 'temp/noise_spectrum_c.png')
+# os.rename('temp/phase_noise.png', 'temp/phase_noise_c.png')
 
 plot_noise_spectrum(f, spectrum, sampling=100)
 plot_phase_noise(noise_t, noise_dphi, sampling=100)
+#plot_phase_noise(noise_t[0:10000], noise_dphi[0:10000], sampling=1)
 print "   Sigma of RF noise is %.4e" %np.std(noise_dphi)
 print "   Time step of RF noise is %.4e" %noise_t[1]
 print ""
@@ -81,9 +83,14 @@ print "General and RF parameters set..."
 
 # Define beam and distribution
 beam = Beam(general_params, N_p, N_b)
-longitudinal_gaussian_matched(general_params, rf_params, beam, tau_0, 
-                              unit='ns', reinsertion = 'on')
-
+# Generate new distribution
+#longitudinal_gaussian_matched(general_params, rf_params, beam, tau_0, 
+#                              unit='ns', reinsertion = 'on')
+#np.savetxt('initial_long_distr.dat', np.c_[beam.theta, beam.dE], fmt='%.8e')
+# Read in old distribution
+beam.theta, beam.dE = np.loadtxt('initial_long_distr.dat', unpack=True)
+print beam.theta[0:10]
+print beam.dE[0:10]
 print "Beam set and distribution generated..."
 
 
@@ -125,6 +132,7 @@ for i in range(N_t):
         plot_long_phase_space(beam, general_params, rf_params, 0, 0.0001763, -450, 450, separatrix_plot = True)
         plot_bunch_length_evol(beam, 'output_data', general_params, i, unit='ns')
         plot_bunch_length_evol_gaussian(beam, 'output_data', general_params, slice_beam, i, unit='ns')
+        plot_beam_profile(i, general_params, slice_beam)
 
     # Track
     for m in map_:
