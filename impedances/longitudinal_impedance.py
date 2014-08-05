@@ -365,59 +365,111 @@ class InputTable(object):
     
 class BBResonators(object):
     '''
-    *Intensity effects from resonators, analytic formulas for both wake
-    and impedance..*
+    *Impedance contribution from broadband resonators, analytic formulas for 
+    both wake and impedance. The resonant modes (and the corresponding R and Q) 
+    can be inputed as a list in case of several modes.*
+    
+    *The model is the following:*
+    
+    .. math::
+    
+        Z(f) = \\frac{R}{1 + j Q \\left(\\frac{f}{f_r}-\\frac{f_r}{f}\\right)}
+        
+    .. math::
+        
+        W(t>0) = 2\\alpha R e^{-\\alpha t}\\left(\\cos{\\bar{\\omega}t} - \\frac{\\alpha}{\\bar{\\omega}}\\sin{\\bar{\\omega}t}\\right)
+
+        W(0) = \\alpha R
+        
+    .. math::
+        
+        \\omega_r = 2 \\pi f_r
+        
+        \\alpha = \\frac{\\omega_r}{2Q}
+        
+        \\bar{\\omega} = \\sqrt{\\omega_r^2 - \\alpha^2}
+
+        
     '''
     
     def __init__(self, R_S, frequency_R, Q):
-
+        
+        #: *Shunt impepdance in* [:math:`\Omega`]
         self.R_S = np.array([R_S]).flatten()
-        self.omega_R = 2 *np.pi * np.array([frequency_R]).flatten()
+        
+        #: *Resonant frequency in [Hz]*
+        self.frequency_R = np.array([frequency_R]).flatten()
+        
+        #: *Resonant angular frequency in [rad/s]*
+        self.omega_R = 2 *np.pi * self.frequency_R
+        
+        #: *Quality factor*
         self.Q = np.array([Q]).flatten()
+        
+        #: *Number of resonant modes*
         self.n_resonators = len(self.R_S)
         
-    
-    def wake_calc(self, dtau):
+        #: *Time array of the wake in [s]*
+        self.time_array = 0
         
-        self.wake = np.zeros(len(dtau))
+        #: *Wake array in* [:math:`\Omega / s`]
+        self.wake = 0
+        
+        #: *Frequency array of the impedance in [Hz]*
+        self.freq_array = 0
+        
+        #: *Impedance array in* [:math:`\Omega`]
+        self.impedance = 0
+
+
+    def wake_calc(self, time_array):
+        '''
+        *Wake calculation method as a function of time.*
+        '''
+        
+        self.time_array = time_array
+        self.wake = np.zeros(len(self.time_array))
         
         for i in range(0, self.n_resonators):
        
             alpha = self.omega_R[i] / (2 * self.Q[i])
             omega_bar = np.sqrt(self.omega_R[i] ** 2 - alpha ** 2)
             
-            self.wake += (np.sign(dtau) + 1) * self.R_S[i] * alpha * np.exp(-alpha * 
-                    dtau) * (np.cos(omega_bar * dtau) - alpha / omega_bar * 
-                    np.sin(omega_bar * dtau))
-       
-        return self.wake
+            self.wake += (np.sign(self.time_array) + 1) * self.R_S[i] * alpha * \
+                         np.exp(-alpha * self.time_array) * \
+                         (np.cos(omega_bar * self.time_array) - 
+                          alpha / omega_bar * np.sin(omega_bar * self.time_array))
     
     
-    def imped_calc(self, frequency):
+    def imped_calc(self, freq_array):
+        '''
+        *Impedance calculation method as a function of frequency.*
+        '''
         
-        self.impedance = np.zeros(len(frequency)) + 0j
-  
-        for i in range(0, len(self.R_S)):
+        self.freq_array = freq_array
+        self.impedance = np.zeros(len(self.freq_array)) + 0j
+        
+        for i in range(0, self.n_resonators):
             
-            self.impedance[1:] +=  self.R_S[i] / (1 + 1j * self.Q[i] * \
-                    (-self.omega_R[i] / (2 * np.pi *frequency[1:]) + (2 * np.pi *frequency[1:]) / self.omega_R[i]))
-        
-        return self.impedance
+            self.impedance[1:] += self.R_S[i] / (1 + 1j * self.Q[i] * 
+                                                 ((self.freq_array[1:] / self.frequency_R[i]) - 
+                                                  (self.frequency_R[i] / self.freq_array[1:])))
+ 
  
 
 class TravelingWaveCavity(object):
     '''
-    *Intensity effects from traveling wave cavities, analytic formulas for both wake
-    and impedance. The resonance modes (and the corresponding R and a) can
-    be inputed as a list in case of several modes.*
+    *Impedance contribution from traveling wave cavities, analytic formulas for 
+    both wake and impedance. The resonance modes (and the corresponding R and a) 
+    can be inputed as a list in case of several modes.*
     
     *The model is the following:*
     
     .. math::
     
-        Z_+ = R \\left[\\left(\\frac{\\sin{\\frac{a\\left(f-f_r\\right)}{2}}}{\\frac{a\\left(f-f_r\\right)}{2}}\\right)^2 - 2i \\frac{a\\left(f-f_r\\right) - \\sin{a\\left(f-f_r\\right)}}{\\left(a\\left(f-f_r\\right)\\right)^2}\\right]
+        Z_+(f) = R \\left[\\left(\\frac{\\sin{\\frac{a\\left(f-f_r\\right)}{2}}}{\\frac{a\\left(f-f_r\\right)}{2}}\\right)^2 - 2i \\frac{a\\left(f-f_r\\right) - \\sin{a\\left(f-f_r\\right)}}{\\left(a\\left(f-f_r\\right)\\right)^2}\\right]
         
-        Z_- = R \\left[\\left(\\frac{\\sin{\\frac{a\\left(f+f_r\\right)}{2}}}{\\frac{a\\left(f+f_r\\right)}{2}}\\right)^2 - 2i \\frac{a\\left(f+f_r\\right) - \\sin{a\\left(f+f_r\\right)}}{\\left(a\\left(f+f_r\\right)\\right)^2}\\right]
+        Z_-(f) = R \\left[\\left(\\frac{\\sin{\\frac{a\\left(f+f_r\\right)}{2}}}{\\frac{a\\left(f+f_r\\right)}{2}}\\right)^2 - 2i \\frac{a\\left(f+f_r\\right) - \\sin{a\\left(f+f_r\\right)}}{\\left(a\\left(f+f_r\\right)\\right)^2}\\right]
         
         Z = Z_+ + Z_-
         
@@ -453,7 +505,7 @@ class TravelingWaveCavity(object):
         #: *Wake array in* [:math:`\Omega / s`]
         self.wake = 0
         
-        #: *Time array of the impedance in [Hz]*
+        #: *Frequency array of the impedance in [Hz]*
         self.freq_array = 0
         
         #: *Impedance array in* [:math:`\Omega`]
@@ -477,7 +529,9 @@ class TravelingWaveCavity(object):
     
     
     def imped_calc(self, freq_array):
-        
+        '''
+        *Impedance calculation method as a function of frequency.*
+        '''
         
         self.freq_array = freq_array
         self.impedance = np.zeros(len(self.freq_array)) + 0j

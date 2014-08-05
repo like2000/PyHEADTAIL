@@ -12,7 +12,9 @@ Implementation in this branch (intensity effects)
     - Renamed the classes
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
-  - None
+  - PEP8 corrections:
+  	- Slices module
+  	- Impedance module
   
 - Minor (can be implemented in a transparent way):
   - Corrected cut_left and cut_right calculation for n_sigma (divided by 2)
