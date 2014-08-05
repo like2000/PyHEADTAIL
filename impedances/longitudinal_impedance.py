@@ -556,19 +556,34 @@ class TravelingWaveCavity(object):
 
 class InductiveImpedance(object):
     '''
-    *Longitudinal inductive impedance.*
+    *Constant imaginary Z/n impedance. This needs to be extended to the
+    cases where there is acceleration as the revolution frequency f0 used
+    in the calculation of n=f/f0 is changing.*
     '''
-    def __init__(self, Z_over_frequency):
-
-        self.Z_over_frequency = Z_over_frequency
+    
+    def __init__(self, Z_over_n, revolution_frequency):
+        
+        #: *Imaginary Z/n in* [:math:`\Omega / Hz`]
+        self.Z_over_n = Z_over_n
+        
+        #: *Revolution frequency in [Hz]*
+        self.revolution_frequency = revolution_frequency
+        
+        #: *Frequency array of the impedance in [Hz]*
+        self.freq_array = 0
+        
+        #: *Impedance array in* [:math:`\Omega`]
+        self.impedance = 0
         
         
-    def imped_calc(self, frequency):    
+    def imped_calc(self, freq_array):
+        '''
+        *Impedance calculation method as a function of frequency.*
+        '''    
         
-        self.impedance = frequency * self.Z_over_frequency * 1j
-        
-        return self.impedance
-
+        self.freq_array = freq_array
+        self.impedance = (self.freq_array / self.revolution_frequency) * \
+                         self.Z_over_n * 1j
 
 
  
