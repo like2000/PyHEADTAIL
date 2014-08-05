@@ -12,7 +12,7 @@ from numpy.fft import irfft, fftfreq
 import math
 
 
-class Induced_voltage_from_wake(object):
+class InducedVoltageTime(object):
     '''
     *Induced voltage derived from the sum of several wake fields.
     Apart from further optimisations, note that:*\n
@@ -145,7 +145,7 @@ class Induced_voltage_from_wake(object):
             convolve(self.wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)] 
     
     
-class Induced_voltage_from_impedance(object):
+class InducedVoltageFreq(object):
     '''
     *Induced voltage derived from the sum of several impedances.*
     '''
@@ -272,9 +272,9 @@ class Induced_voltage_from_impedance(object):
 def update_without_interpolation(bunch, induced_voltage, slices):
     '''
     *Other method to update the energy of the particles; this method can be used
-     only if one has not used slices.mode == const_space_hist for the slicing.
-     Maybe this method could be optimised through Cython or trying to avoid
-     the for loop.*
+    only if one has not used slices.mode == const_space_hist for the slicing.
+    Maybe this method could be optimised through Cython or trying to avoid
+    the for loop.*
     '''
     
     for i in range(0, slices.n_slices):
@@ -286,9 +286,9 @@ def update_without_interpolation(bunch, induced_voltage, slices):
 def update_with_interpolation(bunch, induced_voltage, slices):
     '''
     *Method to update the energy of the particles through interpolation of
-     the induced voltage. Note that there is a fix to prevent that one neglects
-     all the particles situated between the first edge and the first slice center
-     and between the last edge and the last slice center*
+    the induced voltage. Note that there is a fix to prevent that one neglects
+    all the particles situated between the first edge and the first slice center
+    and between the last edge and the last slice center*
     '''
     
     temp1 = slices.bins_centers[0]
@@ -316,7 +316,7 @@ def update_with_interpolation(bunch, induced_voltage, slices):
     bunch.dE += induced_voltage_interpolated
     
     
-class Longitudinal_table(object):
+class InputTable(object):
     '''
     *Intensity effects from impedance and wake tables.*
     '''
@@ -363,16 +363,14 @@ class Longitudinal_table(object):
         return self.impedance
     
     
-class Longitudinal_resonators(object):
+class BBResonators(object):
     '''
     *Intensity effects from resonators, analytic formulas for both wake
     and impedance..*
     '''
     
     def __init__(self, R_S, frequency_R, Q):
-        '''
-        Constructor
-        '''
+
         self.R_S = np.array([R_S]).flatten()
         self.omega_R = 2 *np.pi * np.array([frequency_R]).flatten()
         self.Q = np.array([Q]).flatten()
@@ -407,65 +405,107 @@ class Longitudinal_resonators(object):
         return self.impedance
  
 
-class Longitudinal_travelling_waves(object):
+class TravelingWaveCavity(object):
     '''
-    *Intensity effects from travelling waves, analytic formulas for both wake
-    and impedance.*
+    *Intensity effects from traveling wave cavities, analytic formulas for both wake
+    and impedance. The resonance modes (and the corresponding R and a) can
+    be inputed as a list in case of several modes.*
+    
+    *The model is the following:*
+    
+    .. math::
+    
+        Z_+ = R \\left[\\left(\\frac{\\sin{\\frac{a\\left(f-f_r\\right)}{2}}}{\\frac{a\\left(f-f_r\\right)}{2}}\\right)^2 - 2i \\frac{a\\left(f-f_r\\right) - \\sin{a\\left(f-f_r\\right)}}{\\left(a\\left(f-f_r\\right)\\right)^2}\\right]
+        
+        Z_- = R \\left[\\left(\\frac{\\sin{\\frac{a\\left(f+f_r\\right)}{2}}}{\\frac{a\\left(f+f_r\\right)}{2}}\\right)^2 - 2i \\frac{a\\left(f+f_r\\right) - \\sin{a\\left(f+f_r\\right)}}{\\left(a\\left(f+f_r\\right)\\right)^2}\\right]
+        
+        Z = Z_+ + Z_-
+        
+    .. math::
+        
+        W(0<t<\\tilde{a}) = \\frac{4R}{\\tilde{a}}\\left(1-\\frac{t}{\\tilde{a}}\\right)\\cos{\\omega_r t} 
+
+        W(0) = \\frac{2R}{\\tilde{a}}
+        
+    .. math::
+        
+        a = 2 \\pi \\tilde{a}
+        
     '''
+    
     def __init__(self, R_S, frequency_R, a_factor):
-        '''
-        Constructor
-        '''
+        
+        #: *Shunt impepdance in* [:math:`\Omega`]
         self.R_S = np.array([R_S]).flatten()
+        
+        #: *Resonant frequency in [Hz]*
         self.frequency_R = np.array([frequency_R]).flatten()
+        
+        #: *Damping time a in [s]*
         self.a_factor = np.array([a_factor]).flatten()
+        
+        #: *Number of resonant modes*
         self.n_twc = len(self.R_S)
         
-    
-    def wake_calc(self, dtau):
+        #: *Time array of the wake in [s]*
+        self.time_array = 0
         
-        self.wake = np.zeros(len(dtau))
+        #: *Wake array in* [:math:`\Omega / s`]
+        self.wake = 0
+        
+        #: *Time array of the impedance in [Hz]*
+        self.freq_array = 0
+        
+        #: *Impedance array in* [:math:`\Omega`]
+        self.impedance = 0
+        
+    
+    def wake_calc(self, time_array):
+        '''
+        *Wake calculation method as a function of time.*
+        '''
+        
+        self.time_array = time_array
+        self.wake = np.zeros(len(self.time_array))
         
         for i in range(0, self.n_twc):
-       
             a_tilde = self.a_factor[i] / (2 * np.pi)
-            indexes = np.where(dtau <= a_tilde)
-            self.wake[indexes] += (np.sign(dtau[indexes]) + 1) * 2 * self.R_S[i] \
-                / a_tilde * (1 - dtau[indexes] / a_tilde) * np.cos(2 * np.pi * 
-                self.frequency_R[i] * dtau[indexes])
-                 
-        return self.wake
+            indexes = np.where(self.time_array <= a_tilde)
+            self.wake[indexes] += (np.sign(self.time_array[indexes]) + 1) * 2 * self.R_S[i] / a_tilde * \
+                                  (1 - self.time_array[indexes] / a_tilde) * \
+                                  np.cos(2 * np.pi * self.frequency_R[i] * self.time_array[indexes])
     
     
-    def imped_calc(self, frequency):
+    def imped_calc(self, freq_array):
         
-        self.impedance = np.zeros(len(frequency)) + 0j
+        
+        self.freq_array = freq_array
+        self.impedance = np.zeros(len(self.freq_array)) + 0j
         
         for i in range(0, self.n_twc):
             
-            self.impedance +=  self.R_S[i] * ((np.sin(self.a_factor[i] / 2 * 
-                (frequency - self.frequency_R[i])) / (self.a_factor[i] / 2 * (frequency - 
-                self.frequency_R[i])))**2 - 2j*(self.a_factor[i] * (frequency - 
-                self.frequency_R[i]) - np.sin(self.a_factor[i] * (frequency - 
-                self.frequency_R[i]))) / (self.a_factor[i] * (frequency - 
-                self.frequency_R[i]))**2) + self.R_S[i] * ((np.sin(self.a_factor[i] 
-                / 2 * (frequency + self.frequency_R[i])) / (self.a_factor[i] / 2 * (
-                frequency + self.frequency_R[i])))**2 - 2j*(self.a_factor[i] * (frequency 
-                + self.frequency_R[i]) - np.sin(self.a_factor[i] * (frequency + 
-                self.frequency_R[i]))) / (self.a_factor[i] * (frequency + 
-                self.frequency_R[i]))**2)
+            Zplus = self.R_S[i] * ((np.sin(self.a_factor[i] / 2 * (self.freq_array - self.frequency_R[i])) / 
+                                    (self.a_factor[i] / 2 * (self.freq_array - self.frequency_R[i])))**2 - 
+                                   2j*(self.a_factor[i] * (self.freq_array - self.frequency_R[i]) - 
+                                       np.sin(self.a_factor[i] * (self.freq_array - self.frequency_R[i]))) / \
+                                    (self.a_factor[i] * (self.freq_array - self.frequency_R[i]))**2)
             
-        return self.impedance       
+            Zminus = self.R_S[i] * ((np.sin(self.a_factor[i] / 2 * (self.freq_array + self.frequency_R[i])) / 
+                                    (self.a_factor[i] / 2 * (self.freq_array + self.frequency_R[i])))**2 - 
+                                   2j*(self.a_factor[i] * (self.freq_array + self.frequency_R[i]) - 
+                                       np.sin(self.a_factor[i] * (self.freq_array + self.frequency_R[i]))) / \
+                                    (self.a_factor[i] * (self.freq_array + self.frequency_R[i]))**2)
+            
+            self.impedance += Zplus + Zminus   
+    
     
 
-class Longitudinal_inductive_impedance(object):
+class InductiveImpedance(object):
     '''
     *Longitudinal inductive impedance.*
     '''
     def __init__(self, Z_over_frequency):
-        '''
-        Constructor
-        '''
+
         self.Z_over_frequency = Z_over_frequency
         
         

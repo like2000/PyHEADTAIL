@@ -19,6 +19,7 @@ Implementation in this branch (intensity effects)
   - Added in the beam class if longitudinal/transverse is defined (only definition, not used for the moment)
   - Documentation:
   	- Slices module done
+  	- Impedance (Work in progress)
   	
 - Thoughts
   - Smoothing in the slicing can be done (by weighing the particles in the bins)
