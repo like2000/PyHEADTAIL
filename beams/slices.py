@@ -50,11 +50,11 @@ class Slices(object):
         #: any input of cut_left and cut_right).*
         self.n_sigma = n_sigma
         
-        #: | *Type of coordinates in which the slicing is done.*
-        #: | *The options are: 'theta' (default), 'tau', 'z' (default if constant_charge).*
+        #: | *Type of coordinates in which the cuts are given.*
+        #: | *The options are: 'theta' (default), 'tau', 'z'.*
         self.coord = coord
-        if self.mode is 'const_charge':
-            self.coord = 'z'
+#         if self.mode is 'const_charge':
+#             self.coord = 'z'
         
         #: *Number of macroparticles per slice (~profile).*
         self.n_macroparticles = np.empty(n_slices)
@@ -68,6 +68,15 @@ class Slices(object):
         # Pre-processing the slicing (for const_space only)
         if self.cut_left is None and self.cut_right is None:
             self.set_longitudinal_cuts()
+        if self.coord == "theta":
+            self.cut_left = cut_left
+            self.cut_right = cut_right
+        elif self.coord == "z":
+            self.cut_left = cut_left / self.Beam.ring_radius 
+            self.cut_right = cut_right / self.Beam.ring_radius 
+        elif self.coord == 'tau':
+            self.cut_left = cut_left / (self.Beam.ring_radius / (self.Beam.beta_rel * c))
+            self.cut_right = cut_right / (self.Beam.ring_radius / (self.Beam.beta_rel * c))
         if self.mode is not 'const_charge':
             self.edges = np.linspace(self.cut_left, self.cut_right, self.n_slices + 1)
             self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
@@ -132,32 +141,40 @@ class Slices(object):
             
             self.sort_particles()
             
-            if self.coord == "theta":
-                self.cut_left = self.Beam.theta[0] - 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
-                self.cut_right = self.Beam.theta[-1] + 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
-            elif self.coord == "z":
-                self.cut_left = self.Beam.z[0] - 0.05*(self.Beam.z[-1] - self.Beam.z[0])
-                self.cut_right = self.Beam.z[-1] + 0.05*(self.Beam.z[-1] - self.Beam.z[0])
-            else:
-                self.cut_left = self.Beam.tau[0] - 0.05*(self.Beam.tau[-1] - self.Beam.tau[0])
-                self.cut_right = self.Beam.tau[-1] + 0.05*(self.Beam.tau[-1] - self.Beam.tau[0])
+#             if self.coord == "theta":
+#                 self.cut_left = self.Beam.theta[0] - 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
+#                 self.cut_right = self.Beam.theta[-1] + 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
+#             elif self.coord == "z":
+#                 self.cut_left = self.Beam.z[0] - 0.05*(self.Beam.z[-1] - self.Beam.z[0])
+#                 self.cut_right = self.Beam.z[-1] + 0.05*(self.Beam.z[-1] - self.Beam.z[0])
+#             else:
+#                 self.cut_left = self.Beam.tau[0] - 0.05*(self.Beam.tau[-1] - self.Beam.tau[0])
+#                 self.cut_right = self.Beam.tau[-1] + 0.05*(self.Beam.tau[-1] - self.Beam.tau[0])
+
+            self.cut_left = self.Beam.theta[0] - 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
+            self.cut_right = self.Beam.theta[-1] + 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
                 
         else:
-            if self.coord == "theta":
-                mean_theta = np.mean(self.Beam.theta)
-                sigma_theta = np.std(self.Beam.theta)
-                self.cut_left = mean_theta - self.n_sigma * sigma_theta / 2
-                self.cut_right = mean_theta + self.n_sigma * sigma_theta / 2
-            elif self.coord == "z":
-                mean_z = np.mean(self.Beam.z)
-                sigma_z = np.std(self.Beam.z)
-                self.cut_left = mean_z - self.n_sigma * sigma_z / 2
-                self.cut_right = mean_z + self.n_sigma * sigma_z / 2
-            else:
-                mean_tau = np.mean(self.Beam.tau)
-                sigma_tau = np.std(self.Beam.tau)
-                self.cut_left = mean_tau - self.n_sigma * sigma_tau / 2
-                self.cut_right = mean_tau + self.n_sigma * sigma_tau / 2
+#             if self.coord == "theta":
+#                 mean_theta = np.mean(self.Beam.theta)
+#                 sigma_theta = np.std(self.Beam.theta)
+#                 self.cut_left = mean_theta - self.n_sigma * sigma_theta / 2
+#                 self.cut_right = mean_theta + self.n_sigma * sigma_theta / 2
+#             elif self.coord == "z":
+#                 mean_z = np.mean(self.Beam.z)
+#                 sigma_z = np.std(self.Beam.z)
+#                 self.cut_left = mean_z - self.n_sigma * sigma_z / 2
+#                 self.cut_right = mean_z + self.n_sigma * sigma_z / 2
+#             else:
+#                 mean_tau = np.mean(self.Beam.tau)
+#                 sigma_tau = np.std(self.Beam.tau)
+#                 self.cut_left = mean_tau - self.n_sigma * sigma_tau / 2
+#                 self.cut_right = mean_tau + self.n_sigma * sigma_tau / 2
+                
+            mean_theta = np.mean(self.Beam.theta)
+            sigma_theta = np.std(self.Beam.theta)
+            self.cut_left = mean_theta - self.n_sigma * sigma_theta / 2
+            self.cut_right = mean_theta + self.n_sigma * sigma_theta / 2
 
 
     def slice_constant_space(self):
@@ -176,12 +193,14 @@ class Slices(object):
 
         self.sort_particles()
 
-        if self.coord == 'z':
-            first_index_in_bin = np.searchsorted(self.Beam.z, self.edges)
-        elif self.coord == 'theta':
-            first_index_in_bin = np.searchsorted(self.Beam.theta, self.edges)
-        elif self.coord == 'tau':
-            first_index_in_bin = np.searchsorted(self.Beam.tau, self.edges)
+#         if self.coord == 'z':
+#             first_index_in_bin = np.searchsorted(self.Beam.z, self.edges)
+#         elif self.coord == 'theta':
+#             first_index_in_bin = np.searchsorted(self.Beam.theta, self.edges)
+#         elif self.coord == 'tau':
+#             first_index_in_bin = np.searchsorted(self.Beam.tau, self.edges)
+            
+        first_index_in_bin = np.searchsorted(self.Beam.theta, self.edges)
             
         self.n_macroparticles = np.diff(first_index_in_bin)
         
@@ -197,54 +216,57 @@ class Slices(object):
         for high number of particles (~1e6).*
         '''
         
-        if self.coord == 'theta':
-            self.n_macroparticles = np.histogram(self.Beam.theta, self.edges)[0]
-        elif self.coord == 'z':
-            self.n_macroparticles = np.histogram(self.Beam.z, self.edges)[0]
-        else:
-            self.n_macroparticles = np.histogram(self.Beam.tau, self.edges)[0]
+#         if self.coord == 'theta':
+#             self.n_macroparticles = np.histogram(self.Beam.theta, self.edges)[0]
+#         elif self.coord == 'z':
+#             self.n_macroparticles = np.histogram(self.Beam.z, self.edges)[0]
+#         else:
+#             self.n_macroparticles = np.histogram(self.Beam.tau, self.edges)[0]
+            
+        self.n_macroparticles = np.histogram(self.Beam.theta, self.edges)[0]
  
         
-    def slice_constant_charge(self):
-        '''
-        *Constant charge slicing. This method consist in slicing with varying
-        bin sizes that adapts in order to have the same number of particles
-        in each bin*
-        
-        *Must be updated in order to take into account potential losses (in order
-        for the frame size not to diverge) and for different types of coordinates
-        (only z coordinate for the moment)*
-        '''
-        
-        self.coord = 'z'
-        self.cut_left = None
-        self.cut_right = None
-        self.n_sigma = None
-        
-        self.set_longitudinal_cuts()
-        
-        # 1. n_macroparticles - distribute macroparticles uniformly along slices.
-        # Must be integer. Distribute remaining particles randomly among slices with indices 'ix'.
-        n_cut_left = 0 # number of particles cut left, to be adapted for losses
-        n_cut_right = 0 # number of particles cut right, to be adapted for losses
-          
-        q0 = self.Beam.n_macroparticles - n_cut_right - n_cut_left
-         
-        ix = sample(range(self.n_slices), q0 % self.n_slices)
-        self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices)
-        self.n_macroparticles[ix] += 1
-        
-        # 2. edges
-        # Get indices of the particles defining the bin edges
-        n_macroparticles_all = np.hstack((n_cut_left, self.n_macroparticles, n_cut_right))
-        first_index_in_bin = np.cumsum(n_macroparticles_all)
-        first_particle_index_in_slice = first_index_in_bin[:-1]
-        first_particle_index_in_slice = (first_particle_index_in_slice).astype(int)
-         
-        self.edges[1:-1] = (self.Beam.z[(first_particle_index_in_slice - 1)[1:-1]] + 
-                            self.Beam.z[first_particle_index_in_slice[1:-1]]) / 2
-        self.edges[0], self.edges[-1] = self.cut_left, self.cut_right
-        self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
+#     def slice_constant_charge(self):
+#         '''
+#         *Constant charge slicing. This method consist in slicing with varying
+#         bin sizes that adapts in order to have the same number of particles
+#         in each bin*
+#         
+#         *Must be updated in order to take into account potential losses (in order
+#         for the frame size not to diverge). The slicing is done in the 'z'
+#         coordinate, but should be optimized in order to be done in 'theta'
+#         and the results then converted in 'z'*
+#         '''
+#         
+#         self.coord = 'z'
+#         self.cut_left = None
+#         self.cut_right = None
+#         self.n_sigma = None
+#         
+#         self.set_longitudinal_cuts()
+#         
+#         # 1. n_macroparticles - distribute macroparticles uniformly along slices.
+#         # Must be integer. Distribute remaining particles randomly among slices with indices 'ix'.
+#         n_cut_left = 0 # number of particles cut left, to be adapted for losses
+#         n_cut_right = 0 # number of particles cut right, to be adapted for losses
+#           
+#         q0 = self.Beam.n_macroparticles - n_cut_right - n_cut_left
+#          
+#         ix = sample(range(self.n_slices), q0 % self.n_slices)
+#         self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices)
+#         self.n_macroparticles[ix] += 1
+#         
+#         # 2. edges
+#         # Get indices of the particles defining the bin edges
+#         n_macroparticles_all = np.hstack((n_cut_left, self.n_macroparticles, n_cut_right))
+#         first_index_in_bin = np.cumsum(n_macroparticles_all)
+#         first_particle_index_in_slice = first_index_in_bin[:-1]
+#         first_particle_index_in_slice = (first_particle_index_in_slice).astype(int)
+#          
+#         self.edges[1:-1] = (self.Beam.z[(first_particle_index_in_slice - 1)[1:-1]] + 
+#                             self.Beam.z[first_particle_index_in_slice[1:-1]]) / 2
+#         self.edges[0], self.edges[-1] = self.cut_left, self.cut_right
+#         self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
     
 
     def track(self, Beam):
@@ -255,7 +277,8 @@ class Slices(object):
         '''
 
         if self.mode == 'const_charge':
-            self.slice_constant_charge()
+            raise RuntimeError('const_charge still needs some corrections, sorry...')
+#             self.slice_constant_charge()
         elif self.mode == 'const_space':
             self.slice_constant_space()
         elif self.mode == 'const_space_hist':
@@ -278,11 +301,13 @@ class Slices(object):
         | *'theta' and 'tau' type of coordinates are treated differently that 'z' as head and tail are reversed.*
         '''
                
-        if self.coord == 'theta' or self.coord == 'tau':  
-            argsorted = np.argsort(self.Beam.theta)
+#         if self.coord == 'theta' or self.coord == 'tau':  
+#             argsorted = np.argsort(self.Beam.theta)
+#             
+#         elif self.coord == 'z':
+#             argsorted = np.argsort(self.Beam.z)
             
-        elif self.coord == 'z':
-            argsorted = np.argsort(self.Beam.z)
+        argsorted = np.argsort(self.Beam.theta)
             
         self.Beam.theta = self.Beam.theta.take(argsorted)
         self.Beam.dE = self.Beam.dE.take(argsorted)
@@ -296,12 +321,13 @@ class Slices(object):
         '''
             
         if self.bl_gauss is 0 and self.bp_gauss is 0:
-            if self.coord is 'theta':
-                p0 = [max(self.n_macroparticles), self.Beam.mean_theta, self.Beam.sigma_theta]
-            elif self.coord is 'tau':
-                p0 = [max(self.n_macroparticles), self.Beam.mean_tau, self.Beam.sigma_tau]
-            elif self.coord is 'z':
-                p0 = [max(self.n_macroparticles), self.Beam.mean_z, self.Beam.sigma_z]
+#             if self.coord is 'theta':
+#                 p0 = [max(self.n_macroparticles), self.Beam.mean_theta, self.Beam.sigma_theta]
+#             elif self.coord is 'tau':
+#                 p0 = [max(self.n_macroparticles), self.Beam.mean_tau, self.Beam.sigma_tau]
+#             elif self.coord is 'z':
+#                 p0 = [max(self.n_macroparticles), self.Beam.mean_z, self.Beam.sigma_z]
+            p0 = [max(self.n_macroparticles), self.Beam.mean_z, self.Beam.sigma_z]
         else:
             p0 = [max(self.n_macroparticles), self.bp_gauss, self.bl_gauss/4]
                                                                 
