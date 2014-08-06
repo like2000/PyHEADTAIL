@@ -6,13 +6,8 @@
 
 from __future__ import division
 import numpy as np
-import warnings
-import sys
-from scipy.constants import c, e, m_p
-import cython_functions.stats as cp
-from scipy.optimize import curve_fit
+from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
-from scipy import ndimage
 
 
 class Beam(object):
@@ -20,7 +15,6 @@ class Beam(object):
     def __init__(self, General_parameters, n_macroparticles, intensity):
         
         # Beam and ring-dependent properties
-  
         self.mass = General_parameters.mass
         self.charge = General_parameters.charge
         self.ring_radius = General_parameters.ring_radius
@@ -36,24 +30,10 @@ class Beam(object):
         self.momentum = General_parameters.momentum[0][0] 
 
         # Beam coordinates
-        self.x = np.empty([n_macroparticles])
-        self.xp = np.empty([n_macroparticles])
-        self.y = np.empty([n_macroparticles])
-        self.yp = np.empty([n_macroparticles])
         self.theta = np.empty([n_macroparticles])
         self.dE = np.empty([n_macroparticles])
         
-        self.transverse_is_defined = False
-        self.longitudinal_is_defined = False
-        
         # Transverse and longitudinal properties, statistics       
-        
-        self.alpha_x = 0
-        self.beta_x = 0
-        self.epsn_x = 0
-        self.alpha_y = 0
-        self.beta_y = 0
-        self.epsn_y = 0
         self.mean_theta = 0
         self.mean_dE = 0
         self.sigma_theta = 0

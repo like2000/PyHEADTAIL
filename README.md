@@ -3,7 +3,9 @@ Implementation in this branch (intensity effects)
 
 - Major (feature implementation that may need further review and agreement):
   - Deleted transverse calculations from slices (need agreement with transverse development)
+  - Deleted transverse coordinates from beam
   - Reorganisation of the slices module
+  	- The different coordinates type is redone, now all the calculations are done in theta and the results converted to z or tau
   	- Constant_space_histogram is not faster than constant_space for 1e5 macroparticles, but faster for 1e6
   	- Constant_space is now the reference (and is constant frame also)
   	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
@@ -11,6 +13,8 @@ Implementation in this branch (intensity effects)
   - Reorganisation of the longitudinal_impedance module
     - The impedance coming from and impedance table is assumed to be 0 for higher frequencies
     - The wake_calc in InputTable assumes that the wake begins at t=0
+    - The precalculation is done only if there is no acceleration, or if the slicing is done in 'tau'
+   	  - The input parameters have been changed and the constructor reorganized accordingly
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - PEP8 corrections:
@@ -27,6 +31,13 @@ Implementation in this branch (intensity effects)
   	
 - Thoughts
   - Smoothing in the slicing can be done (by weighing the particles in the bins)
+  -	Method to convert directly any kind of value from one coordinate to another (eg: bunch length)
+  - To be discussed : should we define a returned value for the methods ?
+  - To be discussed : shallow copies of objects in the constructor of others
+    - Example : accessing the ring radius in the longitudinal impedance (from GeneralParameters to Beam to Slices to Impedance...)
+  - Should we include the normalized density in the slicing ?
+  - Do we need the 'z' and 'theta' coordinates in the slicing/impedance ?
+  - To be implemented : varying frame for slicing with constant_space (for cases where you don't mind recalculating all the time the impedance)
   
   
 Implementation in this branch (longitudinal tracking)
