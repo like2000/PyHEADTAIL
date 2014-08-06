@@ -9,12 +9,14 @@ Implementation in this branch (intensity effects)
   	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
   	- Gaussian fit inside the slice module (and the track method updates the bunch length in Beams class)
   - Reorganisation of the longitudinal_impedance module
-    - Renamed the classes
+    - The impedance coming from and impedance table is assumed to be 0 for higher frequencies
+    - The wake_calc in InputTable assumes that the wake begins at t=0
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - PEP8 corrections:
   	- Slices module
   	- Impedance module
+  	- Renamed classes/variables
   
 - Minor (can be implemented in a transparent way):
   - Corrected cut_left and cut_right calculation for n_sigma (divided by 2)

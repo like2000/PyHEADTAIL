@@ -318,49 +318,63 @@ def update_with_interpolation(bunch, induced_voltage, slices):
     
 class InputTable(object):
     '''
-    *Intensity effects from impedance and wake tables.*
+    *Intensity effects from impedance and wake tables.
+    If this constructor takes just two arguments, then a wake table is passed;
+    if it takes three arguments, then an impedance table is passed. Be careful
+    that if you input a wake, the input wake for W(t=0) should be already 
+    divided by two (beam loading theorem) ; and that if you input impedance, 
+    only the positive  frequencies of the impedance is needed (the impedance
+    will be assumed to be Hermitian (Real part symmetric and Imaginary part
+    antisymmetric).Note that we add the point (f, Z(f)) = (0, 0) to the 
+    frequency and impedance arrays derived from the table.*
     '''
     
-    def __init__(self, a, b, c = None):       
-        '''
-        Constructor
+    def __init__(self, input_1, input_2, input_3 = None):       
         
-        If this constructor takes just two arguments, then a wake table is passed;
-        if it takes three arguments, then an impedance table is passed.
-        '''
-        
-        if c == None:
-            self.dtau_array = a
-            self.wake_array = b
+        if input_3 == None:
+            #: *Time array of the wake in [s]*
+            self.time_array = input_1
+            #: *Wake array in* [:math:`\Omega / s`]
+            self.wake_array = input_2
         else:
-            self.frequency_array = a
-            self.Re_Z_array = b
-            self.Im_Z_array = c
+            #: *Frequency array of the impedance in [Hz]*
+            self.frequency_array = input_1
+            #: *Real part of impedance in* [:math:`\Omega`]
+            self.Re_Z_array = input_2
+            #: *Imaginary part of impedance in* [:math:`\Omega`]
+            self.Im_Z_array = input_3
+            #: *Impedance array in* [:math:`\Omega`]
+            self.impedance = self.Re_Z_array + 1j * self.Im_Z_array
+            
+            if self.frequency_array[0] != 0:
+                self.frequency_array = np.hstack((0, self.frequency_array))
+                self.Re_Z_array = np.hstack((0, self.Re_Z_array))
+                self.Im_Z_array = np.hstack((0, self.Im_Z_array))
     
     
-    def wake_calc(self, dtau):
-        
-        self.wake = interp(dtau, self.dtau_array - self.dtau_array[0], 
-                      self.wake_array, left = 0, right = 0)
-        
-        return self.wake
-    
-    
-    def imped_calc(self, frequency):
+    def wake_calc(self, new_time_array):
         '''
-        Note that we add the point (f, Z(f)) = (0, 0) to the frequency and 
-        impedance arrays derived from the table.
+        *The wake is interpolated in order to scale with the new time array.*
         '''
-        self.frequency_array = np.hstack((0, self.frequency_array))
-        self.Re_Z_array = np.hstack((0, self.Re_Z_array))
-        self.Im_Z_array = np.hstack((0, self.Im_Z_array))
-        Re_Z = interp(frequency, self.frequency_array, 
-                      self.Re_Z_array, right = self.Re_Z_array[-1])
-        Im_Z = interp(frequency, self.frequency_array, 
-                      self.Im_Z_array, right = self.Im_Z_array[-1])
+        
+        self.wake = interp(new_time_array, self.time_array, self.wake_array, 
+                           right = 0)
+        self.time_array = new_time_array
+        
+    
+    def imped_calc(self, new_frequency_array):
+        '''
+        *The impedance is interpolated in order to scale with the new frequency
+        array.*
+        '''
+        
+        Re_Z = interp(new_frequency_array, self.frequency_array, self.Re_Z_array, 
+                      right = 0)
+        Im_Z = interp(new_frequency_array, self.frequency_array, self.Im_Z_array, 
+                      right = 0)
+        self.frequency_array = new_frequency_array
         self.impedance = Re_Z + 1j * Im_Z
         
-        return self.impedance
     
     
 class BBResonators(object):
@@ -388,7 +402,6 @@ class BBResonators(object):
         \\alpha = \\frac{\\omega_r}{2Q}
         
         \\bar{\\omega} = \\sqrt{\\omega_r^2 - \\alpha^2}
-
         
     '''
     
