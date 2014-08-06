@@ -2,8 +2,8 @@ Implementation in this branch (intensity effects)
 =============================
 
 - Major (feature implementation that may need further review and agreement):
-  - Deleted transverse calculations from slices (need agreement with transverse development)
-  - Deleted transverse coordinates from beam
+  - Deleted transverse calculations from slices (need discussions with transverse development)
+  - Deleted transverse coordinates from beam (need discussions with transverse development)
   - Reorganisation of the slices module
   	- The different coordinates type is redone, now all the calculations are done in theta and the results converted to z or tau
   	- Constant_space_histogram is not faster than constant_space for 1e5 macroparticles, but faster for 1e6
@@ -13,7 +13,7 @@ Implementation in this branch (intensity effects)
   - Reorganisation of the longitudinal_impedance module
     - The impedance coming from and impedance table is assumed to be 0 for higher frequencies
     - The wake_calc in InputTable assumes that the wake begins at t=0
-    - The precalculation is done only if there is no acceleration, or if the slicing is done in 'tau'
+    - The precalculation is always done in InducedVoltageTime unless you use constant_charge slicing
    	  - The input parameters have been changed and the constructor reorganized accordingly
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
@@ -67,6 +67,9 @@ Implementation in this branch (longitudinal tracking)
   - Changed rf_params to RFSectionParameters as an input for RingAndRFSection
   - Secured the cases where the user input momentum compaction with higher orders than 2
 
+Implementation in this branch (file management)
+=============================
+- Removed cython functions (obsolete for the moment, will be re-implemented when dedicated functions will be in use)
 
 
 PYHEADTAIL LONGITUDINAL v1.0
