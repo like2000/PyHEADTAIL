@@ -6,7 +6,6 @@
 
 from __future__ import division
 import numpy as np
-from numpy import convolve, interp
 from scipy.constants import c
 from numpy.fft import irfft, fftfreq
 import math
@@ -14,79 +13,75 @@ import math
 
 class InducedVoltageTime(object):
     '''
-    *Induced voltage derived from the sum of several wake fields.
-    Apart from further optimisations, note that:*\n
-    *1) in general update_with_interpolation is faster than update_without_interpolation*\n
-    *2) in general induced_voltage_with_convolv is faster than induced_voltage_with_matrix*\n
-    *3) if slices.mode == const_charge, you are obliged to use* 
-        *induced_voltage_with_matrix, then you should use update_with_interpolation*\n
-    *4) if slices.mode == const_space, i.e. you want to calculate slices statistics*
-        *(otherwise slices.mode == const_space_hist is faster), you should use*
-        *induced_voltage_with_convolv and then update_with_interpolation*\n
-    *5) if slices.mode == const_space_hist, use induced_voltage_with_convolv and*
-        *update_with_interpolation*
+    *Induced voltage derived from the sum of several wake fields (time domain).
+    Note that if there is no acceleration then obviously precalc == 'on', 
+    except for the const_charge method where the distances between the 
+    slide centers change from turn to turn.
+    If there is acceleration and slices.coord == z or theta, then precalc == 'off';
+    If slices.coord == tau then precalc == 'on since the wake, at least for
+    the analytic formulas presented in the code, doesn't depend on the energy
+    of the beam.*
     '''
     
-    def __init__(self, slices, acceleration, wake_sum, bunch):       
-        '''
-        Constructor
+    def __init__(self, GeneralParameters, Slices, wake_source_list):       
         
-        If there is no acceleration then obviously precalc == 'on', 
-        except for the const_charge method where the distances between the 
-        slide centers change from turn to turn.
-        If there is acceleration and slices.coord == z or theta, then precalc == 'off';
-        If slices.coord == tau then precalc == 'on since the wake, at least for
-        the analytic formulas presented in the code, doesn't depend on the energy
-        of the beam.
-        '''
+        #: *Copy of the Slices object in order to access to the profile but 
+        #: also some needed information about the Beam.*
+        self.slices = Slices
         
-        self.slices = slices
-        self.acceleration = acceleration
-        self.wake_sum = wake_sum
+        #: *Wake sources inputed as a list (eg: list of BBResonators objects)*
+        self.wake_source_list = wake_source_list
         
-        if self.slices.mode != 'const_charge':
+        #: *Time array of the wake in [s]*
+        self.time_array = 0
+        
+        #: *Total wake array of all sources in* [:math:`\Omega / s`]
+        self.total_wake = 0
+        
+        #: *Induced voltage from the sum of the wake sources in [V]*
+        self.induced_voltage = 0
+        
+        # Pre-processing the wakes
+        if self.slices.mode is 'const_charge':
+            self.precalc = 'off'
+        elif np.sum(np.diff(GeneralParameters.beta_r)) == 0:
+            self.precalc = 'on'
+        elif self.slices.coord is 'tau':
+            self.precalc = 'on'
+        else:   
+            self.precalc = 'off'
+                
+        if self.precalc is 'on':
+            self.time_array_generation()
+            self.sum_wakes(self.time_array)
             
-            if self.acceleration == 'off' or self.slices.coord == 'tau':
-                self.precalc = 'on'
-                if self.slices.coord == 'tau':
-                    dtau = self.slices.bins_centers - self.slices.bins_centers[0]
-                elif self.slices.coord == 'theta':
-                    dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
-                       * bunch.ring_radius / (bunch.beta_r * c)
-                elif self.slices.coord == 'z':
-                    dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
-                       / (bunch.beta_r * c)
-                self.wake_array = self.sum_wakes(dtau, self.wake_sum)
-            else:
-                self.precalc = 'off' 
-    
-    
-    def sum_wakes(self, translation, wake_object_sum):
-        
-        
-        total_wake = np.zeros(len(translation))
-        for wake_object in self.wake_sum:
-            total_wake += wake_object.wake_calc(translation)
             
-        return total_wake
-    
-    
-    def track(self, bunch):
+    def time_array_generation(self):
         '''
-        Note that if slices.mode = 'const_charge' one is obliged to use the
-        matrix method for the calculation of the induced voltage; otherwise
-        update_with_interpolation is faster.
+        *Generation of the time array in [s], with respect to the slicing 
+        and coordinate type.*
         '''
         
-        if self.slices.mode == 'const_charge':
-            self.ind_vol = self.induced_voltage_with_matrix(bunch)
-        else:
-            self.ind_vol = self.induced_voltage_with_convolv(bunch)
+        if self.slices.coord == 'tau':
+            self.time_array = self.slices.bins_centers - self.slices.bins_centers[0]
+        elif self.slices.coord == 'theta':
+            self.time_array = (self.slices.bins_centers - self.slices.bins_centers[0]) * self.slices.Beam.ring_radius / (self.slices.Beam.beta_r * c)
+        elif self.slices.coord == 'z':
+            self.time_array = (self.slices.bins_centers - self.slices.bins_centers[0]) / (self.slices.Beam.beta_r * c)
+    
+    
+    def sum_wakes(self, time_array):
+        '''
+        *Summing all the wake contributions in one total wake.*
+        '''
         
-        update_with_interpolation(bunch, self.ind_vol, self.slices)
+        self.total_wake = np.zeros(len(time_array))
+        for wake_object in self.wake_source_list:
+            wake_object.wake_calc(time_array)
+            self.total_wake += wake_object.wake
         
            
-    def induced_voltage_with_matrix(self, bunch):
+    def induced_voltage_with_matrix(self, Beam):
         '''
         Method to calculate the induced voltage from wakes with the matrix method;
         note that if slices.coord = z one has to "fix" the usual method, since
@@ -99,50 +94,72 @@ class InducedVoltageTime(object):
             self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
         elif self.slices.coord == 'z':
             dtau_matrix = (np.transpose([self.slices.bins_centers]) - \
-                           self.slices.bins_centers) / (bunch.beta_r * c)
+                           self.slices.bins_centers) / (Beam.beta_r * c)
             self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
         elif self.slices.coord == 'theta':
-            dtau_matrix = bunch.ring_radius / (bunch.beta_r * c) * \
+            dtau_matrix = Beam.ring_radius / (Beam.beta_r * c) * \
             (self.slices.bins_centers - np.transpose([self.slices.bins_centers])) 
             self.wake_matrix = self.sum_wakes(dtau_matrix, self.wake_object_sum)
         
-        return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
+        return - Beam.charge * Beam.intensity / Beam.n_macroparticles * \
                 np.dot(self.slices.n_macroparticles, self.wake_matrix)
     
     
-    def induced_voltage_with_convolv(self, bunch): 
+    def induced_voltage_with_convolv(self, Beam): 
         '''
         Method to calculate the induced voltage from wakes with convolution;
         note that if slices.coord = z one has to "fix" the usual method, since
         the head and the tail of the bunch are inverted.
         '''
         
-        if self.precalc == 'off':
+        if self.precalc is 'off':
+            self.time_array_generation()
+            self.sum_wakes(self.time_array)
             
-            if self.slices.coord == 'tau':
-                dtau = self.slices.bins_centers - self.slices.bins_centers[0]
-                self.wake_array = self.sum_wakes(dtau, self.wake_sum)
-            
-            elif self.slices.coord == 'z':
-                dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
-                       /(bunch.beta_r * c)
-                self.wake_array = self.sum_wakes(dtau, self.wake_sum)
-                reversed_array = self.wake_array[::-1]
-                return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
-                    convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):] 
-            
-            elif self.slices.coord == 'theta':
-                dtau = (self.slices.bins_centers - self.slices.bins_centers[0]) \
-                       * bunch.ring_radius / (bunch.beta_r * c)
-                self.wake_array = self.sum_wakes(dtau, self.wake_sum)
+        if self.slices.coord is 'tau':
+            self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * np.convolve(self.total_wake, self.slices.n_macroparticles)[0:len(self.total_wake)]
         
-        if self.precalc == 'on' and self.slices.coord == 'z':
-                reversed_array = self.wake_array[::-1]
-                return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
-                    convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):]  
-        
-        return - bunch.charge * bunch.intensity / bunch.n_macroparticles * \
-            convolve(self.wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)] 
+#         if self.precalc == 'off':
+#             
+#             if self.slices.coord == 'tau':
+#                 dtau = self.slices.bins_centers - self.slices.bins_centers[0]
+#                 self.wake_array = self.sum_wakes(dtau, self.wake_sum)
+#             
+#             elif self.slices.coord == 'z':
+#                 dtau = (self.slices.bins_centers - self.slices.bins_centers[0])\
+#                        /(Beam.beta_r * c)
+#                 self.wake_array = self.sum_wakes(dtau, self.wake_sum)
+#                 reversed_array = self.wake_array[::-1]
+#                 return - Beam.charge * Beam.intensity / Beam.n_macroparticles * \
+#                     np.convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):] 
+#             
+#             elif self.slices.coord == 'theta':
+#                 dtau = (self.slices.bins_centers - self.slices.bins_centers[0]) \
+#                        * Beam.ring_radius / (Beam.beta_r * c)
+#                 self.wake_array = self.sum_wakes(dtau, self.wake_sum)
+#         
+#         if self.precalc == 'on' and self.slices.coord == 'z':
+#                 reversed_array = self.wake_array[::-1]
+#                 return - Beam.charge * Beam.intensity / Beam.n_macroparticles * \
+#                     np.convolve(reversed_array, self.slices.n_macroparticles)[(len(reversed_array) - 1):]  
+#         
+#         return - Beam.charge * Beam.intensity / Beam.n_macroparticles * \
+#             np.convolve(self.wake_array, self.slices.n_macroparticles)[0:len(self.wake_array)]
+            
+            
+        def track(self, Beam):
+            '''
+            Note that if slices.mode = 'const_charge' one is obliged to use the
+            matrix method for the calculation of the induced voltage; otherwise
+            update_with_interpolation is faster.
+            '''
+            
+            if self.slices.mode == 'const_charge':
+                self.ind_vol = self.induced_voltage_with_matrix(Beam)
+            else:
+                self.ind_vol = self.induced_voltage_with_convolv(Beam)
+            
+            update_with_interpolation(Beam, self.ind_vol, self.slices)
     
     
 class InducedVoltageFreq(object):
@@ -298,17 +315,17 @@ def update_with_interpolation(bunch, induced_voltage, slices):
     
     if slices.coord == 'tau':
         
-        induced_voltage_interpolated = interp(bunch.tau, 
+        induced_voltage_interpolated = np.interp(bunch.tau, 
                             slices.bins_centers, induced_voltage, 0, 0)
         
     elif slices.coord == 'z':
         
-        induced_voltage_interpolated = interp(bunch.z, 
+        induced_voltage_interpolated = np.interp(bunch.z, 
                             slices.bins_centers, induced_voltage, 0, 0)
         
     elif slices.coord == 'theta':
         
-        induced_voltage_interpolated = interp(bunch.theta, 
+        induced_voltage_interpolated = np.interp(bunch.theta, 
                             slices.bins_centers, induced_voltage, 0, 0)
         
     slices.bins_centers[0] = temp1
@@ -357,7 +374,7 @@ class InputTable(object):
         *The wake is interpolated in order to scale with the new time array.*
         '''
         
-        self.wake = interp(new_time_array, self.time_array, self.wake_array, 
+        self.wake = np.interp(new_time_array, self.time_array, self.wake_array, 
                            right = 0)
         self.time_array = new_time_array
         
@@ -368,19 +385,19 @@ class InputTable(object):
         array.*
         '''
         
-        Re_Z = interp(new_frequency_array, self.frequency_array, self.Re_Z_array, 
+        Re_Z = np.interp(new_frequency_array, self.frequency_array, self.Re_Z_array, 
                       right = 0)
-        Im_Z = interp(new_frequency_array, self.frequency_array, self.Im_Z_array, 
+        Im_Z = np.interp(new_frequency_array, self.frequency_array, self.Im_Z_array, 
                       right = 0)
         self.frequency_array = new_frequency_array
         self.impedance = Re_Z + 1j * Im_Z
         
     
     
-class BBResonators(object):
+class Resonators(object):
     '''
-    *Impedance contribution from broadband resonators, analytic formulas for 
-    both wake and impedance. The resonant modes (and the corresponding R and Q) 
+    *Impedance contribution from resonators, analytic formulas for both wake 
+    and impedance. The resonant modes (and the corresponding R and Q) 
     can be inputed as a list in case of several modes.*
     
     *The model is the following:*

@@ -32,11 +32,11 @@ Implementation in this branch (intensity effects)
 - Thoughts
   - Smoothing in the slicing can be done (by weighing the particles in the bins)
   -	Method to convert directly any kind of value from one coordinate to another (eg: bunch length)
+  	- Do we need the 'z' and 'theta' coordinates in the slicing/impedance ?
   - To be discussed : should we define a returned value for the methods ?
   - To be discussed : shallow copies of objects in the constructor of others
     - Example : accessing the ring radius in the longitudinal impedance (from GeneralParameters to Beam to Slices to Impedance...)
   - Should we include the normalized density in the slicing ?
-  - Do we need the 'z' and 'theta' coordinates in the slicing/impedance ?
   - To be implemented : varying frame for slicing with constant_space (for cases where you don't mind recalculating all the time the impedance)
   
   
