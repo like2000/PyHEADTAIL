@@ -45,7 +45,37 @@ class Beam(object):
         self.n_macroparticles_alive = self.n_macroparticles - self.n_macroparticles_lost
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
+    
+    def longit_statistics(self):
+        
+        # Statistics only for particles that are not flagged as lost
+        itemindex = np.where(self.id != 0)[0]
+        self.mean_theta = np.mean(self.theta[itemindex])
+        self.mean_dE = np.mean(self.dE[itemindex])
+        self.sigma_theta = np.std(self.theta[itemindex])
+        self.sigma_dE = np.std(self.dE[itemindex])
+       
+        ##### R.m.s. emittance in Gaussian approximation, other emittances to be defined
+        self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
+                        * self.ring_radius / (self.beta_r * c) # in eVs
 
+
+    def losses_separatrix(self, GeneralParameters, RFSectionParameters):
+        
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
+                                 self.theta, self.dE, self.delta) == False)[0]
+
+        if itemindex.size != 0:    
+            self.id[itemindex] = 0
+    
+    def losses_longitudinal_cut(self, theta_min, theta_max): 
+    
+        itemindex = np.where( (self.theta - theta_min)*(theta_max - self.theta) < 0 )[0]
+        
+        if itemindex.size != 0:          
+            self.id[itemindex] = 0
+            
+            
     # Coordinate conversions
     @property
     def z(self):
@@ -113,36 +143,27 @@ class Beam(object):
     @sigma_tau.setter
     def sigma_tau(self, value):
         self.sigma_theta = value * self.beta_r * c / self.ring_radius
-
-    
-    def longit_statistics(self):
         
-        # Statistics only for particles that are not flagged as lost
-        itemindex = np.where(self.id != 0)[0]
-        self.mean_theta = np.mean(self.theta[itemindex])
-        self.mean_dE = np.mean(self.dE[itemindex])
-        self.sigma_theta = np.std(self.theta[itemindex])
-        self.sigma_dE = np.std(self.dE[itemindex])
-       
-        ##### R.m.s. emittance in Gaussian approximation, other emittances to be defined
-        self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
-                        * self.ring_radius / (self.beta_r * c) # in eVs
-
-
-    def losses_separatrix(self, GeneralParameters, RFSectionParameters):
-        
-        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
-                                 self.theta, self.dE, self.delta) == False)[0]
-
-        if itemindex.size != 0:    
-            self.id[itemindex] = 0
+    # Gaussian fit conversion   
+    @property
+    def bl_gauss_tau(self):
+        '''*Gaussian bunch length converted to the tau coordinate in [s]*'''
+        return self.bl_gauss * self.ring_radius / (self.beta_r * c)
     
-    def losses_longitudinal_cut(self, theta_min, theta_max): 
+    @property
+    def bl_gauss_z(self):
+        '''*Gaussian bunch length to the z coordinate in [m]*'''
+        return self.bl_gauss * self.ring_radius 
+
+    @property
+    def bp_gauss_tau(self):
+        '''*Gaussian bunch position converted to the tau coordinate in [s]*'''
+        return self.bp_gauss * self.ring_radius / (self.beta_r * c)
     
-        itemindex = np.where( (self.theta - theta_min)*(theta_max - self.theta) < 0 )[0]
-        
-        if itemindex.size != 0:          
-            self.id[itemindex] = 0       
+    @property
+    def bp_gauss_z(self):
+        '''*Gaussian bunch position converted to the z coordinate in [m]*'''
+        return - self.bp_gauss * self.ring_radius      
 
 
 

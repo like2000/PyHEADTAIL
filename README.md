@@ -6,6 +6,7 @@ Implementation in this branch (intensity effects)
   - Deleted transverse coordinates from beam (need discussions with transverse development)
   - Reorganisation of the slices module
   	- The different coordinates type is redone, now all the calculations are done in theta and the results converted to z or tau
+  	  - We should be careful for the sorting in z, as head and tail are reversed (sorting should be inversed)
   	- Constant_space_histogram is not faster than constant_space for 1e5 macroparticles, but faster for 1e6
   	- Constant_space is now the reference (and is constant frame also)
   	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
@@ -31,8 +32,7 @@ Implementation in this branch (intensity effects)
   	
 - Thoughts
   - Smoothing in the slicing can be done (by weighing the particles in the bins)
-  -	Method to convert directly any kind of value from one coordinate to another (eg: bunch length)
-  	- Do we need the 'z' and 'theta' coordinates in the slicing/impedance ?
+  -	Method to convert directly any kind of value from one coordinate to another without having to define a long list of properties
   - To be discussed : should we define a returned value for the methods ?
   - To be discussed : shallow copies of objects in the constructor of others
     - Example : accessing the ring radius in the longitudinal impedance (from GeneralParameters to Beam to Slices to Impedance...)
@@ -58,7 +58,6 @@ Implementation in this branch (longitudinal tracking)
   	- Added a method that chooses the solver to be 'simple' or 'full' wrt the input order
   
 - Minor (can be implemented in a transparent way):
-  - Updated .gitignore
   - Documentation
   	- Small corrections in input_paramters.general_parameters
   	- Small corrections in input_paramters.rf_parameters
@@ -70,6 +69,7 @@ Implementation in this branch (longitudinal tracking)
 Implementation in this branch (file management)
 =============================
 - Removed cython functions (obsolete for the moment, will be re-implemented when dedicated functions will be in use)
+- Updated .gitignore
 
 
 PYHEADTAIL LONGITUDINAL v1.0

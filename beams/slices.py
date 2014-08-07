@@ -53,8 +53,6 @@ class Slices(object):
         #: | *Type of coordinates in which the cuts are given.*
         #: | *The options are: 'theta' (default), 'tau', 'z'.*
         self.coord = coord
-#         if self.mode is 'const_charge':
-#             self.coord = 'z'
         
         #: *Number of macroparticles per slice (~profile).*
         self.n_macroparticles = np.empty(n_slices)
@@ -124,6 +122,18 @@ class Slices(object):
                     
         # Use of track in order to pre-process the slicing at injection
         self.track(self.Beam)
+        
+        
+    def sort_particles(self):
+        '''
+        *Sort the particles with respect to their longitudinal position.*
+        '''
+               
+        argsorted = np.argsort(self.Beam.theta)
+            
+        self.Beam.theta = self.Beam.theta.take(argsorted)
+        self.Beam.dE = self.Beam.dE.take(argsorted)
+        self.Beam.id = self.Beam.id.take(argsorted)
         
 
     def set_longitudinal_cuts(self):
@@ -226,49 +236,46 @@ class Slices(object):
         self.n_macroparticles = np.histogram(self.Beam.theta, self.edges)[0]
  
         
-#     def slice_constant_charge(self):
-#         '''
-#         *Constant charge slicing. This method consist in slicing with varying
-#         bin sizes that adapts in order to have the same number of particles
-#         in each bin*
-#         
-#         *Must be updated in order to take into account potential losses (in order
-#         for the frame size not to diverge). The slicing is done in the 'z'
-#         coordinate, but should be optimized in order to be done in 'theta'
-#         and the results then converted in 'z'*
-#         '''
-#         
-#         self.coord = 'z'
-#         self.cut_left = None
-#         self.cut_right = None
-#         self.n_sigma = None
-#         
-#         self.set_longitudinal_cuts()
-#         
-#         # 1. n_macroparticles - distribute macroparticles uniformly along slices.
-#         # Must be integer. Distribute remaining particles randomly among slices with indices 'ix'.
-#         n_cut_left = 0 # number of particles cut left, to be adapted for losses
-#         n_cut_right = 0 # number of particles cut right, to be adapted for losses
-#           
-#         q0 = self.Beam.n_macroparticles - n_cut_right - n_cut_left
-#          
-#         ix = sample(range(self.n_slices), q0 % self.n_slices)
-#         self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices)
-#         self.n_macroparticles[ix] += 1
-#         
-#         # 2. edges
-#         # Get indices of the particles defining the bin edges
-#         n_macroparticles_all = np.hstack((n_cut_left, self.n_macroparticles, n_cut_right))
-#         first_index_in_bin = np.cumsum(n_macroparticles_all)
-#         first_particle_index_in_slice = first_index_in_bin[:-1]
-#         first_particle_index_in_slice = (first_particle_index_in_slice).astype(int)
-#          
-#         self.edges[1:-1] = (self.Beam.z[(first_particle_index_in_slice - 1)[1:-1]] + 
-#                             self.Beam.z[first_particle_index_in_slice[1:-1]]) / 2
-#         self.edges[0], self.edges[-1] = self.cut_left, self.cut_right
-#         self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
-    
-
+    def slice_constant_charge(self):
+        '''
+        *Constant charge slicing. This method consist in slicing with varying
+        bin sizes that adapts in order to have the same number of particles
+        in each bin*
+         
+        *Must be updated in order to take into account potential losses (in order
+        for the frame size not to diverge).*
+        '''
+         
+        self.cut_left = None
+        self.cut_right = None
+        self.n_sigma = None
+         
+        self.set_longitudinal_cuts()
+         
+        # 1. n_macroparticles - distribute macroparticles uniformly along slices.
+        # Must be integer. Distribute remaining particles randomly among slices with indices 'ix'.
+        n_cut_left = 0 # number of particles cut left, to be adapted for losses
+        n_cut_right = 0 # number of particles cut right, to be adapted for losses
+           
+        q0 = self.Beam.n_macroparticles - n_cut_right - n_cut_left
+          
+        ix = sample(range(self.n_slices), q0 % self.n_slices)
+        self.n_macroparticles = (q0 // self.n_slices) * np.ones(self.n_slices)
+        self.n_macroparticles[ix] += 1
+         
+        # 2. edges
+        # Get indices of the particles defining the bin edges
+        n_macroparticles_all = np.hstack((n_cut_left, self.n_macroparticles, n_cut_right))
+        first_index_in_bin = np.cumsum(n_macroparticles_all)
+        first_particle_index_in_slice = first_index_in_bin[:-1]
+        first_particle_index_in_slice = (first_particle_index_in_slice).astype(int)
+          
+        self.edges[1:-1] = (self.Beam.theta[(first_particle_index_in_slice - 1)[1:-1]] + 
+                            self.Beam.theta[first_particle_index_in_slice[1:-1]]) / 2
+        self.edges[0], self.edges[-1] = self.cut_left, self.cut_right
+        self.bins_centers = (self.edges[:-1] + self.edges[1:]) / 2
+        
+        
     def track(self, Beam):
         '''
         *Track method in order to update the slicing along with the tracker.
@@ -277,8 +284,7 @@ class Slices(object):
         '''
 
         if self.mode == 'const_charge':
-            raise RuntimeError('const_charge still needs some corrections, sorry...')
-#             self.slice_constant_charge()
+            self.slice_constant_charge()
         elif self.mode == 'const_space':
             self.slice_constant_space()
         elif self.mode == 'const_space_hist':
@@ -293,25 +299,6 @@ class Slices(object):
             
         if self.statistics_option is 'on':
             self.compute_statistics()
-
-
-    def sort_particles(self):
-        '''
-        | *Sort the particles with respect to their longitudinal position.*
-        | *'theta' and 'tau' type of coordinates are treated differently that 'z' as head and tail are reversed.*
-        '''
-               
-#         if self.coord == 'theta' or self.coord == 'tau':  
-#             argsorted = np.argsort(self.Beam.theta)
-#             
-#         elif self.coord == 'z':
-#             argsorted = np.argsort(self.Beam.z)
-            
-        argsorted = np.argsort(self.Beam.theta)
-            
-        self.Beam.theta = self.Beam.theta.take(argsorted)
-        self.Beam.dE = self.Beam.dE.take(argsorted)
-        self.Beam.id = self.Beam.id.take(argsorted)
         
         
     def gaussian_fit(self):
@@ -327,7 +314,7 @@ class Slices(object):
 #                 p0 = [max(self.n_macroparticles), self.Beam.mean_tau, self.Beam.sigma_tau]
 #             elif self.coord is 'z':
 #                 p0 = [max(self.n_macroparticles), self.Beam.mean_z, self.Beam.sigma_z]
-            p0 = [max(self.n_macroparticles), self.Beam.mean_z, self.Beam.sigma_z]
+            p0 = [max(self.n_macroparticles), self.Beam.mean_theta, self.Beam.sigma_theta]
         else:
             p0 = [max(self.n_macroparticles), self.bp_gauss, self.bl_gauss/4]
                                                                 
@@ -406,14 +393,14 @@ class Slices(object):
     def mean_tau(self):
         '''*Average tau position of the particles in each slice (needs 
         the compute_statistics_option to be 'on').*'''
-        return self.mean_theta * self.Beam.ring_radius / (self.Beam.beta_rel * c)
+        return self.mean_theta * self.Beam.ring_radius / (self.Beam.beta_r * c)
 
  
     @property
     def mean_delta(self):
         '''*Average delta position of the particles in each slice (needs 
         the compute_statistics_option to be 'on').*'''
-        return self.mean_dE / (self.Beam.beta_rel**2 * self.Beam.energy)
+        return self.mean_dE / (self.Beam.beta_r**2 * self.Beam.energy)
 
      
     @property    
@@ -426,14 +413,53 @@ class Slices(object):
     def sigma_tau(self):
         '''*RMS tau position of the particles in each slice (needs 
         the compute_statistics_option to be 'on').*'''
-        return self.sigma_theta * self.Beam.ring_radius / (self.Beam.beta_rel * c)
+        return self.sigma_theta * self.Beam.ring_radius / (self.Beam.beta_r * c)
      
     @property
     def sigma_delta(self):
         '''*RMS delta position of the particles in each slice (needs 
         the compute_statistics_option to be 'on').*'''
-        return self.sigma_dE / (self.Beam.beta_rel**2 * self.Beam.energy)
+        return self.sigma_dE / (self.Beam.beta_r**2 * self.Beam.energy)
+    
+    @property
+    def bins_centers_tau(self):
+        '''*Bin centers converted to the tau coordinate in [s]*'''
+        return self.bins_centers * self.Beam.ring_radius / (self.Beam.beta_r * c)
+    
+    @property
+    def bins_centers_z(self):
+        '''*Bin centers converted to the z coordinate in [m]*'''
+        return - self.bins_centers * self.Beam.ring_radius
+    
+    @property
+    def edges_tau(self):
+        '''*Slicing edges converted to the tau coordinate in [s]*'''
+        return self.edges * self.Beam.ring_radius / (self.Beam.beta_r * c)
+    
+    @property
+    def edges_z(self):
+        '''*Slicing edges converted to the z coordinate in [m]*'''
+        return - self.edges * self.Beam.ring_radius 
 
+    @property
+    def bl_gauss_tau(self):
+        '''*Gaussian bunch length converted to the tau coordinate in [s]*'''
+        return self.bl_gauss * self.Beam.ring_radius / (self.Beam.beta_r * c)
+    
+    @property
+    def bl_gauss_z(self):
+        '''*Gaussian bunch length converted to the z coordinate in [m]*'''
+        return self.bl_gauss * self.Beam.ring_radius 
+
+    @property
+    def bp_gauss_tau(self):
+        '''*Gaussian bunch position converted to the tau coordinate in [s]*'''
+        return self.bp_gauss * self.Beam.ring_radius / (self.Beam.beta_r * c)
+    
+    @property
+    def bp_gauss_z(self):
+        '''*Gaussian bunch position converted to the z coordinate in [m]*'''
+        return - self.bp_gauss * self.Beam.ring_radius 
 
 
 def gauss(x, *p):
