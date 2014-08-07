@@ -7,7 +7,7 @@ Implementation in this branch (intensity effects)
   - Reorganisation of the slices module
   	- The different coordinates type is redone, now all the calculations are done in theta and the results converted to z or tau
   	  - We should be careful for the sorting in z, as head and tail are reversed (sorting should be inversed)
-  	- Constant_space_histogram is not faster than constant_space for 1e5 macroparticles, but faster for 1e6
+  	- Constant_space_histogram is not faster than constant_space (weird correlation, does not give the same result whether you use intensity effects or not... needs further benchmarking...)
   	- Constant_space is now the reference (and is constant frame also)
   	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
   	- Gaussian fit inside the slice module (and the track method updates the bunch length in Beams class)

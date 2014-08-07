@@ -150,37 +150,10 @@ class Slices(object):
         if self.n_sigma is None:
             
             self.sort_particles()
-            
-#             if self.coord == "theta":
-#                 self.cut_left = self.Beam.theta[0] - 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
-#                 self.cut_right = self.Beam.theta[-1] + 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
-#             elif self.coord == "z":
-#                 self.cut_left = self.Beam.z[0] - 0.05*(self.Beam.z[-1] - self.Beam.z[0])
-#                 self.cut_right = self.Beam.z[-1] + 0.05*(self.Beam.z[-1] - self.Beam.z[0])
-#             else:
-#                 self.cut_left = self.Beam.tau[0] - 0.05*(self.Beam.tau[-1] - self.Beam.tau[0])
-#                 self.cut_right = self.Beam.tau[-1] + 0.05*(self.Beam.tau[-1] - self.Beam.tau[0])
-
             self.cut_left = self.Beam.theta[0] - 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
             self.cut_right = self.Beam.theta[-1] + 0.05*(self.Beam.theta[-1] - self.Beam.theta[0])
                 
         else:
-#             if self.coord == "theta":
-#                 mean_theta = np.mean(self.Beam.theta)
-#                 sigma_theta = np.std(self.Beam.theta)
-#                 self.cut_left = mean_theta - self.n_sigma * sigma_theta / 2
-#                 self.cut_right = mean_theta + self.n_sigma * sigma_theta / 2
-#             elif self.coord == "z":
-#                 mean_z = np.mean(self.Beam.z)
-#                 sigma_z = np.std(self.Beam.z)
-#                 self.cut_left = mean_z - self.n_sigma * sigma_z / 2
-#                 self.cut_right = mean_z + self.n_sigma * sigma_z / 2
-#             else:
-#                 mean_tau = np.mean(self.Beam.tau)
-#                 sigma_tau = np.std(self.Beam.tau)
-#                 self.cut_left = mean_tau - self.n_sigma * sigma_tau / 2
-#                 self.cut_right = mean_tau + self.n_sigma * sigma_tau / 2
-                
             mean_theta = np.mean(self.Beam.theta)
             sigma_theta = np.std(self.Beam.theta)
             self.cut_left = mean_theta - self.n_sigma * sigma_theta / 2
@@ -203,13 +176,6 @@ class Slices(object):
 
         self.sort_particles()
 
-#         if self.coord == 'z':
-#             first_index_in_bin = np.searchsorted(self.Beam.z, self.edges)
-#         elif self.coord == 'theta':
-#             first_index_in_bin = np.searchsorted(self.Beam.theta, self.edges)
-#         elif self.coord == 'tau':
-#             first_index_in_bin = np.searchsorted(self.Beam.tau, self.edges)
-            
         first_index_in_bin = np.searchsorted(self.Beam.theta, self.edges)
             
         self.n_macroparticles = np.diff(first_index_in_bin)
@@ -225,14 +191,7 @@ class Slices(object):
         *This method is faster than the classic slice_constant_space method 
         for high number of particles (~1e6).*
         '''
-        
-#         if self.coord == 'theta':
-#             self.n_macroparticles = np.histogram(self.Beam.theta, self.edges)[0]
-#         elif self.coord == 'z':
-#             self.n_macroparticles = np.histogram(self.Beam.z, self.edges)[0]
-#         else:
-#             self.n_macroparticles = np.histogram(self.Beam.tau, self.edges)[0]
-            
+
         self.n_macroparticles = np.histogram(self.Beam.theta, self.edges)[0]
  
         
@@ -308,12 +267,6 @@ class Slices(object):
         '''
             
         if self.bl_gauss is 0 and self.bp_gauss is 0:
-#             if self.coord is 'theta':
-#                 p0 = [max(self.n_macroparticles), self.Beam.mean_theta, self.Beam.sigma_theta]
-#             elif self.coord is 'tau':
-#                 p0 = [max(self.n_macroparticles), self.Beam.mean_tau, self.Beam.sigma_tau]
-#             elif self.coord is 'z':
-#                 p0 = [max(self.n_macroparticles), self.Beam.mean_z, self.Beam.sigma_z]
             p0 = [max(self.n_macroparticles), self.Beam.mean_theta, self.Beam.sigma_theta]
         else:
             p0 = [max(self.n_macroparticles), self.bp_gauss, self.bl_gauss/4]
