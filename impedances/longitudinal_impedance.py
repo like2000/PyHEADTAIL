@@ -204,17 +204,29 @@ class InducedVoltageFreq(object):
 #         
 #         return rfftfreq, n
         
-    
-    def track(self, bunch):
+    def induce_voltage_with_irfft(self, Beam):
         '''
-        Method to calculate the induced voltage through the bunch spectrum, or
-        the derivative of profile, or both; these three choices are represented
-        by the mode 'only_spectrum', 'only_derivative', 'spectrum + derivative'
-        respectively.
+        *Method to calculate the induced voltage from the inverse FFT of the
+        impedance times the spectrum (fourier convolution).*
         '''
         
-        self.slices.beam_spectrum(self.n_sampling_fft)
-        self.induced_voltage = - bunch.charge * bunch.intensity / bunch.n_macroparticles * irfft(self.impedance_array * self.spectrum) * self.frequency_fft[1] * 2*(len(self.frequency_fft)-1) 
+        self.slices.beam_spectrum_generation(self.n_fft_sampling)
+        self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.total_impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
+        self.induced_voltage = self.induced_voltage[0:self.slices.n_slices]
+    
+    
+    def track(self, Beam):
+        '''
+        *Method to calculate the induced voltage through the bunch spectrum, or
+        the derivative of profile, or both; these three choices are represented
+        by the mode 'only_spectrum', 'only_derivative', 'spectrum + derivative'
+        respectively.*
+        '''
+        
+        self.induce_voltage_with_irfft(Beam)
+        
+        induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
+        Beam.dE += induced_voltage_kick
         
 #         if self.mode != 'only_derivative':
 #         
