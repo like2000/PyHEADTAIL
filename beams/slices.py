@@ -8,7 +8,7 @@ from __future__ import division
 import numpy as np
 from random import sample
 from scipy.constants import c
-from numpy.fft import rfft
+from numpy.fft import rfft, rfftfreq
 from scipy import ndimage
 from scipy.optimize import curve_fit
 
@@ -106,6 +106,12 @@ class Slices(object):
         #: *Fit option allows to fit the Beam profile, with the options
         #: 'off' (default), 'gaussian'.*
         self.fit_option = fit_option
+        
+        #: *Beam spectrum (arbitrary units)*
+        self.beam_spectrum = 0
+        
+        #: *Frequency array corresponding to the beam spectrum in [Hz]*
+        self.beam_spectrum_freq = 0
         
         # Pre-processing Beam longitudinal statistics
         self.Beam.longit_statistics()
@@ -277,15 +283,15 @@ class Slices(object):
 
     
     
-    def beam_spectrum(self, n_sampling_fft):
+    def beam_spectrum_generation(self, n_sampling_fft):
         '''
         *Beam spectrum calculation, to be extended (normalized profile, different
         coordinates, etc.)*
         '''
-         
-        spectrum = rfft(self.n_macroparticles, n_sampling_fft)
+
+        self.beam_spectrum = rfft(self.n_macroparticles, n_sampling_fft)
+        self.beam_spectrum_freq = rfftfreq(n_sampling_fft, self.bins_centers_tau[1] - self.bins_centers_tau[0])
              
-        return spectrum
      
      
     def beam_profile_derivative(self, mode):      

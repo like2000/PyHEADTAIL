@@ -7,15 +7,17 @@ Implementation in this branch (intensity effects)
   - Reorganisation of the slices module
   	- The different coordinates type is redone, now all the calculations are done in theta and the results converted to z or tau
   	  - We should be careful for the sorting in z, as head and tail are reversed (sorting should be inversed)
-  	- Constant_space_histogram is not faster than constant_space (weird correlation, does not give the same result whether you use intensity effects or not... needs further benchmarking...)
+  	- Constant_space_histogram is not faster than constant_space (weird correlation, does not give the same result whether you use intensity effects or not... needs proper profiling...)
   	- Constant_space is now the reference (and is constant frame also)
   	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
   	- Gaussian fit inside the slice module (and the track method updates the bunch length in Beams class)
   - Reorganisation of the longitudinal_impedance module
+  	- All calculations are now done in tau
     - The impedance coming from and impedance table is assumed to be 0 for higher frequencies
     - The wake_calc in InputTable assumes that the wake begins at t=0
     - The precalculation is always done in InducedVoltageTime unless you use constant_charge slicing
    	  - The input parameters have been changed and the constructor reorganized accordingly
+   	- The number of sampling points for the fft is now a power of 2
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - PEP8 corrections:
@@ -25,19 +27,19 @@ Implementation in this branch (intensity effects)
   
 - Minor (can be implemented in a transparent way):
   - Corrected cut_left and cut_right calculation for n_sigma (divided by 2)
-  - Added in the beam class if longitudinal/transverse is defined (only definition, not used for the moment)
   - Documentation:
-  	- Slices module done
+  	- Slices module done (figures and more details might be added)
   	- Impedance (Work in progress)
   	
 - Thoughts
   - Smoothing in the slicing can be done (by weighing the particles in the bins)
   -	Method to convert directly any kind of value from one coordinate to another without having to define a long list of properties
-  - To be discussed : should we define a returned value for the methods ?
+  - To be discussed : standard input/output for the functions/objects etc...
   - To be discussed : shallow copies of objects in the constructor of others
     - Example : accessing the ring radius in the longitudinal impedance (from GeneralParameters to Beam to Slices to Impedance...)
   - Should we include the normalized density in the slicing ?
   - To be implemented : varying frame for slicing with constant_space (for cases where you don't mind recalculating all the time the impedance)
+  - Wake calculations can be improved by doing pure matrix calculations (this might be useful in case you don't have pre-processing)
   
   
 Implementation in this branch (longitudinal tracking)
