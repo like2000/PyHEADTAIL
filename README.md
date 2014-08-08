@@ -40,6 +40,9 @@ Implementation in this branch (intensity effects)
   - Should we include the normalized density in the slicing ?
   - To be implemented : varying frame for slicing with constant_space (for cases where you don't mind recalculating all the time the impedance)
   - Wake calculations can be improved by doing pure matrix calculations (this might be useful in case you don't have pre-processing)
+  - Should we be able to use only one source of impedance (and have track methods for all sources) ?
+  - Inductive impedance to be updated in order to take into account acceleration
+  - Formulas to be included in the documentation !
   
   
 Implementation in this branch (longitudinal tracking)
@@ -67,11 +70,16 @@ Implementation in this branch (longitudinal tracking)
   - Changed general_parameters to GeneralParameters as an input for RFSectionParameters
   - Changed rf_params to RFSectionParameters as an input for RingAndRFSection
   - Secured the cases where the user input momentum compaction with higher orders than 2
+  
+- Thoughts:
+  - Re-include a FullRingAndRF object in order to calculate longitudinal_utilities for general cases
+  
 
 Implementation in this branch (file management)
 =============================
 - Removed cython functions (obsolete for the moment, will be re-implemented when dedicated functions will be in use)
 - Updated .gitignore
+
 
 
 PYHEADTAIL LONGITUDINAL v1.0

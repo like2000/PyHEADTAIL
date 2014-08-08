@@ -300,8 +300,9 @@ class Slices(object):
         a function. The two outputs are the coordinate step and the discrete
         derivative of the Beam profile respectively.*
         '''
-         
-        dist_centers = self.bins_centers[1] - self.bins_centers[0]
+        
+        
+        dist_centers = self.bins_centers_tau[1] - self.bins_centers_tau[0]
          
         if mode == 1:
             x = self.bins_centers
