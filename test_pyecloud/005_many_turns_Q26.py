@@ -42,8 +42,8 @@ R         = C/(2.*np.pi)                    # Ring radius [m].
 alpha_x   = 0.
 alpha_y   = 0.
 
-#Qp_x      = 0.                              # Horizontal chromaticity.
-#Qp_y      = 0.                              # Vertical chromaticity.    
+Qp_x      = 0.                              # Horizontal chromaticity.
+Qp_y      = 0.                              # Vertical chromaticity.    
 	
 beta_x    = 42.		                    	# Horizontal beta function [m].
 beta_y    = 42.                            	# Vertical beta function [m].
@@ -52,9 +52,6 @@ beta_z    = eta*R/Q_s                       # Longitudinal beta function [m].
 epsn_x    = 2.5                             # Horizontal emittance [um].
 epsn_y    = 2.5                             # Vertical emittance [um].
 epsn_z    = 4.*np.pi*sigma_z**2 * p0 / (beta_z * e)
-
-#i_oct_f   = -i_oct_fd                       # Octupole current (focusing).
-#i_oct_d   = i_oct_fd                        # Octupole current (defocusing).
 
 initial_kick_x = 0.0000                       # Initial horizontal kick of beam.
 initial_kick_y = 0.0000                       # Initial vertical kick of beam.
@@ -152,20 +149,20 @@ elements=[]
 for l in transverse_map:
     elements+=[l, ecloud]
 elements.append(cavity)
-bunch_monitor = BunchMonitor('bunch_Q26', n_turns, simulation_parameters_dict)
+bunch_monitor = BunchMonitor('bunch_Q26_aftermerge', n_turns, simulation_parameters_dict)
 
 for i in range(n_turns):
         t0 = time.clock()
 	
         for ind, m in enumerate(elements):
 			m.track(bunch)
-			#print ind, m
+			print ind, m
 			
 
         # slice_monitor.dump(bunch)
         bunch_monitor.dump(bunch)
         # particle_monitor.dump(bunch)
       
-        print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f} \t {9:4e} \t {10:3s}'.format(i, bunch.mean_x, bunch.mean_y, bunch.mean_z, bunch.epsn_x, bunch.epsn_y, bunch.epsn_z, bunch.sigma_z, bunch.sigma_dp, bunch.n_macroparticles / bunch.n_macroparticles * bunch.intensity, str(time.clock() - t0))
+        print '{0:4d} \t {1:+3e} \t {2:+3e} \t {3:+3e} \t {4:3e} \t {5:3e} \t {6:3f} \t {7:3f} \t {8:3f} \t {9:4e} \t {10:3s}'.format(i, bunch.mean_x(), bunch.mean_y(), bunch.mean_z(), bunch.epsn_x(), bunch.epsn_y(), bunch.epsn_z(), bunch.sigma_z(), bunch.sigma_dp(), bunch.n_macroparticles / bunch.n_macroparticles * bunch.intensity, str(time.clock() - t0))
 
 bunch_monitor.close()          

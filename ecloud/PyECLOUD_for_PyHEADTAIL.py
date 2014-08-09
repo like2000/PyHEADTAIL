@@ -221,16 +221,20 @@ class Ecloud(object):
 		for i in xrange(self.slicer.n_slices-1, -1, -1):
 
 			# select particles in the slice
-			ix = np.s_[self.slicer.z_index[i]:self.slicer.z_index[i + 1]]
+			ix = np.s_[self.slicer.first_particle_index_in_slice[i]:self.slicer.first_particle_index_in_slice[i + 1]]
 
 			# slice size and time step
 			dz = (self.slicer.z_bins[i + 1] - self.slicer.z_bins[i])
 			dt = dz / (beam.beta * c)
 			
 			# define substep
-			N_sub_steps = int(np.round(dt/self.Dt_ref))
+			if dt>self.Dt_ref:
+				N_sub_steps = int(np.round(dt/self.Dt_ref))
+			else:
+				N_sub_steps=1
+				
 			Dt_substep = dt/N_sub_steps
-			#print Dt_substep, N_sub_steps, dt
+			print Dt_substep, N_sub_steps, dt
 
 			# beam field 
 			MP_p = MP_light()
