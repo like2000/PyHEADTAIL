@@ -1,19 +1,3 @@
-# To do:
-# 1 - now the pinch is not reinitialized (done!)
-# 2 - introduce length of the interaction (done!)
-# 3 - different input files (done!)
-# 4 - define substeps consistently (done!)
-# 5 - push the beam (done!)
-# 6 - implement pinch saving (done!)
-
-
-
-#import init as init 
-
-
-#import beam_and_timing as beatim
-
-
 from geom_impact_ellip import ellip_cham_geom_object
 from geom_impact_poly import polyg_cham_geom_object
 from sec_emission_model_ECLOUD import SEY_model_ECLOUD
@@ -234,7 +218,7 @@ class Ecloud(object):
 				N_sub_steps=1
 				
 			Dt_substep = dt/N_sub_steps
-			print Dt_substep, N_sub_steps, dt
+			#print Dt_substep, N_sub_steps, dt
 
 			# beam field 
 			MP_p = MP_light()
@@ -242,7 +226,7 @@ class Ecloud(object):
 			MP_p.y_mp = beam.y[ix]
 			MP_p.nel_mp = beam.x*0.+beam.n_particles_per_mp/dz#they have to become cylinders
 			MP_p.N_mp = self.slicer.n_macroparticles[i]
-			#compute beam field (it assumes electrons)
+			#compute beam field (it assumes electrons!)
 			spacech_ele.recompute_spchg_efield(MP_p)
 			#scatter to electrons
 			Ex_n_beam, Ey_n_beam = spacech_ele.get_sc_eletric_field(MP_e)
