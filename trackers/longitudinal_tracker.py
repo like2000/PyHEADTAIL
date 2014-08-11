@@ -29,7 +29,8 @@ class FullRingAndRF(object):
         
         
     def potential_well_generation(self, turn = 0, n_points = 1e5, 
-                                  main_harmonic_option = 'lowest_freq'):
+                                  main_harmonic_option = 'lowest_freq', 
+                                  theta_margin_percent = 0.):
         '''
         *Method to generate the potential well out of the RF systems. The 
         assumption made is that all the RF voltages are averaged over
@@ -40,12 +41,10 @@ class FullRingAndRF(object):
         lowest one in frequency. The user can change this option if it is
         not the case for his simulations (other options are: 'highest_voltage',
         or inputing directly the value of the desired main harmonic). 
-        An error will be raised if there is not a full potentiel well (2 max 
-        and 1 min at least), or if there are several wells (more than 2 max and 
-        1 min). The last error can be ignored by the user with the several_potential 
-        option (this might lead to generate a doublet bunch in the longitudinal 
-        distribution generation). It assumes also that the slippage factor
-        is the same in the whole ring.*
+        A margin on the theta array can be applied in order
+        to be able to see the min/max that might be exactly on the edges of the
+        frame (by adding a % to the length of the frame, this is set to 0 by default. 
+        It assumes also that the slippage factor is the same in the whole ring.*
         '''
         
         voltages = np.array([])
@@ -74,14 +73,16 @@ class FullRingAndRF(object):
             if harmonics[harmonics == main_harmonic_option].size == 0:
                 raise RuntimeError('The desired harmonic to compute the potential well does not match the RF parameters...')
             main_harmonic = np.min(harmonics[harmonics == main_harmonic_option])
+            
+        theta_array_margin = theta_margin_percent * 2 * np.pi/main_harmonic
                     
         if self.RingAndRFSection_list[0].eta_0[turn] > 0:
-            first_theta = 0
-            last_theta = 2*np.pi/main_harmonic
+            first_theta = 0 - theta_array_margin / 2
+            last_theta = 2*np.pi/main_harmonic + theta_array_margin / 2
             transition_factor = -1
         else:
-            first_theta = - np.pi/main_harmonic
-            last_theta = np.pi/main_harmonic
+            first_theta = - np.pi/main_harmonic - theta_array_margin / 2
+            last_theta = np.pi/main_harmonic + theta_array_margin / 2
             transition_factor = 1
             
         theta_array = np.linspace(first_theta, last_theta, n_points)
