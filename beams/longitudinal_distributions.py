@@ -1,7 +1,7 @@
 '''
-Created on 12.06.2014
+**Module to generate longitudinal distributions**
 
-@author: Danilo Quartullo, Helga Timko, Alexandre Lasheen
+:Authors: **Danilo Quartullo**, **Helga Timko**, **Alexandre Lasheen**
 '''
 
 from __future__ import division
@@ -11,8 +11,49 @@ from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 
 
+
+def matched_from_line_density(Beam, line_density):
+    '''
+    *Function to generate a beam by inputing the line density. The distribution
+    density is then reconstructed with the Abel transform and the particles
+    randomly generated.*
+    '''
+    
+    pass
+
+
+
+def matched_from_distribution_density(Beam, FullRingAndRF, TotalInducedVoltage = None, bunch_length = None, emittance = None):
+    '''
+    *Function to generate a beam by inputing the distribution density.*
+    '''
+    
+    pass
+
+
+def line_density_bunch_population(Beam):
+    '''
+    *Function to generate particles with respect to an input line density (1D grid).*
+    '''
+    
+    pass
+
+
+def distribution_density_bunch_population(Beam):
+    '''
+    *Function to generate particles with respect to an input distribution density
+    (2D grid).*
+    '''
+    
+    pass
+
+
+
 def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_x,
                              sigma_y, xunit=None, yunit=None, reinsertion = 'off'):
+    '''
+    *Method to generate a bigaussian distribution by manually input the sigma values.*
+    '''
     
     warnings.filterwarnings("once")
     if GeneralParameters.n_sections > 1:
@@ -67,6 +108,11 @@ def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_
 
 def longitudinal_gaussian_matched(GeneralParameters, RFSectionParameters, beam, 
                                   four_sigma_bunch_length, unit=None, reinsertion = 'off'):
+    '''
+    *Method to generate a bigaussian distribution by inputing the sigma value
+    on the position coordinate and compute the sigma in the momentum coordinate
+    with respect to the RF input.*
+    '''
     
     warnings.filterwarnings("once")
         
