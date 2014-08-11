@@ -99,8 +99,6 @@ if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
     # Read in old distribution
     #beam.theta, beam.dE = np.loadtxt('initial_long_distr.dat', unpack=True)
     print "Beam set and distribution generated..."
-    if mpi_conf.mpi_rank == 0:
-        mpi_conf.mpi_comm.Bcast(beam, root=0)
 
 
 # Need slices for the Gaussian fit; slice for the first plot

@@ -190,7 +190,7 @@ class RingAndRFSection(object):
                                       self.mpi_i*np.ones(self.mpi_r) ) 
             n_start = np.concatenate( (self.mpi_i + 1)*np.arange(self.mpi_r, dtype='f'),
                                       self.mpi_i*np.arange(self.mpi_r, self.mpi_size, dtype='f') + self.mpi_r )
-            if self.counter % 200 and self.mpi_rank == 0: # for debugging
+            if self.counter[0] % 200 and self.mpi_rank == 0: # for debugging
                 print "Distributing indices n_range" %n_range
                 print "with starting numbers n_start" %n_start
             theta = np.empty(self.mpi_i + 1)
