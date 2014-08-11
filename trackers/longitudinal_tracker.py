@@ -7,6 +7,7 @@
 from __future__ import division
 import numpy as np
 from scipy.constants import c
+from scipy.integrate import cumtrapz
 
 
 class FullRingAndRF(object):
@@ -19,6 +20,79 @@ class FullRingAndRF(object):
         
         #: *List of the total RingAndRFSection objects*
         self.RingAndRFSection_list = RingAndRFSection_list
+        
+        #: *Total potential well in [V]*
+        self.potential_well = 0
+        
+        #: *Total potential well theta coordinates in [rad] *
+        self.potential_well_coordinates = 0
+        
+        
+    def potential_well_generation(self, turn = 0, n_points = 1e5, 
+                                  main_harmonic_option = 'lowest_freq'):
+        '''
+        *Method to generate the potential well out of the RF systems. The 
+        assumption made is that all the RF voltages are averaged over
+        one turn. The potential well is then approximated over one turn,
+        which is not the exact potential. This approximation should be
+        fine enough to generate a bunch (the mismatch should be small and
+        damped fast enough). The default main harmonic is defined to be the
+        lowest one in frequency. The user can change this option if it is
+        not the case for his simulations (other options are: 'highest_voltage',
+        or inputing directly the value of the desired main harmonic). 
+        An error will be raised if there is not a full potentiel well (2 max 
+        and 1 min at least), or if there are several wells (more than 2 max and 
+        1 min). The last error can be ignored by the user with the several_potential 
+        option (this might lead to generate a doublet bunch in the longitudinal 
+        distribution generation). It assumes also that the slippage factor
+        is the same in the whole ring.*
+        '''
+        
+        voltages = np.array([])
+        harmonics = np.array([])
+        phi_offsets = np.array([])
+        sync_phases = np.array([])
+                 
+        for RingAndRFSectionElement in self.RingAndRFSection_list:
+            for rf_system in range(RingAndRFSectionElement.n_rf):
+                voltages = np.append(voltages, RingAndRFSectionElement.voltage[rf_system, turn])
+                harmonics = np.append(harmonics, RingAndRFSectionElement.harmonic[rf_system, turn])
+                phi_offsets = np.append(phi_offsets, RingAndRFSectionElement.phi_offset[rf_system, turn])
+                sync_phases = np.append(sync_phases, RingAndRFSectionElement.phi_offset[rf_system, turn])
+                
+                        
+        voltages = np.array(voltages, ndmin = 2)
+        harmonics = np.array(harmonics, ndmin = 2)
+        phi_offsets = np.array(phi_offsets, ndmin = 2)
+        sync_phases = np.array(sync_phases, ndmin = 2)
+        
+        if main_harmonic_option is 'lowest_freq':
+            main_harmonic = np.min(harmonics)
+        elif main_harmonic_option is 'highest_voltage':
+            main_harmonic = np.min(harmonics[voltages == np.max(voltages)])
+        elif isinstance(main_harmonic_option, int) or isinstance(main_harmonic_option, float):
+            if harmonics[harmonics == main_harmonic_option].size == 0:
+                raise RuntimeError('The desired harmonic to compute the potential well does not match the RF parameters...')
+            main_harmonic = np.min(harmonics[harmonics == main_harmonic_option])
+                    
+        if self.RingAndRFSection_list[0].eta_0[turn] > 0:
+            first_theta = 0
+            last_theta = 2*np.pi/main_harmonic
+            transition_factor = -1
+        else:
+            first_theta = - np.pi/main_harmonic
+            last_theta = np.pi/main_harmonic
+            transition_factor = 1
+            
+        theta_array = np.linspace(first_theta, last_theta, n_points)
+        
+        total_voltage = np.sum(voltages.T * np.sin(harmonics.T * theta_array + phi_offsets.T) - voltages.T * np.sin(sync_phases.T), axis = 0)
+        
+        potential_well = transition_factor * np.insert(cumtrapz(total_voltage, dx=theta_array[1]-theta_array[0]),0,0)
+        potential_well = potential_well - np.min(potential_well)
+        
+        self.potential_well_coordinates = theta_array
+        self.potential_well = potential_well /(2*np.pi)
         
         
     def track(self, beam):
@@ -57,6 +131,8 @@ class RingAndRFSection(object):
         self.counter = RFSectionParameters.counter
         
         ### Import RF section parameters for RF kick
+        #: *Copy of length (from RFSectionParameters)*
+        self.section_length = RFSectionParameters.section_length
         #: *Copy of length ratio (from RFSectionParameters)*
         self.length_ratio = RFSectionParameters.length_ratio
         #: *Copy of the number of RF systems (from RFSectionParameters)*
@@ -67,6 +143,8 @@ class RingAndRFSection(object):
         self.voltage = RFSectionParameters.voltage
         #: *Copy of phi_offset program in [rad] (from RFSectionParameters)*
         self.phi_offset = RFSectionParameters.phi_offset
+        #: *Copy of phi_s program in [rad] (from RFSectionParameters)*
+        self.phi_s = RFSectionParameters.phi_s
         
         ### Import RF section parameters for accelerating kick
         #: *Copy of the momentum program in [eV/c] (from RFSectionParameters)*
