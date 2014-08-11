@@ -283,7 +283,7 @@ class Slices(object):
 
     
     
-    def beam_spectrum_generation(self, n_sampling_fft):
+    def beam_spectrum_generation(self, n_sampling_fft, filter_option = None):
         '''
         *Beam spectrum calculation, to be extended (normalized profile, different
         coordinates, etc.)*
@@ -294,23 +294,33 @@ class Slices(object):
              
      
      
-    def beam_profile_derivative(self, mode):      
+    def beam_profile_derivative(self, mode = 'gradient', coord = 'theta'):      
         ''' 
         *The input is one of the two available methods for differentiating
         a function. The two outputs are the coordinate step and the discrete
         derivative of the Beam profile respectively.*
         '''
         
-        
-        dist_centers = self.bins_centers_tau[1] - self.bins_centers_tau[0]
-         
-        if mode == 1:
+        if coord is 'theta':
+            dist_centers = self.bins_centers[1] - self.bins_centers[0]
             x = self.bins_centers
+        elif coord is 'tau':
+            dist_centers = self.bins_centers_tau[1] - self.bins_centers_tau[0]
+            x = self.bins_centers_tau
+        elif coord is 'z':
+            dist_centers = self.bins_centers_z[1] - self.bins_centers_z[0]
+            x = self.bins_centers_z
+            
+        if mode is 'filter1d':
             derivative = ndimage.gaussian_filter1d(self.n_macroparticles, sigma=1, 
                                                    order=1, mode='wrap') / dist_centers
-        if mode == 2:
-            x = self.bins_centers
+        elif mode is 'gradient':
             derivative = np.gradient(self.n_macroparticles, dist_centers)
+        else:
+            raise RuntimeError('Option for derivative is not recognized.')
+            
+#         elif mode is 'butterworth_filter':
+#             pass
              
         return x, derivative
     
@@ -320,8 +330,8 @@ class Slices(object):
         *Compute statistics of each slice (average position of the particles
         in a slice and sigma_rms.*
         
-        *Improvement is needed in order to include losses, and transverse
-        statistics calculation. Be also careful that empty slices will
+        *Improvement is needed in order to include losses, and link with 
+        transverse statistics calculation. Be also careful that empty slices will
         result with NaN values for the statistics.*
         '''
         

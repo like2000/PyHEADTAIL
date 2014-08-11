@@ -131,8 +131,6 @@ class InducedVoltageTime(object):
         '''
         
         self.induced_voltage_generation(Beam)
-        
-#         update_with_interpolation(Beam, self.induced_voltage, self.slices)
         induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
         Beam.dE += induced_voltage_kick
     
@@ -158,10 +156,6 @@ class InducedVoltageFreq(object):
     fulfills optimisation will be used. If set to 'best', the frequency resolution
     will be at least your input, so you always have a better resolution.*
     '''
-    
-#     def __init__(self, Slices, impedance_source_list, frequency_resolution, 
-#                  freq_res_option = 'round', sum_slopes_from_induc_imp = None, 
-#                  deriv_mode = 2, mode = 'only_spectrum'):
         
     def __init__(self, Slices, impedance_source_list, frequency_resolution, 
                  freq_res_option = 'round'):
@@ -202,16 +196,6 @@ class InducedVoltageFreq(object):
         #: *Induced voltage from the sum of the wake sources in [V]*
         self.induced_voltage = 0
             
-#         self.sum_slopes_from_induc_imp = sum_slopes_from_induc_imp
-#         self.deriv_mode = deriv_mode
-#         self.mode = mode
-#         
-#         if self.mode != 'only_derivative':
-#             
-#             self.frequency_fft, self.n_sampling_fft = self.frequency_array_generation(self.slices)
-#             self.impedance_array = self.sum_impedances(self.frequency_fft, \
-#                                            self.impedance_source_list)
-            
     
     def sum_impedances(self, frequency_array):
         '''
@@ -223,32 +207,6 @@ class InducedVoltageFreq(object):
             imped_object.imped_calc(frequency_array)
             self.total_impedance += imped_object.impedance
 
-    
-#     def frequency_array_generation(self, slices):
-#         '''
-#         Method to calculate the sampling frequency array through the rfftfreq
-#         Python command. Since this command is not included in older version
-#         of Numpy, the similar fftfreq has been used with some fixes to obtain
-#         the same result as rfftfreq.
-#         '''
-#         
-#         dcenters = self.slices.bins_centers[1] - self.slices.bins_centers[0]
-#         
-#         n = int(math.ceil(1 / (self.frequency_resolution * dcenters) ))
-#         
-#         if n/2 + 1 >= slices.n_slices:
-#             pass
-#         else:
-#             print 'Warning! Resolution in frequency domain is too small, \
-#                 you can get an error or a truncated bunch profile'
-#             
-#         if n%2 == 1:
-#             n += 1
-#         
-#         rfftfreq = fftfreq(n, dcenters)[0:int(n/2+1)]
-#         rfftfreq[-1] = - rfftfreq[-1]
-#         
-#         return rfftfreq, n
         
     def induced_voltage_generation(self, Beam):
         '''
@@ -256,7 +214,7 @@ class InducedVoltageFreq(object):
         impedance times the spectrum (fourier convolution).*
         '''
         
-        self.slices.beam_spectrum_generation(self.n_fft_sampling)
+        self.slices.beam_spectrum_generation(self.n_fft_sampling, filter_option = None)
         self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.total_impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
         self.induced_voltage = self.induced_voltage[0:self.slices.n_slices]
     
@@ -273,60 +231,6 @@ class InducedVoltageFreq(object):
         
         induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
         Beam.dE += induced_voltage_kick
-        
-#         if self.mode != 'only_derivative':
-#         
-#             self.spectrum = self.slices.beam_spectrum(self.n_sampling_fft)
-#             
-#             self.ind_vol = - bunch.charge * bunch.intensity / bunch.n_macroparticles \
-#                 * irfft(self.impedance_array * self.spectrum) * self.frequency_fft[1] \
-#                 * 2*(len(self.frequency_fft)-1) 
-#             
-#             self.ind_vol = self.ind_vol[0:self.slices.n_slices]
-#             
-#             if self.slices.coord == 'tau':
-#                 pass
-#             elif self.slices.coord == 'theta':
-#                 self.ind_vol *= (bunch.beta_r * c / bunch.ring_radius) ** 2
-#             elif self.slices.coord == 'z':
-#                 self.ind_vol *= (bunch.beta_r * c) ** 2
-#                 self.ind_vol = self.ind_vol[::-1]
-#             if self.mode == 'spectrum + derivative':
-#                 self.ind_vol += self.ind_vol_derivative(bunch)
-#                
-#         elif self.mode == 'only_derivative':
-#             
-#             self.ind_vol = self.ind_vol_derivative(bunch)
-#             
-#         update_with_interpolation(bunch, self.ind_vol, self.slices)
-        
-
-
-# def update_without_interpolation(bunch, induced_voltage, slices):
-#     '''
-#     *Other method to update the energy of the particles; this method can be used
-#     only if one has not used slices.mode == const_space_hist for the slicing.
-#     Maybe this method could be optimised through Cython or trying to avoid
-#     the for loop.*
-#     '''
-#     
-#     for i in range(0, slices.n_slices):
-#             
-#             bunch.dE[slices.first_index_in_bin[i]:
-#               slices.first_index_in_bin[i+1]] += induced_voltage[i]
-#     
-#     
-# def update_with_interpolation(bunch, induced_voltage, slices):
-#     '''
-#     *Method to update the energy of the particles through interpolation of
-#     the induced voltage. Note that the particles located between the first/last
-#     edge of the slicing and the nearest bin center see the induce voltage of
-#     the nearest bin center (this is due to the interpolation, and the induced
-#     voltage being calculated in the bin centers and not the edges).*
-#     '''
-#     
-#     induced_voltage_kick = np.interp(bunch.theta, slices.bins_centers, induced_voltage)
-#     bunch.dE += induced_voltage_kick
     
     
     
@@ -588,7 +492,7 @@ class InductiveImpedance(object):
     in the calculation of n=f/f0 is changing (general_params as input ?).*
     '''
     
-    def __init__(self, Slices, Z_over_n, revolution_frequency, deriv_mode = 2):
+    def __init__(self, Slices, Z_over_n, revolution_frequency, calc_domain = 'time', deriv_mode = 'gradient'):
         
         #: *Copy of the Slices object in order to access the profile info.*
         self.slices = Slices
@@ -611,6 +515,9 @@ class InductiveImpedance(object):
         #: *Derivation method to compute induced voltage*
         self.deriv_mode = deriv_mode
         
+        #: *Calculation domain (time for derivative, freq for inverse fft.*
+        self.calc_domain = calc_domain
+        
         
     def imped_calc(self, freq_array):
         '''
@@ -628,15 +535,16 @@ class InductiveImpedance(object):
         profile; the impedance must be of inductive type. *
         '''
         
-        self.induced_voltage = - Beam.charge / (2 * np.pi) * Beam.intensity / Beam.n_macroparticles * \
-                            self.Z_over_n / self.revolution_frequency * \
-                            self.slices.beam_profile_derivative(self.deriv_mode)[1] / \
-                            (self.slices.bins_centers_tau[1] - self.slices.bins_centers_tau[0])
+        if self.calc_domain is 'time':
+            self.induced_voltage = - Beam.charge / (2 * np.pi) * Beam.intensity / Beam.n_macroparticles * \
+                                self.Z_over_n / self.revolution_frequency * \
+                                self.slices.beam_profile_derivative(self.deriv_mode, coord = 'tau')[1] / \
+                                (self.slices.bins_centers_tau[1] - self.slices.bins_centers_tau[0])
         
-#         self.induced_voltage = Beam.charge / (2 * np.pi) * Beam.intensity / Beam.n_macroparticles * \
-#                             self.Z_over_n / self.revolution_frequency * \
-#                             self.slices.beam_profile_derivative(self.deriv_mode)[1] / \
-#                             (self.slices.bins_centers_tau[1] - self.slices.bins_centers_tau[0])
+#         if self.calc_domain is 'freq':
+#             self.slices.beam_spectrum_generation(self.n_fft_sampling, filter_option = None)
+#             self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
+#             self.induced_voltage = self.induced_voltage[0:self.slices.n_slices]
                             
                             
     def track(self, Beam):
