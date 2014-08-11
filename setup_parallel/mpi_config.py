@@ -5,6 +5,7 @@
 '''
 
 from mpi4py import MPI
+import warnings
 
 
 class MPI_Config(object):
@@ -16,7 +17,9 @@ class MPI_Config(object):
         
         try:   
             self.mpi_comm = MPI.COMM_WORLD
-            self.mpi_size = self.mpi_comm.Get_rank()
+            self.mpi_size = self.mpi_comm.Get_size()
             self.mpi_rank = self.mpi_comm.Get_rank()
         except:
-            raise RuntimeError('ERROR: Number of cores for longitudinal tracker not recognized!')
+            self.mpi_comm = None
+            warnings.warn('Running on single CPU in serial mode!')
+
