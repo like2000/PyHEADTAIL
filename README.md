@@ -42,15 +42,16 @@ Implementation in this branch (intensity effects)
   - Wake calculations can be improved by doing pure matrix calculations (this might be useful in case you don't have pre-processing)
   - Should we be able to use only one source of impedance (and have track methods for all sources) ?
   - Inductive impedance to be updated in order to take into account acceleration
-  - Formulas to be included in the documentation !
+  - Formulas to be included in the documentation
   - Pre-processing the induced_voltage (in order to be used directly afterwards for beam generation for example)
+  - Include better filtering options
   
   
 Implementation in this branch (longitudinal tracking)
 =============================
 
 - Major (feature implementation that may need further review and agreement):
-  - None
+  - FullRingAndRF object implementation
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - PEP8 changes:

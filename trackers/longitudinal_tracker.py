@@ -9,6 +9,28 @@ import numpy as np
 from scipy.constants import c
 
 
+class FullRingAndRF(object):
+    '''
+    *Definition of the full ring and RF parameters in order to be able to have
+    a full turn information (used in the hamiltonian for example).*
+    '''
+    
+    def __init__(self, RingAndRFSection_list):
+        
+        #: *List of the total RingAndRFSection objects*
+        self.RingAndRFSection_list = RingAndRFSection_list
+        
+        
+    def track(self, beam):
+        '''
+        *Loops over all the RingAndRFSection.track methods.*
+        '''
+        
+        for RingAndRFSectionElement in self.RingAndRFSection_list:
+            RingAndRFSectionElement.track(beam)
+    
+    
+
 class RingAndRFSection(object):
     '''
     *Definition of an RF station and part of the ring until the next station, 
