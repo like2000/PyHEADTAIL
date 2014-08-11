@@ -51,7 +51,7 @@ Implementation in this branch (longitudinal tracking)
 =============================
 
 - Major (feature implementation that may need further review and agreement):
-  - FullRingAndRF object implementation
+  - FullRingAndRF object implementation in order to compute potential well, hamiltonian, separatrix, etc.
   
 - Normal (small changes that are not transparent, the example main files should be adapted accordingly):
   - PEP8 changes:
@@ -74,7 +74,7 @@ Implementation in this branch (longitudinal tracking)
   - Secured the cases where the user input momentum compaction with higher orders than 2
   
 - Thoughts:
-  - Re-include a FullRingAndRF object in order to calculate longitudinal_utilities for general cases
+  - Better input check for GeneralParameters
   
 
 Implementation in this branch (file management)

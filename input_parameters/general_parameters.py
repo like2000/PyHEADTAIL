@@ -66,11 +66,12 @@ class GeneralParameters(object):
 
         #: | *Momentum (program) in [eV/c] for each RF section* :math:`: \quad p_n`
         #: | *Can be given as a single value to be assumed constant, or as a program of (n_turns + 1) terms in case of acceleration.*
-        #: | *In case of several sections, a list of single values, or a list of (n_turns + 1) programs needs to be inputed.*
+        #: | *In case of several sections without acceleration, the input is as follow : [[momentum_section_1], [momentum_section_2]]
+        #: | *In case of several sections with momentum program, the input is as follow: [momentum_program_section_1, momentum_program_section_2]*
         self.momentum = np.array(momentum, ndmin =2)
 
         #: | *Momentum compaction factor (up to 2nd order) for each RF section* :math:`: \quad \alpha_i`
-        #: | *Should be given as a list for multi-station (each element of the list can contain up to 2nd order but must contain the same orders)*
+        #: | *Should be given as a list for multi-station (each element of the list should be a list that can contain up to 2nd order but must contain the same orders)*
         self.alpha = np.array(alpha, ndmin =2) 
         
         #: *Number of orders for the momentum compaction*
@@ -95,8 +96,17 @@ class GeneralParameters(object):
             raise RuntimeError('ERROR: Number of sections, ring length, alpha, \
                                and/or momentum data do not match!')    
         
-        if self.momentum.size == 1:
-            self.momentum = self.momentum * np.ones(self.n_turns + 1)
+        if self.n_sections > 1:
+            if self.momentum.shape[1] == 1:
+                self.momentum = self.momentum * np.ones(self.n_turns + 1)
+        else:
+            if self.momentum.size == 1:
+                self.momentum = self.momentum * np.ones(self.n_turns + 1)
+
+        if not self.momentum.shape[1] == self.n_turns + 1:
+                raise RuntimeError('The input momentum program does not match \
+                                    the proper length (n_turns+1)')
+            
         
         #: *Relativistic beta (program)* :math:`: \quad \beta_n`
         #:
@@ -148,11 +158,7 @@ class GeneralParameters(object):
             warnings.filterwarnings("once")
             warnings.warn("WARNING: Momentum compaction factor is implemented \
                           only up to 2nd order")
-            self.alpha_order = 3        
-        
-        if not self.momentum.shape[1] == self.n_turns + 1:
-            raise RuntimeError('The input momentum program does not match the \
-                               proper length (n_turns+1)')   
+            self.alpha_order = 3         
                  
         # Processing the slippage factor
         self.eta_generation()
