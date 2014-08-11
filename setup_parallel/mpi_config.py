@@ -20,4 +20,3 @@ class MPI_Config(object):
             self.mpi_rank = self.mpi_comm.Get_rank()
         except:
             raise RuntimeError('ERROR: Number of cores for longitudinal tracker not recognized!')
-

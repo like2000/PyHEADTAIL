@@ -9,6 +9,7 @@ from LLRF.RF_noise import *
 from input_parameters.general_parameters import *
 from input_parameters.rf_parameters import *
 from trackers.longitudinal_tracker_mpi import *
+from setup_parallel.mpi_config import *
 from beams.beams import *
 from beams.longitudinal_distributions import *
 from beams.slices import *
@@ -76,7 +77,8 @@ general_params = GeneralParameters(N_t, C, alpha, p_s,
 
 # Define RF station parameters and corresponding tracker
 rf_params = RFSectionParameters(general_params, 1, 1, h, V, dphi)
-long_tracker = RingAndRFSection(rf_params)
+mpi_conf = MPI_Config()
+long_tracker = RingAndRFSection(rf_params, mpi_conf=mpi_conf)
 
 print "General and RF parameters set..."
 
