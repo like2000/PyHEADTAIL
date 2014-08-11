@@ -43,6 +43,7 @@ Implementation in this branch (intensity effects)
   - Should we be able to use only one source of impedance (and have track methods for all sources) ?
   - Inductive impedance to be updated in order to take into account acceleration
   - Formulas to be included in the documentation !
+  - Pre-processing the induced_voltage (in order to be used directly afterwards for beam generation for example)
   
   
 Implementation in this branch (longitudinal tracking)

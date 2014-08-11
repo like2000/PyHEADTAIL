@@ -9,6 +9,55 @@ import numpy as np
 from numpy.fft import irfft
 
 
+class TotalInducedVoltage(object):
+    '''
+    *Object gathering all the induced voltage contributions. The input is a 
+    list of objects able to compute induced voltages (InducedVoltageTime, 
+    InducedVoltageFreq, InductiveImpedance). All the induced voltages will
+    be summed in order to reduce the computing time. All the induced
+    voltages should have the same slicing resolution.*
+    '''
+    
+    def __init__(self, Slices, induced_voltage_list):
+        
+        
+        #: *Copy of the Slices object in order to access the profile info.*
+        self.slices = Slices
+        
+        #: *Induced voltage list.*
+        self.induced_voltage_list = induced_voltage_list
+        
+        #: *Induced voltage from the sum of the wake sources in [V]*
+        self.induced_voltage = 0
+        
+        #: *Time array of the wake in [s]*
+        self.time_array = self.slices.bins_centers_tau
+        
+
+    def induced_voltage_sum(self, Beam):
+        '''
+        *Method to sum all the induced voltages in one single array.*
+        '''
+        
+        temp_induced_voltage = 0
+        for induced_voltage_object in self.induced_voltage_list:
+            induced_voltage_object.induced_voltage_generation(Beam)
+            temp_induced_voltage += induced_voltage_object.induced_voltage
+            
+        self.induced_voltage = temp_induced_voltage
+    
+    
+    def track(self, Beam):
+        '''
+        *Track method to apply the induced voltage kick on the beam.*
+        '''
+        
+        self.induced_voltage_sum(Beam)
+        induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
+        Beam.dE += induced_voltage_kick
+
+
+
 class InducedVoltageTime(object):
     '''
     *Induced voltage derived from the sum of several wake fields (time domain).*
@@ -51,7 +100,7 @@ class InducedVoltageTime(object):
             self.total_wake += wake_object.wake
         
     
-    def induce_voltage_generation(self, Beam): 
+    def induced_voltage_generation(self, Beam): 
         '''
         *Method to calculate the induced voltage from wakes with convolution 
         or with the matrix method (this method scales with the number of sources 
@@ -81,7 +130,7 @@ class InducedVoltageTime(object):
         update_with_interpolation is faster.*
         '''
         
-        self.induce_voltage_generation(Beam)
+        self.induced_voltage_generation(Beam)
         
 #         update_with_interpolation(Beam, self.induced_voltage, self.slices)
         induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
@@ -201,7 +250,7 @@ class InducedVoltageFreq(object):
 #         
 #         return rfftfreq, n
         
-    def induce_voltage_generation(self, Beam):
+    def induced_voltage_generation(self, Beam):
         '''
         *Method to calculate the induced voltage from the inverse FFT of the
         impedance times the spectrum (fourier convolution).*
@@ -220,7 +269,7 @@ class InducedVoltageFreq(object):
         respectively.*
         '''
         
-        self.induce_voltage_generation(Beam)
+        self.induced_voltage_generation(Beam)
         
         induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
         Beam.dE += induced_voltage_kick
@@ -544,7 +593,7 @@ class InductiveImpedance(object):
         #: *Copy of the Slices object in order to access the profile info.*
         self.slices = Slices
         
-        #: *Imaginary Z/n in* [:math:`\Omega / Hz`]
+        #: *Constant imaginary Z/n in* [:math:`\Omega / Hz`]
         self.Z_over_n = Z_over_n
         
         #: *Revolution frequency in [Hz]*
@@ -573,7 +622,7 @@ class InductiveImpedance(object):
                          self.Z_over_n * 1j
              
                          
-    def induce_voltage_generation(self, Beam):
+    def induced_voltage_generation(self, Beam):
         '''
         *Method to calculate the induced voltage through the derivative of the
         profile; the impedance must be of inductive type. *
@@ -598,7 +647,7 @@ class InductiveImpedance(object):
         respectively.*
         '''
         
-        self.induce_voltage_generation(Beam)
+        self.induced_voltage_generation(Beam)
         
         induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
         Beam.dE += induced_voltage_kick
