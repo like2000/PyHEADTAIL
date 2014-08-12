@@ -19,6 +19,9 @@ class MPI_Config(object):
             self.mpi_comm = MPI.COMM_WORLD
             self.mpi_size = self.mpi_comm.Get_size()
             self.mpi_rank = self.mpi_comm.Get_rank()
+            if self.mpi_size == 1:
+                self.mpi_comm = None
+                warnings.warn('Running on single CPU in serial mode!')                
         except:
             self.mpi_comm = None
             warnings.warn('Running on single CPU in serial mode!')

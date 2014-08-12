@@ -5,6 +5,7 @@
 import time 
 import numpy as np
 
+from mpi4py import MPI
 from LLRF.RF_noise import *
 from input_parameters.general_parameters import *
 from input_parameters.rf_parameters import *
@@ -42,29 +43,13 @@ mpi_conf = MPI_Config()
 
 
 # Pre-processing: RF phase noise -----------------------------------------------
-f = np.arange(0, 5.6227612455e+03, 1.12455000e-02)
-spectrum = np.concatenate((1.11100000e-07 * np.ones(4980), np.zeros(495021)))
-noise_t, noise_dphi = Phase_noise(f, spectrum, seed1=1234, seed2=7564).spectrum_to_phase_noise()
-
-# Hermitian vs complex FFT (gives the same result)
-# plot_noise_spectrum(f, spectrum, sampling=100)
-# plot_phase_noise(noise_t, noise_dphi, sampling=100)
-# print "Sigma of noise 1 is %.4e" %np.std(noise_dphi)
-# print "Time step of noise 1 is %.4e" %noise_t[1]
-# f2 = np.arange(0, 2*5.62275e+03, 1.12455000e-02)
-# spectrum2 = np.concatenate(( 1.11100000e-07 * np.ones(4980), np.zeros(990040), 1.11100000e-07 * np.ones(4980) ))
-# noise_t2, noise_dphi2 = Phase_noise(f2, spectrum2).spectrum_to_phase_noise(transform='c')
-# os.rename('temp/noise_spectrum.png', 'temp/noise_spectrum_r.png')
-# os.rename('temp/phase_noise.png', 'temp/phase_noise_r.png')
-# plot_noise_spectrum(f2, spectrum2, sampling=100)
-# plot_phase_noise(noise_t2, noise_dphi2, sampling=100)
-# print "Sigma of noise 2 is %.4e" %np.std(noise_dphi)
-# print "Time step of noise 2 is %.4e" %noise_t[1]
-# os.rename('temp/noise_spectrum.png', 'temp/noise_spectrum_c.png')
-# os.rename('temp/phase_noise.png', 'temp/phase_noise_c.png')
-
 if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
     t0 = time.clock()
+    f = np.arange(0, 5.6227612455e+03, 1.12455000e-02)
+    spectrum = np.concatenate((1.11100000e-07 * np.ones(4980), np.zeros(495021)))
+    noise_t, noise_dphi = Phase_noise(f, spectrum, seed1=1234, seed2=7564).spectrum_to_phase_noise()
+    #noise_dphi = mpi_conf.mpi_comm.Bcast(noise_dphi)
+
     plot_noise_spectrum(f, spectrum, sampling=100)
     plot_phase_noise(noise_t, noise_dphi, sampling=100)
     #plot_phase_noise(noise_t[0:10000], noise_dphi[0:10000], sampling=1)
@@ -82,6 +67,7 @@ general_params = GeneralParameters(N_t, C, alpha, p_s, 'proton')
 
 # Define RF station parameters and corresponding tracker
 rf_params = RFSectionParameters(general_params, 1, 1, h, V, dphi)
+#rf_params = RFSectionParameters(general_params, 1, 1, h, V, noise_dphi)
 
 long_tracker = RingAndRFSection(rf_params, mpi_conf=mpi_conf)
 
@@ -94,28 +80,35 @@ beam = Beam(general_params, N_p, N_b)
 # Generate new distribution
 if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
     longitudinal_gaussian_matched(general_params, rf_params, beam, tau_0, 
-                                  unit='ns', reinsertion = 'on')
+                                  unit='ns', reinsertion='on')
     #np.savetxt('initial_long_distr.dat', np.c_[beam.theta, beam.dE], fmt='%.8e')
     # Read in old distribution
     #beam.theta, beam.dE = np.loadtxt('initial_long_distr.dat', unpack=True)
-    print "Beam set and distribution generated..."
 
+#     if mpi_conf.mpi_size > 1:
+#         mpi_conf.mpi_comm.Bcast(beam.theta)
+#         mpi_conf.mpi_comm.Bcast(beam.dE)
 
 # Need slices for the Gaussian fit; slice for the first plot
-slice_beam = Slices(100)
-slice_beam.track(beam)
+    slice_beam = Slices(100)
+    slice_beam.track(beam)
+
 
 # Define what to save in file
-bunchmonitor = BunchMonitor('output_data', N_t+1, statistics = "Longitudinal", long_gaussian_fit = "On")
+    bunchmonitor = BunchMonitor('output_data', N_t+1, statistics = "Longitudinal", long_gaussian_fit = "On")
 
 if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
     print "Statistics set..."
 
 
 # Accelerator map
-map_ = [long_tracker] + [slice_beam] # No intensity effects, no aperture limitations
-print "Map set"
-print ""
+if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
+    map_ = [long_tracker] + [slice_beam] # No intensity effects, no aperture limitations
+    print "Map set"
+    print ""
+else:
+    map_ = [long_tracker] # No intensity effects, no aperture limitations
+
 
 
 
@@ -148,8 +141,9 @@ for i in range(N_t):
     for m in map_:
         m.track(beam)
     # Define losses according to separatrix and/or longitudinal position
-    beam.losses_separatrix(general_params, rf_params)
-    beam.losses_longitudinal_cut(0.28e-4, 0.75e-4)
+    if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
+        beam.losses_separatrix(general_params, rf_params)
+        beam.losses_longitudinal_cut(0.28e-4, 0.75e-4)
 
 
 if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:

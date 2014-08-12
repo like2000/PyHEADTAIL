@@ -7,6 +7,7 @@
 from __future__ import division
 import numpy as np
 from scipy.constants import c
+from mpi4py import MPI
 
 
 class RingAndRFSection(object):
@@ -78,21 +79,19 @@ class RingAndRFSection(object):
         self.rf_params = rf_params    
 
         #: *Parameters for MPI parallelization*
-        self.mpi_conf = mpi_conf
-        self.mpi_comm = self.mpi_conf.mpi_comm
+        self.mpi_comm = mpi_conf.mpi_comm
         if self.mpi_comm != None:            
-            self.mpi_size = self.mpi_conf.mpi_size
-            self.mpi_rank = self.mpi_conf.mpi_rank
+            self.mpi_size = mpi_conf.mpi_size
+            self.mpi_rank = mpi_conf.mpi_rank
             self.mpi_i = 0
             self.mpi_r = 0
-   
-        #: *Index range in beam array to be picked by the core*
-        self.ni = 0
-        self.nf = 0
+            self.theta = [0]
+            self.dE = [0]
+            self.delta = [0]
+ 
         
            
-                   
-    def kick(self, theta, dE):
+    def kick(self, beam):
         '''
         *The Kick represents the kick(s) by an RF station at a certain position 
         of the ring. The kicks are summed over the different harmonic RF systems 
@@ -103,14 +102,20 @@ class RingAndRFSection(object):
             \Delta E_{n+1} = \Delta E_n + \sum_{j=0}^{n_{RF}}{V_{j,n}\,\sin{\\left(h_{j,n}\,\\theta + \phi_{j,n}\\right)}}
             
         '''
-
-        for i in range(self.n_rf):
-            dE += self.voltage[i,self.counter[0]] * \
-                    np.sin(self.harmonic[i,self.counter[0]] * 
-                    theta + self.phi_offset[i,self.counter[0]])
+        
+        if self.mpi_comm == None:
+            for i in range(self.n_rf):
+                beam.dE += self.voltage[i,self.counter[0]] * \
+                        np.sin(self.harmonic[i,self.counter[0]] * 
+                               beam.theta + self.phi_offset[i,self.counter[0]])
+        else:
+            for i in range(self.n_rf):
+                self.dE += self.voltage[i,self.counter[0]] * \
+                        np.sin(self.harmonic[i,self.counter[0]] * 
+                               self.theta + self.phi_offset[i,self.counter[0]])
 
     
-    def kick_acceleration(self, dE):
+    def kick_acceleration(self, beam):
         '''
         *KickAcceleration gives a single accelerating kick to the bunch. 
         The accelerating kick is defined by the change in the design momentum 
@@ -125,10 +130,13 @@ class RingAndRFSection(object):
             
         '''
 
-        dE += self.acceleration_kick[self.counter[0]]
-                    
+        if self.mpi_comm == None:
+            beam.dE += self.acceleration_kick[self.counter[0]]
+        else:
+            self.dE += self.acceleration_kick[self.counter[0]]
+
         
-    def drift(self, theta, delta):
+    def drift(self, beam):
         '''
         *The drift updates the longitudinal coordinate of the particle after 
         applying the energy kick. The two options of tracking are: full, 
@@ -146,73 +154,58 @@ class RingAndRFSection(object):
         '''
         
         if self.solver == 'full': 
-            theta = self.beta_ratio[self.counter[0]] * theta \
-                    + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(delta) * 
-                                        delta) - 1) * self.length_ratio
+            if self.mpi_comm == None:            
+                beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
+                            + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(beam.delta) * 
+                                                beam.delta) - 1) * self.length_ratio
+            else:
+                self.theta = self.beta_ratio[self.counter[0]] * self.theta \
+                            + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(self.delta) * 
+                                                self.delta) - 1) * self.length_ratio                
         elif self.solver == 'simple':
-            theta = self.beta_ratio[self.counter[0]] * theta \
-                    + 2 * np.pi * self.eta_0[self.counter[0]] \
-                    * delta * self.length_ratio
+            if self.mpi_comm == None: 
+                beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
+                            + 2 * np.pi * self.eta_0[self.counter[0]] \
+                            * beam.delta * self.length_ratio
+            else:
+                self.theta = self.beta_ratio[self.counter[0]] * self.theta \
+                            + 2 * np.pi * self.eta_0[self.counter[0]] \
+                            * self.delta * self.length_ratio                
         else:
             raise RuntimeError("ERROR: Choice of longitudinal solver not \
                                recognized! Aborting...")
-                
+        
         
     def track(self, beam):
         
         # Parallel computing, load balancing
         if self.mpi_comm != None:
-            self.mpi_i, self.mpi_r = divmod(beam.n_macroparticles, self.mpi_size) # integer part and remainder     
-# #             if self.mpi_rank < (self.mpi_size-1):
-# #                 self.ni = self.mpi_rank*self.mpi_i
-# #                 self.nf = (self.mpi_rank+1) * self.mpi_i
-# #             else:          
-# #                 self.ni = self.mpi_rank*self.mpi_i
-# #                 self.nf = beam.n_macroparticles
-#             if self.mpi_rank < self.mpi_r:
-#                 self.ni = self.mpi_rank*(self.mpi_i + 1)
-#                 self.nf = (self.mpi_rank + 1)*(self.mpi_i + 1)
-#             else: 
-#                 self.ni = self.mpi_rank*self.mpi_i + self.mpi_r
-#                 self.nf = (self.mpi_rank + 1)*self.mpi_i + self.mpi_r
-#             if self.counter % 200: # for debugging
-#                 print "On processor % d calculating indices %d to %d" %(self.mpi_rank, self.ni, self.nf)
-#                 
-#             # Broadcast data to the workers
-#             if self.mpi_rank == 0:
-#                 self.mpi_comm.Bcast(beam.theta, root=0)
-#                 self.mpi_comm.Bcast(beam.dE, root=0)
-#                 self.mpi_comm.Bcast(beam.delta, root=0)
-                
             
-            # Scatter data from rank = 0 to all workers  
-            n_range = np.concatenate( (self.mpi_i + 1)*np.ones(self.mpi_r), 
-                                      self.mpi_i*np.ones(self.mpi_r) ) 
-            n_start = np.concatenate( (self.mpi_i + 1)*np.arange(self.mpi_r, dtype='f'),
-                                      self.mpi_i*np.arange(self.mpi_r, self.mpi_size, dtype='f') + self.mpi_r )
-            if self.counter[0] % 200 and self.mpi_rank == 0: # for debugging
-                print "Distributing indices n_range" %n_range
-                print "with starting numbers n_start" %n_start
-            theta = np.empty(self.mpi_i + 1)
-            dE = np.empty(self.mpi_i + 1)
-            delta = np.empty(self.mpi_i + 1)
-            self.mpi_comm.Scatterv(beam.theta, n_range, n_start, theta)
-            self.mpi_comm.Scatterv(beam.dE, n_range, n_start, dE)
-            self.mpi_comm.Scatterv(beam.delta, n_range, n_start, delta)
-
-            self.kick(theta, dE)
-            self.kick_acceleration(dE)
-            self.drift(theta, delta)                                            
+            # Determine integer part and remainder, define indices
+            self.mpi_i, self.mpi_r = divmod(beam.n_macroparticles, self.mpi_size)                   
+            n_range = np.concatenate(( (self.mpi_i + 1)*np.ones(self.mpi_r), 
+                                       self.mpi_i*np.ones(self.mpi_size - self.mpi_r) )) 
+            n_start = np.concatenate(( (self.mpi_i + 1)*np.arange(self.mpi_r),
+                                       self.mpi_i*np.arange(self.mpi_r, self.mpi_size) + self.mpi_r ))
+            if self.mpi_rank < self.mpi_r:
+                self.theta = np.empty(self.mpi_i + 1)
+                self.dE = np.empty(self.mpi_i + 1)
+                self.delta = np.empty(self.mpi_i + 1)
+            else:
+                self.theta = np.empty(self.mpi_i)
+                self.dE = np.empty(self.mpi_i)
+                self.delta = np.empty(self.mpi_i)
                 
-        # Serial computing
-        else:
-#             self.ni = 0
-#             self.nf = beam.n_macroparticles
-                             
-            self.kick(beam.theta, beam.dE)
-            self.kick_acceleration(beam.dE)
-            self.drift(beam.theta, beam.delta)
+            # Scatter data from rank = 0 to all workers 
+            self.mpi_comm.Scatterv([beam.theta, n_range, n_start, MPI.DOUBLE], self.theta)
+            self.mpi_comm.Scatterv([beam.dE, n_range, n_start, MPI.DOUBLE], self.dE)
+            self.mpi_comm.Scatterv([beam.delta, n_range, n_start, MPI.DOUBLE], self.delta)
 
+        # Track (common for serial and parallel) 
+        self.kick(beam)
+        self.kick_acceleration(beam)
+        self.drift(beam) 
+                                         
         self.counter[0] += 1
 
         # Updating the beam synchronous momentum etc.
@@ -223,10 +216,10 @@ class RingAndRFSection(object):
         
         # Parallel mode: gather data from workers to rank = 0
         if self.mpi_comm != None:
-            self.mpi_comm.Gatherv(theta, beam.theta, n_range, n_start)
-            self.mpi_comm.Gatherv(dE, beam.dE, n_range, n_start)
-            self.mpi_comm.Gatherv(delta, beam.delta, n_range, n_start)
-                     
+            self.mpi_comm.Gatherv(self.theta, [beam.theta, n_range, n_start, MPI.DOUBLE])
+            self.mpi_comm.Gatherv(self.dE, [beam.dE, n_range, n_start, MPI.DOUBLE])
+            self.mpi_comm.Gatherv(self.delta, [beam.delta, n_range, n_start, MPI.DOUBLE])
+
 
 
 class LinearMap(object):
