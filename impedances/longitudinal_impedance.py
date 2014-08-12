@@ -116,9 +116,6 @@ class InducedVoltageTime(object):
             self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * np.dot(self.slices.n_macroparticles, self.total_wake) 
         else:           
             # Convolve method 
-            if self.precalc is 'off':
-                self.time_array = self.slices.bins_centers_tau - self.slices.bins_centers_tau[0]
-                self.sum_wakes(self.time_array)
             self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * np.convolve(self.total_wake, self.slices.n_macroparticles)[0:len(self.total_wake)]
 
         
@@ -180,6 +177,15 @@ class InducedVoltageFreq(object):
             self.n_fft_sampling = 2**int(np.ceil(np.log(1 / (frequency_resolution * time_resolution)) / np.log(2)))
         else:
             raise RuntimeError('The input freq_res_option is not recognized')
+        
+        if self.n_fft_sampling < self.slices.n_slices:
+            print 'The input frequency resolution step is too big, and the whole \
+                   bunch is not sliced... The number of sampling points for the \
+                   FFT is corrected in order to sample the whole bunch (and \
+                   you might consider changing the input in order to have \
+                   a finer resolution).'
+            frequency_resolution = 1 / (self.slices.bins_centers_tau[-1] - self.slices.bins_centers_tau[0])
+            self.n_fft_sampling = 2**int(np.ceil(np.log(1 / (frequency_resolution * time_resolution)) / np.log(2)))
         
         #: *Frequency resolution in [Hz], the beam profile sampling for the spectrum
         #: will be adapted accordingly.*
