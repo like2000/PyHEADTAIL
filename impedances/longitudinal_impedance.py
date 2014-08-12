@@ -122,9 +122,7 @@ class InducedVoltageTime(object):
             
     def track(self, Beam):
         '''
-        *Note that if slices.mode = 'const_charge' one is obliged to use the
-        matrix method for the calculation of the induced voltage; then
-        update_with_interpolation is faster.*
+        *Tracking method.*
         '''
         
         self.induced_voltage_generation(Beam)
@@ -227,10 +225,7 @@ class InducedVoltageFreq(object):
     
     def track(self, Beam):
         '''
-        *Method to calculate the induced voltage through the bunch spectrum, or
-        the derivative of profile, or both; these three choices are represented
-        by the mode 'only_spectrum', 'only_derivative', 'spectrum + derivative'
-        respectively.*
+        *Tracking method.*
         '''
         
         self.induced_voltage_generation(Beam)
