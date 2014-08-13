@@ -9,6 +9,7 @@ import numpy as np
 import warnings
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
+import matplotlib.pyplot as plt
 
 
 
@@ -25,7 +26,7 @@ def matched_from_line_density(Beam, line_density):
 
 def matched_from_distribution_density(Beam, FullRingAndRF, distribution_function, 
                                       TotalInducedVoltage = None, bunch_length = None, 
-                                      emittance = None, several_potential_wells = True):
+                                      emittance = None, main_harmonic_option = 'lowest_freq'):
     '''
     *Function to generate a beam by inputing the distribution density. To 
     be implemented: iteratively converge towards the chosen bunch length/emittance 
@@ -36,12 +37,13 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_function
     option (this might lead to generate a doublet bunch in the longitudinal 
     distribution generation). A margin of 5% is applied in order to be able
     to catch the min/max of the potential well that might be on the edge
-    of the frame.*
+    of the frame. The slippage factor should be updated to take the higher
+    orders.*
     '''
     
     # Generate potential well
-    n_points_grid = 1e5
-    FullRingAndRF.potential_well_generation(n_points = n_points_grid, theta_margin_percent = 0.05)
+    n_points_potential = 1e5
+    FullRingAndRF.potential_well_generation(n_points = n_points_potential, theta_margin_percent = 0.05, main_harmonic_option = main_harmonic_option)
     potential_well_array = FullRingAndRF.potential_well
     theta_coord_array = FullRingAndRF.potential_well_coordinates
     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
@@ -49,16 +51,66 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_function
     # Check for the min/max of the potentiel well
     [min_theta_positions, max_theta_positions],[min_potential_values, max_potential_values] = minmax_location(theta_coord_array,potential_well_array)
     
-    print [min_theta_positions, max_theta_positions],[min_potential_values, max_potential_values]
+    n_minima = len(min_theta_positions)
+    n_maxima = len(max_theta_positions)
+            
+    # Take a theta frame that takes the needed potential well information
+    if n_minima == 0:
+        raise RuntimeError('The potential well has no minima...')
+    if n_minima > n_maxima and n_maxima == 1:
+        raise RuntimeError('The potential well has more minima than maxima, and only one maximum')
+    if n_maxima == 0:
+        print ('Warning: The maximum of the potential well could not be found... \
+                You may reconsider the options to calculate the potential well \
+                as the main harmonic is probably not the expected one. \
+                You may also increase the percentage of margin to compute \
+                the potentiel well. The full potential well will be taken')
+    elif n_maxima == 1:
+        if min_theta_positions[0] > max_theta_positions[0]:
+            saved_indexes = (potential_well_array < max_potential_values[0]) * (theta_coord_array > max_theta_positions[0])
+            theta_coord_array = theta_coord_array[saved_indexes]
+            potential_well_array = potential_well_array[saved_indexes]
+            if potential_well_array[-1] < potential_well_array[0]:
+                raise RuntimeError('The potential well is not well defined. You may reconsider the options to calculate the potential well as the main harmonic is probably not the expected one.')
+        else:
+            saved_indexes = (potential_well_array < max_potential_values[0]) * (theta_coord_array < max_theta_positions[0])
+            theta_coord_array = theta_coord_array[saved_indexes]
+            potential_well_array = potential_well_array[saved_indexes]
+            if potential_well_array[-1] > potential_well_array[0]:
+                raise RuntimeError('The potential well is not well defined. You may reconsider the options to calculate the potential well as the main harmonic is probably not the expected one.')
+    elif n_maxima == 2:
+        lower_maximum_value = np.min(max_potential_values)
+        higher_maximum_value = np.max(max_potential_values)
+        lower_maximum_theta = max_theta_positions[max_potential_values == lower_maximum_value]
+        higher_maximum_theta = max_theta_positions[max_potential_values == higher_maximum_value]
+        if min_theta_positions[0] > lower_maximum_theta:
+            saved_indexes = (potential_well_array < lower_maximum_value) * (theta_coord_array > lower_maximum_theta) * (theta_coord_array < higher_maximum_theta)
+            theta_coord_array = theta_coord_array[saved_indexes]
+            potential_well_array = potential_well_array[saved_indexes]
+        else:
+            saved_indexes = (potential_well_array < lower_maximum_value) * (theta_coord_array < lower_maximum_theta) * (theta_coord_array > higher_maximum_theta)
+            theta_coord_array = theta_coord_array[saved_indexes]
+            potential_well_array = potential_well_array[saved_indexes]
+    elif n_maxima > 2:
+        left_max_theta = np.min(max_theta_positions)
+        right_max_theta = np.max(max_theta_positions)
+        saved_indexes = (theta_coord_array > left_max_theta) * (theta_coord_array < right_max_theta)
+        theta_coord_array = theta_coord_array[saved_indexes]
+        potential_well_array = potential_well_array[saved_indexes]
     
-    import matplotlib.pyplot as plt
-    plt.plot(theta_coord_array,potential_well_array)
-    plt.show()
-        
+    # Potential is shifted to put the minimum on 0
+    potential_well_array = potential_well_array - np.min(potential_well_array)
+    
+#     print [min_theta_positions, max_theta_positions],[min_potential_values, max_potential_values]
+#     plt.plot(theta_coord_array,potential_well_array)
+#     plt.show()
+ 
     # Compute deltaE coordinates
     max_potential = np.max(potential_well_array)
-    max_deltaE = np.sqrt(1)
-        
+    eom_factor_dE = (np.pi * slippage_factor * c) / (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
+    max_deltaE = np.sqrt(max_potential / eom_factor_dE )
+    
+    print max_deltaE
 
 
 def line_density_bunch_population(Beam):
