@@ -88,9 +88,9 @@ class RingAndRFSection(object):
             self.mpi_rank = mpi_conf.mpi_rank
             self.mpi_i = 0
             self.mpi_r = 0
-            self.theta = [0]
-            self.dE = [0]
-            self.delta = [0]
+            self.theta = np.empty([0])
+            self.dE = np.empty([0])
+            self.delta = np.empty([0])
  
         
            
@@ -191,13 +191,13 @@ class RingAndRFSection(object):
             n_start = np.concatenate(( (self.mpi_i + 1)*np.arange(self.mpi_r),
                                        self.mpi_i*np.arange(self.mpi_r, self.mpi_size) + self.mpi_r ))
             if self.mpi_rank < self.mpi_r:
-                self.theta = np.empty(self.mpi_i + 1)
-                self.dE = np.empty(self.mpi_i + 1)
-                self.delta = np.empty(self.mpi_i + 1)
+                self.theta = np.empty([self.mpi_i + 1])
+                self.dE = np.empty([self.mpi_i + 1])
+                self.delta = np.empty([self.mpi_i + 1])
             else:
-                self.theta = np.empty(self.mpi_i)
-                self.dE = np.empty(self.mpi_i)
-                self.delta = np.empty(self.mpi_i)
+                self.theta = np.empty([self.mpi_i])
+                self.dE = np.empty([self.mpi_i])
+                self.delta = np.empty([self.mpi_i])
                 
             # Scatter data from rank = 0 to all workers 
             self.mpi_comm.Scatterv([beam.theta, n_range, n_start, MPI.DOUBLE], self.theta)
@@ -208,15 +208,13 @@ class RingAndRFSection(object):
         self.kick(beam)
         self.kick_acceleration(beam)
         self.drift(beam) 
-                                         
-        self.counter[0] += 1
-
+                                        
         # Updating the beam synchronous momentum etc.
-        if self.mpi_comm == None or self.mpi_rank == 0:
-            beam.beta_r = self.beta_r[self.counter[0]]
-            beam.gamma_r = self.gamma_r[self.counter[0]]
-            beam.energy = self.energy[self.counter[0]]
-            beam.momentum = self.momentum[self.counter[0]]
+        self.counter[0] += 1
+        beam.beta_r = self.beta_r[self.counter[0]]
+        beam.gamma_r = self.gamma_r[self.counter[0]]
+        beam.energy = self.energy[self.counter[0]]
+        beam.momentum = self.momentum[self.counter[0]]
         
         # Parallel mode: gather data from workers to rank = 0
         if self.mpi_comm != None:
