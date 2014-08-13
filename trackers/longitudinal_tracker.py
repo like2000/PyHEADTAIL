@@ -27,6 +27,14 @@ class FullRingAndRF(object):
         #: *Total potential well theta coordinates in [rad] *
         self.potential_well_coordinates = 0
         
+        #: *Ring circumference in [m]*
+        self.ring_circumference = 0
+        for RingAndRFSectionElement in self.RingAndRFSection_list:
+            self.ring_circumference += RingAndRFSectionElement.section_length
+            
+        #: *Ring radius in [m]*
+        self.ring_radius = self.ring_circumference / (2*np.pi)
+        
         
     def potential_well_generation(self, turn = 0, n_points = 1e5, 
                                   main_harmonic_option = 'lowest_freq', 
@@ -51,7 +59,6 @@ class FullRingAndRF(object):
         harmonics = np.array([])
         phi_offsets = np.array([])
         sync_phases = np.array([])
-        ring_circumference = 0
                  
         for RingAndRFSectionElement in self.RingAndRFSection_list:
             for rf_system in range(RingAndRFSectionElement.n_rf):
@@ -59,7 +66,6 @@ class FullRingAndRF(object):
                 harmonics = np.append(harmonics, RingAndRFSectionElement.harmonic[rf_system, turn])
                 phi_offsets = np.append(phi_offsets, RingAndRFSectionElement.phi_offset[rf_system, turn])
                 sync_phases = np.append(sync_phases, RingAndRFSectionElement.phi_s[turn])
-            ring_circumference += RingAndRFSectionElement.section_length
                         
         voltages = np.array(voltages, ndmin = 2)
         harmonics = np.array(harmonics, ndmin = 2)
@@ -93,7 +99,7 @@ class FullRingAndRF(object):
                 
         total_voltage = np.sum(voltages.T * np.sin(harmonics.T * theta_array + phi_offsets.T) - voltages.T * np.sin(sync_phases.T), axis = 0)
         
-        eom_factor_potential = (beta_r * c) / (ring_circumference)
+        eom_factor_potential = (beta_r * c) / (self.ring_circumference)
         
         potential_well = transition_factor * np.insert(cumtrapz(total_voltage, dx=theta_array[1]-theta_array[0]),0,0)
         
