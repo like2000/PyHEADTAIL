@@ -24,6 +24,10 @@ class TotalInducedVoltage(object):
         #: *Copy of the Slices object in order to access the profile info.*
         self.slices = Slices
         
+        # The slicing has to be done in 'tau' in order to use intensity effects
+        if self.slices.slicing_coord is not 'tau':
+            raise RuntimeError('The slicing has to be done in tau (slicing_coord option) in order to use intensity effects !')
+        
         #: *Induced voltage list.*
         self.induced_voltage_list = induced_voltage_list
         
@@ -31,7 +35,7 @@ class TotalInducedVoltage(object):
         self.induced_voltage = 0
         
         #: *Time array of the wake in [s]*
-        self.time_array = self.slices.bins_centers_tau
+        self.time_array = self.slices.bins_centers
         
 
     def induced_voltage_sum(self, Beam):
@@ -53,7 +57,7 @@ class TotalInducedVoltage(object):
         '''
         
         self.induced_voltage_sum(Beam)
-        induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
+        induced_voltage_kick = np.interp(Beam.tau, self.slices.bins_centers, self.induced_voltage)
         Beam.dE += induced_voltage_kick
 
 
@@ -67,6 +71,10 @@ class InducedVoltageTime(object):
         
         #: *Copy of the Slices object in order to access the profile info.*
         self.slices = Slices
+        
+        # The slicing has to be done in 'tau' in order to use intensity effects
+        if self.slices.slicing_coord is not 'tau':
+            raise RuntimeError('The slicing has to be done in tau (slicing_coord option) in order to use intensity effects !')
         
         #: *Wake sources inputed as a list (eg: list of BBResonators objects)*
         self.wake_source_list = wake_source_list
@@ -85,7 +93,7 @@ class InducedVoltageTime(object):
             self.precalc = 'off'
         else:   
             self.precalc = 'on'
-            self.time_array = self.slices.bins_centers_tau - self.slices.bins_centers_tau[0]
+            self.time_array = self.slices.bins_centers - self.slices.bins_centers[0]
             self.sum_wakes(self.time_array)
     
     
@@ -111,7 +119,7 @@ class InducedVoltageTime(object):
         
         if self.slices.mode == 'const_charge':
             # Matrix method
-            time_matrix = self.slices.bins_centers_tau - np.transpose([self.slices.bins_centers_tau])
+            time_matrix = self.slices.bins_centers - np.transpose([self.slices.bins_centers])
             self.sum_wakes(time_matrix)
             self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * np.dot(self.slices.n_macroparticles, self.total_wake) 
         else:           
@@ -126,7 +134,7 @@ class InducedVoltageTime(object):
         '''
         
         self.induced_voltage_generation(Beam)
-        induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
+        induced_voltage_kick = np.interp(Beam.tau, self.slices.bins_centers, self.induced_voltage)
         Beam.dE += induced_voltage_kick
     
     
@@ -159,13 +167,17 @@ class InducedVoltageFreq(object):
         #: *Copy of the Slices object in order to access the profile info.*
         self.slices = Slices
         
+        # The slicing has to be done in 'tau' in order to use intensity effects
+        if self.slices.slicing_coord is not 'tau':
+            raise RuntimeError('The slicing has to be done in tau (slicing_coord option) in order to use intensity effects !')
+        
         if self.slices.mode is 'const_charge':
             raise RuntimeError('Frequency domain calculation are not possible with const_charge slicing')
         
         #: *Impedance sources inputed as a list (eg: list of BBResonators objects)*
         self.impedance_source_list = impedance_source_list
         
-        time_resolution = (self.slices.bins_centers_tau[1] - self.slices.bins_centers_tau[0])
+        time_resolution = (self.slices.bins_centers[1] - self.slices.bins_centers[0])
         if freq_res_option is 'round':
             #: *Number of points used to FFT the beam profile (by padding zeros), 
             #: this is calculated in order to have at least the input 
@@ -182,7 +194,7 @@ class InducedVoltageFreq(object):
                    FFT is corrected in order to sample the whole bunch (and \
                    you might consider changing the input in order to have \
                    a finer resolution).'
-            frequency_resolution = 1 / (self.slices.bins_centers_tau[-1] - self.slices.bins_centers_tau[0])
+            frequency_resolution = 1 / (self.slices.bins_centers[-1] - self.slices.bins_centers[0])
             self.n_fft_sampling = 2**int(np.ceil(np.log(1 / (frequency_resolution * time_resolution)) / np.log(2)))
         
         #: *Frequency resolution in [Hz], the beam profile sampling for the spectrum
@@ -230,7 +242,7 @@ class InducedVoltageFreq(object):
         
         self.induced_voltage_generation(Beam)
         
-        induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
+        induced_voltage_kick = np.interp(Beam.tau, self.slices.bins_centers, self.induced_voltage)
         Beam.dE += induced_voltage_kick
     
     
@@ -498,6 +510,10 @@ class InductiveImpedance(object):
         #: *Copy of the Slices object in order to access the profile info.*
         self.slices = Slices
         
+        # The slicing has to be done in 'tau' in order to use intensity effects
+        if self.slices.slicing_coord is not 'tau':
+            raise RuntimeError('The slicing has to be done in tau (slicing_coord option) in order to use intensity effects !')
+        
         #: *Constant imaginary Z/n in* [:math:`\Omega / Hz`]
         self.Z_over_n = Z_over_n
         
@@ -540,7 +556,7 @@ class InductiveImpedance(object):
             self.induced_voltage = - Beam.charge / (2 * np.pi) * Beam.intensity / Beam.n_macroparticles * \
                                 self.Z_over_n / self.revolution_frequency * \
                                 self.slices.beam_profile_derivative(self.deriv_mode, coord = 'tau')[1] / \
-                                (self.slices.bins_centers_tau[1] - self.slices.bins_centers_tau[0])
+                                (self.slices.bins_centers[1] - self.slices.bins_centers[0])
         
 #         if self.calc_domain is 'freq':
 #             self.slices.beam_spectrum_generation(self.n_fft_sampling, filter_option = None)
@@ -558,7 +574,7 @@ class InductiveImpedance(object):
         
         self.induced_voltage_generation(Beam)
         
-        induced_voltage_kick = np.interp(Beam.theta, self.slices.bins_centers, self.induced_voltage)
+        induced_voltage_kick = np.interp(Beam.tau, self.slices.bins_centers, self.induced_voltage)
         Beam.dE += induced_voltage_kick
 
 
