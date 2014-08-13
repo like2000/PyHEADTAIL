@@ -58,7 +58,7 @@ class FullRingAndRF(object):
                 voltages = np.append(voltages, RingAndRFSectionElement.voltage[rf_system, turn])
                 harmonics = np.append(harmonics, RingAndRFSectionElement.harmonic[rf_system, turn])
                 phi_offsets = np.append(phi_offsets, RingAndRFSectionElement.phi_offset[rf_system, turn])
-                sync_phases = np.append(sync_phases, RingAndRFSectionElement.phi_offset[rf_system, turn])
+                sync_phases = np.append(sync_phases, RingAndRFSectionElement.phi_s[turn])
             ring_circumference += RingAndRFSectionElement.section_length
                         
         voltages = np.array(voltages, ndmin = 2)
@@ -90,13 +90,12 @@ class FullRingAndRF(object):
             transition_factor = 1
             
         theta_array = np.linspace(first_theta, last_theta, n_points)
-        
+                
         total_voltage = np.sum(voltages.T * np.sin(harmonics.T * theta_array + phi_offsets.T) - voltages.T * np.sin(sync_phases.T), axis = 0)
         
         eom_factor_potential = (beta_r * c) / (ring_circumference)
         
         potential_well = transition_factor * np.insert(cumtrapz(total_voltage, dx=theta_array[1]-theta_array[0]),0,0)
-        potential_well = potential_well - np.min(potential_well)
         
         self.potential_well_coordinates = theta_array
         self.potential_well = eom_factor_potential * potential_well
