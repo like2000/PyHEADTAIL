@@ -5,8 +5,7 @@ Implementation in this branch (intensity effects)
   - Deleted transverse calculations from slices (need discussions with transverse development)
   - Deleted transverse coordinates from beam (need discussions with transverse development)
   - Reorganisation of the slices module
-  	- The different coordinates type is redone, now all the calculations are done in theta and the results converted to z or tau
-  	  - We should be careful for the sorting in z, as head and tail are reversed (sorting should be inversed)
+  	- The different coordinates type is redone, a function to convert values from one coordinates type to another is included to reduce the code length
   	- Constant_space_histogram is not faster than constant_space (weird correlation, does not give the same result whether you use intensity effects or not... needs proper profiling...)
   	- Constant_space is now the reference (and is constant frame also)
   	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
@@ -33,10 +32,8 @@ Implementation in this branch (intensity effects)
   	
 - Thoughts
   - Smoothing in the slicing can be done (by weighing the particles in the bins)
-  -	Method to convert directly any kind of value from one coordinate to another without having to define a long list of properties
+  -	Better method to convert directly any kind of value from one coordinate to another, just for this values to be called as properties (like in 
   - To be discussed : standard input/output for the functions/objects etc...
-  - To be discussed : shallow copies of objects in the constructor of others
-    - Example : accessing the ring radius in the longitudinal impedance (from GeneralParameters to Beam to Slices to Impedance...)
   - Should we include the normalized density in the slicing ?
   - To be implemented : varying frame for slicing with constant_space (for cases where you don't mind recalculating all the time the impedance)
   - Wake calculations can be improved by doing pure matrix calculations (this might be useful in case you don't have pre-processing)
