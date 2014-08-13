@@ -95,36 +95,37 @@ if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
 
 
 # Define what to save in file
-    bunchmonitor = BunchMonitor('output_data', N_t+1, statistics = "Longitudinal", long_gaussian_fit = "On")
-
-if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
+    bunchmonitor = BunchMonitor('output_data', N_t, statistics = "Longitudinal", long_gaussian_fit = "On")
     print "Statistics set..."
 
 
 # Accelerator map
-if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
-    map_ = [long_tracker] + [slice_beam] # No intensity effects, no aperture limitations
-    print "Map set"
-    print ""
-else:
-    map_ = [long_tracker] # No intensity effects, no aperture limitations
+#     map_ = [long_tracker] + [slice_beam] # No intensity effects, no aperture limitations
+#     print "Map set"
+#     print ""
+# else:
+#     map_ = [long_tracker] # No intensity effects, no aperture limitations
 
-
+map_ = [long_tracker] # No intensity effects, no aperture limitations
+print "Map set"
+print ""
 
 
 # Tracking ---------------------------------------------------------------------
 for i in range(N_t):
     t0 = time.clock()
     
+    # Define losses according to separatrix and/or longitudinal position
     # Save data
     if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
+        beam.losses_separatrix(general_params, rf_params)
+        beam.losses_longitudinal_cut(0., 1.763e-4)
+        slice_beam.track(beam)
         bunchmonitor.dump(beam, slice_beam)
-        if any(np.isnan(beam.theta)):
-            print "Detected NaN in beam theta at time step %d" %i    
+  
     
     # Plot has to be done before tracking (at least for cases with separatrix)
-    if (i % dt_plt) == 0:
-        if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
+        if (i % dt_plt) == 0:
             print "Outputting at time step %d..." %i
             print "   Beam momentum %.6e eV" %beam.momentum
             print "   Beam gamma %3.3f" %beam.gamma_r
@@ -141,14 +142,10 @@ for i in range(N_t):
             if i > 100:
                 np.savetxt('final_distribution.dat', np.c_[beam.theta, beam.dE], fmt='%.6e')
 
-
     # Track
     for m in map_:
         m.track(beam)
-    # Define losses according to separatrix and/or longitudinal position
-    if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
-        beam.losses_separatrix(general_params, rf_params)
-        beam.losses_longitudinal_cut(0.28e-4, 0.75e-4)
+
 
 
 if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:

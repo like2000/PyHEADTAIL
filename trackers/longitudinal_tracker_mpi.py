@@ -81,6 +81,7 @@ class RingAndRFSection(object):
         #: *Parameters for MPI parallelization*
         if mpi_conf == None:
             self.mpi_comm = None
+            self.mpi_rank = 0
         else:     
             self.mpi_comm = mpi_conf.mpi_comm       
             self.mpi_size = mpi_conf.mpi_size
@@ -211,10 +212,11 @@ class RingAndRFSection(object):
         self.counter[0] += 1
 
         # Updating the beam synchronous momentum etc.
-        beam.beta_r = self.beta_r[self.counter[0]]
-        beam.gamma_r = self.gamma_r[self.counter[0]]
-        beam.energy = self.energy[self.counter[0]]
-        beam.momentum = self.momentum[self.counter[0]]
+        if self.mpi_comm == None or self.mpi_rank == 0:
+            beam.beta_r = self.beta_r[self.counter[0]]
+            beam.gamma_r = self.gamma_r[self.counter[0]]
+            beam.energy = self.energy[self.counter[0]]
+            beam.momentum = self.momentum[self.counter[0]]
         
         # Parallel mode: gather data from workers to rank = 0
         if self.mpi_comm != None:
