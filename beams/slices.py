@@ -58,15 +58,6 @@ class Slices(object):
         #: | *The options are: 'tau' (default), 'theta', 'z'.*
         self.slicing_coord = slicing_coord
         
-#         if self.slicing_coord is 'tau':
-#             self.beam_coordinates = self.Beam.tau
-#         elif self.slicing_coord is 'theta':
-#             self.beam_coordinates = self.Beam.theta
-#         elif self.slicing_coord is 'z':
-#             self.beam_coordinates = self.Beam.z
-#         else:
-#             raise RuntimeError('The slicing_coord is not recognized')
-        
         if (self.slicing_coord is not 'tau') and (self.slicing_coord is not 'z') and (self.slicing_coord is not 'theta') :
             raise RuntimeError('The slicing_coord is not recognized')
         
