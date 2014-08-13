@@ -79,9 +79,6 @@ class Slices(object):
         #: *Center of the bins*
         self.bins_centers = np.empty(n_slices)
         
-#         # Pre-processing Beam longitudinal statistics
-#         self.Beam.longit_statistics()
-        
         # Pre-processing the slicing edges
         self.set_longitudinal_cuts()
         
