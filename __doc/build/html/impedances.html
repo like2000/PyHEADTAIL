@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
@@ -15,7 +13,7 @@
     
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '',
+        URL_ROOT:    './',
         VERSION:     'embryo',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
@@ -227,48 +225,23 @@ and impedance.</em></p>
 <dl class="function">
 <dt id="impedances.longitudinal_impedance.update_with_interpolation">
 <tt class="descclassname">impedances.longitudinal_impedance.</tt><tt class="descname">update_with_interpolation</tt><big>(</big><em>bunch</em>, <em>induced_voltage</em>, <em>slices</em><big>)</big><a class="headerlink" href="#impedances.longitudinal_impedance.update_with_interpolation" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Method to update the energy of the particles through interpolation of
-the induced voltage. Note that there is a fix to prevent that one neglects
+<dd><dl class="docutils">
+<dt><a href="#id1"><span class="problematic" id="id2">*</span></a>Method to update the energy of the particles through interpolation of</dt>
+<dd>the induced voltage. Note that there is a fix to prevent that one neglects
 all the particles situated between the first edge and the first slice center
-and between the last edge and the last slice center</em></p>
+and between the last edge and the last slice center*</dd>
+</dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="impedances.longitudinal_impedance.update_without_interpolation">
 <tt class="descclassname">impedances.longitudinal_impedance.</tt><tt class="descname">update_without_interpolation</tt><big>(</big><em>bunch</em>, <em>induced_voltage</em>, <em>slices</em><big>)</big><a class="headerlink" href="#impedances.longitudinal_impedance.update_without_interpolation" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Other method to update the energy of the particles; this method can be used
-only if one has not used slices.mode == const_space_hist for the slicing.
+<dd><dl class="docutils">
+<dt><a href="#id3"><span class="problematic" id="id4">*</span></a>Other method to update the energy of the particles; this method can be used</dt>
+<dd>only if one has not used slices.mode == const_space_hist for the slicing.
 Maybe this method could be optimised through Cython or trying to avoid
-the for loop.</em></p>
-</dd></dl>
-
-</div>
-<div class="section" id="module-impedances.plot_impedance">
-<span id="impedances-plot-impedance-module"></span><h2>impedances.plot_impedance module<a class="headerlink" href="#module-impedances.plot_impedance" title="Permalink to this headline">¶</a></h2>
-<p><a href="#id1"><span class="problematic" id="id2">**</span></a>Module to plot different bunch features **</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Authors:</th><td class="field-body"><strong>Helga Timko</strong>, <strong>Danilo Quartullo</strong></td>
-</tr>
-</tbody>
-</table>
-<dl class="function">
-<dt id="impedances.plot_impedance.fig_folder">
-<tt class="descclassname">impedances.plot_impedance.</tt><tt class="descname">fig_folder</tt><big>(</big><em>dirname</em><big>)</big><a class="headerlink" href="#impedances.plot_impedance.fig_folder" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="impedances.plot_impedance.plot_impedance_vs_frequency">
-<tt class="descclassname">impedances.plot_impedance.</tt><tt class="descname">plot_impedance_vs_frequency</tt><big>(</big><em>counter</em>, <em>general_params</em>, <em>ind_volt_from_imp</em>, <em>option1='sum'</em>, <em>option2='no_spectrum'</em>, <em>option3='freq_fft'</em>, <em>style='-'</em>, <em>dirname='fig'</em><big>)</big><a class="headerlink" href="#impedances.plot_impedance.plot_impedance_vs_frequency" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot of impedance vs frequency.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="impedances.plot_impedance.plot_induced_voltage_vs_bins_centers">
-<tt class="descclassname">impedances.plot_impedance.</tt><tt class="descname">plot_induced_voltage_vs_bins_centers</tt><big>(</big><em>counter</em>, <em>general_params</em>, <em>ind_volt_from_imp</em>, <em>style='-'</em>, <em>dirname='fig'</em><big>)</big><a class="headerlink" href="#impedances.plot_impedance.plot_induced_voltage_vs_bins_centers" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot of induced voltage vs bin centers.</p>
+the for loop.*</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -288,7 +261,6 @@ the for loop.</em></p>
 <li><a class="reference internal" href="#">impedances package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-impedances.longitudinal_impedance">impedances.longitudinal_impedance module</a></li>
-<li><a class="reference internal" href="#module-impedances.plot_impedance">impedances.plot_impedance module</a></li>
 <li><a class="reference internal" href="#module-impedances">Module contents</a></li>
 </ul>
 </li>
@@ -343,7 +315,7 @@ the for loop.</em></p>
     </div>
     <div class="footer">
         &copy; Copyright 2014, CERN.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
   </body>
 </html>
