@@ -118,7 +118,9 @@ for i in range(N_t):
     
     # Save data
     if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
-        bunchmonitor.dump(beam, slice_beam)    
+        bunchmonitor.dump(beam, slice_beam)
+        if any(np.isnan(beam.theta)):
+            print "Detected NaN in beam theta at time step %d" %i    
     
     # Plot has to be done before tracking (at least for cases with separatrix)
     if (i % dt_plt) == 0:
@@ -136,6 +138,9 @@ for i in range(N_t):
             plot_bunch_length_evol(beam, 'output_data', general_params, i, unit='ns')
             plot_bunch_length_evol_gaussian(beam, 'output_data', general_params, slice_beam, i, unit='ns')
             plot_beam_profile(i, general_params, slice_beam)
+            if i > 100:
+                np.savetxt('final_distribution.dat', np.c_[beam.theta, beam.dE], fmt='%.6e')
+
 
     # Track
     for m in map_:

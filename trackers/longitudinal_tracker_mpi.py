@@ -81,8 +81,8 @@ class RingAndRFSection(object):
         #: *Parameters for MPI parallelization*
         if mpi_conf == None:
             self.mpi_comm = None
-        self.mpi_comm = mpi_conf.mpi_comm
-        if self.mpi_comm != None:            
+        else:     
+            self.mpi_comm = mpi_conf.mpi_comm       
             self.mpi_size = mpi_conf.mpi_size
             self.mpi_rank = mpi_conf.mpi_rank
             self.mpi_i = 0
