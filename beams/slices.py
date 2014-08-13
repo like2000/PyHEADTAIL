@@ -138,7 +138,10 @@ class Slices(object):
         *Sort the particles with respect to their longitudinal position.*
         '''
         
-        argsorted = np.argsort(self.Beam.theta)
+        if (self.slicing_coord is 'tau') or (self.slicing_coord is 'theta'):
+            argsorted = np.argsort(self.Beam.theta)
+        elif self.slicing_coord is 'z':
+            argsorted = np.argsort(self.Beam.z)
                     
         self.Beam.theta = self.Beam.theta.take(argsorted)
         self.Beam.dE = self.Beam.dE.take(argsorted)
@@ -156,8 +159,7 @@ class Slices(object):
         maximum distance between two particles in the bunch will be taken
         in each side of the frame.*
         '''
-        
-        
+
         
         if self.mode is not 'const_charge':
             if self.cut_left is None and self.cut_right is None:
@@ -200,13 +202,6 @@ class Slices(object):
         self.sort_particles()
         
         first_index_in_bin = np.searchsorted(self.beam_coordinates, self.edges)
-        
-#         if self.slicing_coord is 'theta':
-#             first_index_in_bin = np.searchsorted(self.Beam.theta, self.edges)
-#         elif self.slicing_coord is 'tau':
-#             first_index_in_bin = np.searchsorted(self.Beam.tau, self.edges)
-#         elif self.slicing_coord is 'z':
-#             first_index_in_bin = np.searchsorted(self.Beam.z, self.edges)
             
         self.n_macroparticles = np.diff(first_index_in_bin)
         
@@ -223,14 +218,6 @@ class Slices(object):
         '''
         
         self.n_macroparticles = np.histogram(self.beam_coordinates, self.edges)[0]
-        
-#         if self.slicing_coord is 'theta':
-#             self.n_macroparticles = np.histogram(self.Beam.theta, self.edges)[0]
-#         elif self.slicing_coord is 'tau':
-#             self.n_macroparticles = np.histogram(self.Beam.tau, self.edges)[0]
-#         elif self.slicing_coord is 'z':
-#             self.n_macroparticles = np.histogram(self.Beam.z, self.edges)[0]
-        
  
         
     def slice_constant_charge(self):
@@ -329,16 +316,6 @@ class Slices(object):
         a function. The two outputs are the coordinate step and the discrete
         derivative of the Beam profile respectively.*
         '''
-        
-#         if coord is 'theta':
-#             dist_centers = self.bins_centers[1] - self.bins_centers[0]
-#             x = self.bins_centers
-#         elif coord is 'tau':
-#             dist_centers = self.bins_centers_tau[1] - self.bins_centers_tau[0]
-#             x = self.bins_centers_tau
-#         elif coord is 'z':
-#             dist_centers = self.bins_centers_z[1] - self.bins_centers_z[0]
-#             x = self.bins_centers_z
             
         x = self.bins_centers
         dist_centers = x[1] - x[0]
@@ -419,86 +396,6 @@ class Slices(object):
             return self.Beam.theta
         elif self.slicing_coord is 'z':
             return self.Beam.z
-     
-     
-#     @property    
-#     def mean_z(self):
-#         '''*Average z position of the particles in each slice (needs 
-#         the compute_statistics_option to be 'on', the head and tail are
-#         reversed compared to theta and an tau coordinates).*'''
-#         return - self.mean_theta * self.Beam.ring_radius 
-#      
-#     @property    
-#     def mean_tau(self):
-#         '''*Average tau position of the particles in each slice (needs 
-#         the compute_statistics_option to be 'on').*'''
-#         return self.mean_theta * self.Beam.ring_radius / (self.Beam.beta_r * c)
-# 
-#  
-#     @property
-#     def mean_delta(self):
-#         '''*Average delta position of the particles in each slice (needs 
-#         the compute_statistics_option to be 'on').*'''
-#         return self.mean_dE / (self.Beam.beta_r**2 * self.Beam.energy)
-# 
-#      
-#     @property    
-#     def sigma_z(self):
-#         '''*RMS z position of the particles in each slice (needs 
-#         the compute_statistics_option to be 'on').*'''
-#         return - self.sigma_theta * self.Beam.ring_radius 
-#      
-#     @property
-#     def sigma_tau(self):
-#         '''*RMS tau position of the particles in each slice (needs 
-#         the compute_statistics_option to be 'on').*'''
-#         return self.sigma_theta * self.Beam.ring_radius / (self.Beam.beta_r * c)
-#      
-#     @property
-#     def sigma_delta(self):
-#         '''*RMS delta position of the particles in each slice (needs 
-#         the compute_statistics_option to be 'on').*'''
-#         return self.sigma_dE / (self.Beam.beta_r**2 * self.Beam.energy)
-#     
-#     @property
-#     def bins_centers_tau(self):
-#         '''*Bin centers converted to the tau coordinate in [s]*'''
-#         return self.bins_centers * self.Beam.ring_radius / (self.Beam.beta_r * c)
-#     
-#     @property
-#     def bins_centers_z(self):
-#         '''*Bin centers converted to the z coordinate in [m]*'''
-#         return - self.bins_centers * self.Beam.ring_radius
-#     
-#     @property
-#     def edges_tau(self):
-#         '''*Slicing edges converted to the tau coordinate in [s]*'''
-#         return self.edges * self.Beam.ring_radius / (self.Beam.beta_r * c)
-#     
-#     @property
-#     def edges_z(self):
-#         '''*Slicing edges converted to the z coordinate in [m]*'''
-#         return - self.edges * self.Beam.ring_radius 
-# 
-#     @property
-#     def bl_gauss_tau(self):
-#         '''*Gaussian bunch length converted to the tau coordinate in [s]*'''
-#         return self.bl_gauss * self.Beam.ring_radius / (self.Beam.beta_r * c)
-#     
-#     @property
-#     def bl_gauss_z(self):
-#         '''*Gaussian bunch length converted to the z coordinate in [m]*'''
-#         return self.bl_gauss * self.Beam.ring_radius 
-# 
-#     @property
-#     def bp_gauss_tau(self):
-#         '''*Gaussian bunch position converted to the tau coordinate in [s]*'''
-#         return self.bp_gauss * self.Beam.ring_radius / (self.Beam.beta_r * c)
-#     
-#     @property
-#     def bp_gauss_z(self):
-#         '''*Gaussian bunch position converted to the z coordinate in [m]*'''
-#         return - self.bp_gauss * self.Beam.ring_radius 
 
 
 def gauss(x, *p):
