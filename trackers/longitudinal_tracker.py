@@ -51,6 +51,7 @@ class FullRingAndRF(object):
         harmonics = np.array([])
         phi_offsets = np.array([])
         sync_phases = np.array([])
+        ring_circumference = 0
                  
         for RingAndRFSectionElement in self.RingAndRFSection_list:
             for rf_system in range(RingAndRFSectionElement.n_rf):
@@ -58,7 +59,7 @@ class FullRingAndRF(object):
                 harmonics = np.append(harmonics, RingAndRFSectionElement.harmonic[rf_system, turn])
                 phi_offsets = np.append(phi_offsets, RingAndRFSectionElement.phi_offset[rf_system, turn])
                 sync_phases = np.append(sync_phases, RingAndRFSectionElement.phi_offset[rf_system, turn])
-                
+            ring_circumference += RingAndRFSectionElement.section_length
                         
         voltages = np.array(voltages, ndmin = 2)
         harmonics = np.array(harmonics, ndmin = 2)
@@ -75,11 +76,14 @@ class FullRingAndRF(object):
             main_harmonic = np.min(harmonics[harmonics == main_harmonic_option])
             
         theta_array_margin = theta_margin_percent * 2 * np.pi/main_harmonic
-                    
-        if self.RingAndRFSection_list[0].eta_0[turn] > 0:
+        
+        slippage_factor = self.RingAndRFSection_list[0].eta_0[turn]
+        beta_r = self.RingAndRFSection_list[0].beta_r[turn]
+        
+        if slippage_factor > 0:
             first_theta = 0 - theta_array_margin / 2
             last_theta = 2*np.pi/main_harmonic + theta_array_margin / 2
-            transition_factor = -1
+            transition_factor = - 1
         else:
             first_theta = - np.pi/main_harmonic - theta_array_margin / 2
             last_theta = np.pi/main_harmonic + theta_array_margin / 2
@@ -89,11 +93,13 @@ class FullRingAndRF(object):
         
         total_voltage = np.sum(voltages.T * np.sin(harmonics.T * theta_array + phi_offsets.T) - voltages.T * np.sin(sync_phases.T), axis = 0)
         
+        eom_factor_potential = (beta_r * c) / (ring_circumference)
+        
         potential_well = transition_factor * np.insert(cumtrapz(total_voltage, dx=theta_array[1]-theta_array[0]),0,0)
         potential_well = potential_well - np.min(potential_well)
         
         self.potential_well_coordinates = theta_array
-        self.potential_well = potential_well /(2*np.pi)
+        self.potential_well = eom_factor_potential * potential_well
         
         
     def track(self, beam):
