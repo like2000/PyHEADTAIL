@@ -195,11 +195,9 @@ class RingAndRFSection(object):
             if self.mpi_rank < self.mpi_r:
                 self.theta = np.empty([self.mpi_i + 1])
                 self.dE = np.empty([self.mpi_i + 1])
-                self.delta = np.empty([self.mpi_i + 1])
             else:
                 self.theta = np.empty([self.mpi_i])
                 self.dE = np.empty([self.mpi_i])
-                self.delta = np.empty([self.mpi_i])
                 
             # Scatter data from rank = 0 to all workers 
             self.mpi_comm.Scatterv([beam.theta, n_range, n_start, MPI.DOUBLE], self.theta)

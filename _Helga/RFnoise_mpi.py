@@ -134,6 +134,7 @@ for i in range(N_t):
 
 
 if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
+    bunchmonitor.h5file.close()
     print "Done!"
     print "Total computation time %.2f s" %(time.clock() - t0)
     print ""
