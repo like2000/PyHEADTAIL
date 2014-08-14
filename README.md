@@ -1,15 +1,15 @@
 PYHEADTAIL LONGITUDINAL
 ==========
 
-Longitudinal version of the CERN PyHeadTail code for the simulation of multi-particle 
-beam dynamics with collective effects.
+Longitudinal version of the CERN PyHeadTail code for the simulation of 
+multi-particle beam dynamics with collective effects.
 
 The structure is as follows:
 
 1) the folder __EXAMPLE_MAIN_FILES contains several main_files which
    show how to use the principal features of the code; for additional examples
-   one should have a look at the personal folders of the developers of the code
-   present in their git branches; 
+   have a look at the code developers' personal folders present 
+   in the corresponding git branches; 
 2) the __doc folder contains the documentation; to look at it go to build, html 
    and open the index file; note that you need Latex and dvipng (if not present
    in the Latex distribution) to be able to see displayed all the math formulas;
@@ -28,14 +28,12 @@ v1.2.0 Reorganisation of the slices module
   		- the different coordinates type is redone, a function to convert values
   		  from one coordinates type to another is included to reduce the code 
   		  length
-  		- constant_space is now the reference (and is constant frame also)
-  		- constant_charge is working, but the losses are not taken into account
-  		  (the frame can diverge...)
+  		- constant_space is now the reference (and it is constant frame also)
   		- Gaussian fit inside the slice module (and the track method updates the
   		  bunch length in Beams class)
   	   Reorganisation of the longitudinal_impedance module
   		- all calculations are now done in tau
-    	- the impedance coming from and impedance table is assumed to be 0 for 
+    	- the impedance coming from the impedance table is assumed to be 0 for 
     	  higher frequencies
     	- the wake_calc in InputTable assumes that the wake begins at t=0
     	- the precalculation is always done in InducedVoltageTime unless you use 
@@ -46,7 +44,7 @@ v1.2.0 Reorganisation of the slices module
    	   PEP8 corrections in the slices and longitudinal_impedance modules
    	   and renaming of some classes and variables.
    	   Corrected cut_left and cut_right calculation for n_sigma (divided by 2).
-       Documentation quite improved in the slices and longitudinal_impedance 
+       Documentation has been improved in the slices and longitudinal_impedance 
        modules.
   	   The monitors module and the various plots modules have been revised
    	   according to these reorganisations; the same is true for the main files
