@@ -1,3 +1,4 @@
+# Example script to take into account intensity effects from impedance tables
 
 from __future__ import division
 import numpy as np
@@ -11,13 +12,12 @@ from input_parameters.rf_parameters import *
 from trackers.longitudinal_tracker import *
 from beams.beams import *
 from beams.longitudinal_distributions import *
-from longitudinal_plots.plot_beams import *
-from longitudinal_plots.plot_impedance import *
-from longitudinal_plots.plot_slices import *
 from monitors.monitors import *
 from beams.slices import *
 from impedances.longitudinal_impedance import *
-
+from longitudinal_plots.plot_beams import *
+from longitudinal_plots.plot_impedance import *
+from longitudinal_plots.plot_slices import *
 
 # SIMULATION PARAMETERS -------------------------------------------------------
 
@@ -60,10 +60,10 @@ bunchmonitor = BunchMonitor('beam', n_turns+1, statistics = "Longitudinal")
 
 # DEFINE RING------------------------------------------------------------------
 
-general_params = GeneralParameters(n_turns, C, momentum_compaction, sync_momentum, 
+general_params = GeneralParameters(n_turns, C, [momentum_compaction, 1], sync_momentum, 
                                    particle_type, number_of_sections = 1)
 
-RF_sct_par = RFSectionParameters(general_params, 1, n_rf_systems, harmonic_numbers, 
+RF_sct_par = RFSectionParameters(general_params, n_rf_systems, harmonic_numbers, 
                           voltage_program, phi_offset)
 
 ring_RF_section = RingAndRFSection(RF_sct_par)
@@ -78,9 +78,8 @@ longitudinal_bigaussian(general_params, RF_sct_par, my_beam, sigma_theta, sigma_
 # DEFINE SLICES----------------------------------------------------------------
 
 number_slices = 100
-slice_beam = Slices(number_slices, cut_left = - 5.72984173562e-07 / 2, 
-                    cut_right = 5.72984173562e-07 / 2, coord = 
-                    "tau", mode = 'const_space_hist')
+slice_beam = Slices(my_beam, number_slices, cut_left = - 5.72984173562e-07 / 2, 
+                    cut_right = 5.72984173562e-07 / 2, mode = 'const_space_hist')
 
 
 # LOAD IMPEDANCE TABLES--------------------------------------------------------
@@ -88,46 +87,15 @@ slice_beam = Slices(number_slices, cut_left = - 5.72984173562e-07 / 2,
 var = str(kin_beam_energy / 1e9)
 
 # ejection kicker
-Ekicker = np.loadtxt('ps_booster_impedances/ejection kicker/Ekicker_' + var + 'GeV.txt'
+Ekicker = np.loadtxt('Ekicker_' + var + 'GeV.txt'
         , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
         complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
 
-Ekicker_table = Longitudinal_table(Ekicker[:,0].real, Ekicker[:,1].real, Ekicker[:,1].imag)
+Ekicker_table = InputTable(Ekicker[:,0].real, Ekicker[:,1].real, Ekicker[:,1].imag)
 
-# ejection kicker cables
-Ekicker_cables = np.loadtxt('ps_booster_impedances/ejection kicker cables/Ekicker_cables_' + var + 'GeV.txt'
-        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
-        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
-
-Ekicker_cables_table = Longitudinal_table(Ekicker_cables[:,0].real, Ekicker_cables[:,1].real, Ekicker_cables[:,1].imag)
-
-# KSW kickers
-KSW = np.loadtxt('ps_booster_impedances/KSW/KSW_' + var + 'GeV.txt'
-        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
-        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
-
-KSW_table = Longitudinal_table(KSW[:,0].real, KSW[:,1].real, KSW[:,1].imag)
-
-# resistive wall
-RW = np.loadtxt('ps_booster_impedances/resistive wall/RW_' + var + 'GeV.txt'
-        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
-        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
-
-RW_table = Longitudinal_table(RW[:,0].real, RW[:,1].real, RW[:,1].imag)
-
-# indirect space charge
-ISC = np.loadtxt('ps_booster_impedances/Indirect space charge/ISC_' + var + 'GeV.txt'
-        , skiprows = 1, dtype=complex, converters = dict(zip((0, 1), (lambda s: 
-        complex(s.replace('i', 'j')), lambda s: complex(s.replace('i', 'j'))))))
-
-ISC_table = Longitudinal_table(ISC[:,0].real, ISC[:,1].real, ISC[:,1].imag)
-
-# steps
-steps = Longitudinal_inductive_impedance(34.6669349520904 / 10e9) # input in [Ohm/Hz]
 
 # Finemet cavity
-
-F_C = np.loadtxt('ps_booster_impedances/Finemet_cavity/Finemet.txt', dtype = float, skiprows = 1)
+F_C = np.loadtxt('Finemet.txt', dtype = float, skiprows = 1)
 
 F_C[:, 3], F_C[:, 5], F_C[:, 7] = np.pi * F_C[:, 3] / 180, np.pi * F_C[:, 5] / 180, np.pi * F_C[:, 7] / 180
 
@@ -136,43 +104,39 @@ option = "closed loop"
 if option == "open loop":
     Re_Z = F_C[:, 4] * np.cos(F_C[:, 3])
     Im_Z = F_C[:, 4] * np.sin(F_C[:, 3])
-    F_C_table = Longitudinal_table(F_C[:, 0], 13 * Re_Z, 13 * Im_Z)
+    F_C_table = InputTable(F_C[:, 0], 13 * Re_Z, 13 * Im_Z)
 elif option == "closed loop":
     Re_Z = F_C[:, 2] * np.cos(F_C[:, 5])
     Im_Z = F_C[:, 2] * np.sin(F_C[:, 5])
-    F_C_table = Longitudinal_table(F_C[:, 0], 13 * Re_Z, 13 * Im_Z)
+    F_C_table = InputTable(F_C[:, 0], 13 * Re_Z, 13 * Im_Z)
 elif option == "shorted":
     Re_Z = F_C[:, 6] * np.cos(F_C[:, 7])
     Im_Z = F_C[:, 6] * np.sin(F_C[:, 7])
-    F_C_table = Longitudinal_table(F_C[:, 0], 13 * Re_Z, 13 * Im_Z)
+    F_C_table = InputTable(F_C[:, 0], 13 * Re_Z, 13 * Im_Z)
 else:
     pass
 
+# steps
+steps = InductiveImpedance(slice_beam, 34.6669349520904 / 10e9 * general_params.f_rev[0], 2e5) 
+
 # direct space charge
-print general_params.beta_r
-dir_space_charge = Longitudinal_inductive_impedance( - (376.730313462 *  
-                    general_params.t_rev[0]) / (general_params.beta_r[0,0] *
-                     general_params.gamma_r[0,0]**2))       # input in [Ohm/Hz]
+dir_space_charge = InductiveImpedance(slice_beam, -376.730313462   
+                     / (general_params.beta_r[0,0] *
+                     general_params.gamma_r[0,0]**2), 2e5)
 
 
 # INDUCED VOLTAGE FROM IMPEDANCE------------------------------------------------
 
-# impedance to be used for ind_volt calculation through the profile spectrum
-sum_impedance = [Ekicker_table] + [Ekicker_cables_table] + [KSW_table] \
-                 + [RW_table] + [F_C_table] + [ISC_table] 
+imp_list = [Ekicker_table, F_C_table, steps, dir_space_charge]
 
-# impedance to be used for ind_volt calculation through the profile derivative
-sum_slopes_from_induc_imp = (376.730313462 * general_params.t_rev[0]) / \
-        (my_beam.beta_r * my_beam.gamma_r**2) - \
-        34.6669349520904 / 10e9    # direct space charge plus steps, in [Ohm/Hz]
+ind_volt_freq = InducedVoltageFreq(slice_beam, imp_list, 2e5)
 
-ind_volt_from_imp = Induced_voltage_from_impedance(slice_beam, sum_impedance, 2e5,
-                 sum_slopes_from_induc_imp, mode = 'spectrum + derivative')
+total_induced_voltage = TotalInducedVoltage(slice_beam, [ind_volt_freq])
 
 
 # ACCELERATION MAP-------------------------------------------------------------
 
-map_ = [slice_beam] + [ind_volt_from_imp] + [ring_RF_section]
+map_ = [slice_beam] + [total_induced_voltage] + [ring_RF_section]
 
 
 # TRACKING + PLOTS-------------------------------------------------------------
@@ -183,7 +147,7 @@ for i in range(n_turns):
     t0 = time.clock()
     for m in map_:
         m.track(my_beam)
-    bunchmonitor.dump(my_beam, slice_beam)
+    bunchmonitor.dump(my_beam)
     t1 = time.clock()
     print t1 - t0
     # Plots
@@ -193,10 +157,10 @@ for i in range(n_turns):
           - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, 
           - my_beam.sigma_dE * 4 * 1e-6, my_beam.sigma_dE * 4 * 1e-6, xunit = 'ns')
          
-        plot_impedance_vs_frequency(i+1, general_params, ind_volt_from_imp, 
+        plot_impedance_vs_frequency(i+1, general_params, ind_volt_freq, 
           option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
          
-        plot_induced_voltage_vs_bins_centers(i+1, general_params, ind_volt_from_imp, style = '-')
+        plot_induced_voltage_vs_bins_centers(i+1, general_params, total_induced_voltage, style = '-')
          
         plot_beam_profile(i+1, general_params, slice_beam)
          
@@ -208,3 +172,4 @@ for i in range(n_turns):
 print "Done!"
 
 bunchmonitor.h5file.close()
+
