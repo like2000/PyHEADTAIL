@@ -24,37 +24,52 @@ def matched_from_line_density(Beam, line_density):
 
 
 
-def matched_from_distribution_density(Beam, FullRingAndRF, distribution_function, 
-                                      TotalInducedVoltage = None, bunch_length = None, 
-                                      emittance = None, main_harmonic_option = 'lowest_freq'):
+def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options, 
+                                      emittance = None, TotalInducedVoltage = None, 
+                                      bunch_length = None, 
+                                      main_harmonic_option = 'lowest_freq'):
     '''
-    *Function to generate a beam by inputing the distribution density. To 
-    be implemented: iteratively converge towards the chosen bunch length/emittance 
+    *Function to generate a beam by inputing the distribution density (by
+    choosing the type of distribution and the emittance). 
+    To be implemented: iteratively converge towards the chosen bunch length 
     and add the potential due to intensity effects.
+    The potential well is preprocessed to check for the min/max and center
+    the frame around the separatrix.
     An error will be raised if there is not a full potential well (2 max 
     and 1 min at least), or if there are several wells (more than 2 max and 
-    1 min). The last error can be ignored by the user with the several_potential_wells 
-    option (this might lead to generate a doublet bunch in the longitudinal 
-    distribution generation). A margin of 5% is applied in order to be able
-    to catch the min/max of the potential well that might be on the edge
-    of the frame. The slippage factor should be updated to take the higher
-    orders.*
+    1 min, this case will be treated in the future).
+    A margin of 5% is applied in order to be able to catch the min/max of the 
+    potential well that might be on the edge of the frame. 
+    The slippage factor should be updated to take the higher orders.
+    Outputs should be added in order for the user to check step by step if
+    his bunch is going to be well generated. More detailed 'step by step' 
+    documentation should be implemented*
     '''
     
+    # Initialize variables depending on the accelerator parameters
+    slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
+    eom_factor_dE = (np.pi * slippage_factor * c) / \
+                    (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
+    
     # Generate potential well
-    n_points_potential = 1e5
-    FullRingAndRF.potential_well_generation(n_points = n_points_potential, theta_margin_percent = 0.05, main_harmonic_option = main_harmonic_option)
+    n_points_potential = int(1e5)
+    FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
+                                            theta_margin_percent = 0.05, 
+                                            main_harmonic_option = main_harmonic_option)
     potential_well_array = FullRingAndRF.potential_well
     theta_coord_array = FullRingAndRF.potential_well_coordinates
-    slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
-    
+    theta_resolution = theta_coord_array[1] - theta_coord_array[0]
+        
     # Check for the min/max of the potentiel well
-    [min_theta_positions, max_theta_positions],[min_potential_values, max_potential_values] = minmax_location(theta_coord_array,potential_well_array)
-    
+    minmax_positions, minmax_values = minmax_location(theta_coord_array, 
+                                                      potential_well_array)
+    min_theta_positions = minmax_positions[0]
+    max_theta_positions = minmax_positions[1]
+    max_potential_values = minmax_values[1]
     n_minima = len(min_theta_positions)
     n_maxima = len(max_theta_positions)
             
-    # Take a theta frame that takes the needed potential well information
+    # Process the potential well in order to take a frame around the separatrix
     if n_minima == 0:
         raise RuntimeError('The potential well has no minima...')
     if n_minima > n_maxima and n_maxima == 1:
@@ -67,67 +82,145 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_function
                 the potentiel well. The full potential well will be taken')
     elif n_maxima == 1:
         if min_theta_positions[0] > max_theta_positions[0]:
-            saved_indexes = (potential_well_array < max_potential_values[0]) * (theta_coord_array > max_theta_positions[0])
+            saved_indexes = (potential_well_array < max_potential_values[0]) * \
+                            (theta_coord_array > max_theta_positions[0])
             theta_coord_array = theta_coord_array[saved_indexes]
             potential_well_array = potential_well_array[saved_indexes]
             if potential_well_array[-1] < potential_well_array[0]:
-                raise RuntimeError('The potential well is not well defined. You may reconsider the options to calculate the potential well as the main harmonic is probably not the expected one.')
+                raise RuntimeError('The potential well is not well defined. \
+                                    You may reconsider the options to calculate \
+                                    the potential well as the main harmonic is \
+                                    probably not the expected one.')
         else:
-            saved_indexes = (potential_well_array < max_potential_values[0]) * (theta_coord_array < max_theta_positions[0])
+            saved_indexes = (potential_well_array < max_potential_values[0]) * \
+                            (theta_coord_array < max_theta_positions[0])
             theta_coord_array = theta_coord_array[saved_indexes]
             potential_well_array = potential_well_array[saved_indexes]
             if potential_well_array[-1] > potential_well_array[0]:
-                raise RuntimeError('The potential well is not well defined. You may reconsider the options to calculate the potential well as the main harmonic is probably not the expected one.')
+                raise RuntimeError('The potential well is not well defined. \
+                                    You may reconsider the options to calculate \
+                                    the potential well as the main harmonic is \
+                                    probably not the expected one.')
     elif n_maxima == 2:
         lower_maximum_value = np.min(max_potential_values)
         higher_maximum_value = np.max(max_potential_values)
         lower_maximum_theta = max_theta_positions[max_potential_values == lower_maximum_value]
         higher_maximum_theta = max_theta_positions[max_potential_values == higher_maximum_value]
         if min_theta_positions[0] > lower_maximum_theta:
-            saved_indexes = (potential_well_array < lower_maximum_value) * (theta_coord_array > lower_maximum_theta) * (theta_coord_array < higher_maximum_theta)
+            saved_indexes = (potential_well_array < lower_maximum_value) * \
+                            (theta_coord_array > lower_maximum_theta) * \
+                            (theta_coord_array < higher_maximum_theta)
             theta_coord_array = theta_coord_array[saved_indexes]
             potential_well_array = potential_well_array[saved_indexes]
         else:
-            saved_indexes = (potential_well_array < lower_maximum_value) * (theta_coord_array < lower_maximum_theta) * (theta_coord_array > higher_maximum_theta)
+            saved_indexes = (potential_well_array < lower_maximum_value) * \
+                            (theta_coord_array < lower_maximum_theta) * \
+                            (theta_coord_array > higher_maximum_theta)
             theta_coord_array = theta_coord_array[saved_indexes]
             potential_well_array = potential_well_array[saved_indexes]
     elif n_maxima > 2:
-        left_max_theta = np.min(max_theta_positions)
-        right_max_theta = np.max(max_theta_positions)
-        saved_indexes = (theta_coord_array > left_max_theta) * (theta_coord_array < right_max_theta)
-        theta_coord_array = theta_coord_array[saved_indexes]
-        potential_well_array = potential_well_array[saved_indexes]
+        raise RuntimeError('Work in progress, case to be included in the future...')
+#         left_max_theta = np.min(max_theta_positions)
+#         right_max_theta = np.max(max_theta_positions)
+#         saved_indexes = (theta_coord_array > left_max_theta) * (theta_coord_array < right_max_theta)
+#         theta_coord_array = theta_coord_array[saved_indexes]
+#         potential_well_array = potential_well_array[saved_indexes]
     
     # Potential is shifted to put the minimum on 0
     potential_well_array = potential_well_array - np.min(potential_well_array)
+    n_points_potential = len(potential_well_array)
     
-#     print [min_theta_positions, max_theta_positions],[min_potential_values, max_potential_values]
-#     plt.plot(theta_coord_array,potential_well_array)
-#     plt.show()
- 
-    # Compute deltaE coordinates
+    # Compute deltaE frame corresponding to the separatrix
     max_potential = np.max(potential_well_array)
-    eom_factor_dE = (np.pi * slippage_factor * c) / (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
-    max_deltaE = np.sqrt(max_potential / eom_factor_dE )
+    max_deltaE = np.sqrt(max_potential / eom_factor_dE)
+
+    # Saving the Hamilotian values corresponding to dE=0 (with high resolution
+    # to be used in the integral to compute J further)
+    H_array_dE0 = potential_well_array
     
-    print max_deltaE
+    # Initializing the grids by reducing the resolution to a 
+    # n_points_grid*n_points_grid frame.
+    n_points_grid = int(1e3)
+    potential_well_indexes = np.arange(0,n_points_potential)
+    grid_indexes = np.arange(0,n_points_grid) * n_points_potential / n_points_grid
+    theta_coord_array = np.interp(grid_indexes, potential_well_indexes, theta_coord_array)
+    deltaE_coord_array = np.linspace(-max_deltaE, max_deltaE, n_points_grid)
+    potential_well_array_low_res = np.interp(grid_indexes, potential_well_indexes, potential_well_array)
+    theta_grid, deltaE_grid = np.meshgrid(theta_coord_array, deltaE_coord_array)
+    potential_well_grid = np.meshgrid(potential_well_array_low_res, potential_well_array_low_res)[0]
+    
+    # Computing the action J by integrating the dE trajectories
+    J_array_dE0 = np.zeros(n_points_grid)
+    
+    warnings.filterwarnings("ignore")
+    
+    for i in range(0, n_points_grid):
+        dE_trajectory = np.sqrt((potential_well_array_low_res[i] - H_array_dE0)/eom_factor_dE)
+        dE_trajectory[np.isnan(dE_trajectory)] = 0
+        J_array_dE0[i] = 2 / (2*np.pi) * np.trapz(dE_trajectory, dx=theta_resolution * 
+                                                  FullRingAndRF.ring_radius / 
+                                                  (Beam.beta_r * c)) 
+        
+    warnings.filterwarnings("default")
+    
+    # Sorting the H and J functions in order to be able to interpolate the function J(H)
+    H_array_dE0 = potential_well_array_low_res
+    sorted_H_dE0 = H_array_dE0[H_array_dE0.argsort()]
+    sorted_J_dE0 = J_array_dE0[H_array_dE0.argsort()]
+    
+    # Calculating the H and J grid
+    H_grid = eom_factor_dE * deltaE_grid**2 + potential_well_grid
+    J_grid = np.interp(H_grid, sorted_H_dE0, sorted_J_dE0, left = 0, right = np.inf)
+
+    # Computing the density grid
+    option = 'density_from_H'
+    if option is 'density_from_F':
+        distribution_options['parameters'][0] = distribution_options['parameters'][0] / (2*np.pi)
+        density_grid = distribution_density_function(J_grid, distribution_options['type'], distribution_options['parameters'])
+    elif option is 'density_from_H':
+        distribution_options['parameters'][0] = np.interp(distribution_options['parameters'][0] / (2*np.pi), sorted_J_dE0, sorted_H_dE0)
+        density_grid = distribution_density_function(H_grid, distribution_options['type'], distribution_options['parameters'])
+    
+    # Normalizing the grid
+    density_grid = density_grid / np.sum(density_grid)
+    
+    # Populating the bunch
+    indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
+    bunch = np.zeros((2,Beam.n_macroparticles))
+    bunch[0,:] = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_array[1]-theta_coord_array[0])
+    bunch[1,:] = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_coord_array[1]-deltaE_coord_array[0])
+    
+    Beam.theta = bunch[0,:]
+    Beam.dE = bunch[1,:]
 
 
-def line_density_bunch_population(Beam):
+
+def distribution_density_function(action_array, dist_type, parameters):
     '''
-    *Function to generate particles with respect to an input line density (1D grid).*
+    *Distribution density (formulas from Laclare).*
     '''
     
-    pass
-
-
-def distribution_density_bunch_population(Beam):
-    '''
-    *Function to generate particles with respect to an input distribution density
-    (2D grid).*
-    '''
+    if dist_type is 'parabolic':
+        length = parameters[0]
+        exponent = parameters[1]
+        warnings.filterwarnings("ignore")
+        density_function = (1 - action_array / length)**exponent
+        warnings.filterwarnings("default")
+        density_function[action_array > length] = 0
+        return density_function
     
-    pass
+    elif dist_type is 'gaussian':
+        length = parameters[0]
+        exponent = parameters[1]
+        density_function = np.exp(- 2 * action_array / length)
+        return density_function
+    
+    elif dist_type is 'waterbag':
+        length = parameters[0]
+        density_function = np.ones(action_array.shape)
+        density_function[action_array > length] = 0
+        return density_function
+    
 
 
 def minmax_location(x,f):

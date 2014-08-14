@@ -40,7 +40,7 @@ class Beam(object):
         self.sigma_dE = 0
         
         # Particle/loss counts
-        self.n_macroparticles = n_macroparticles
+        self.n_macroparticles = int(n_macroparticles)
         self.n_macroparticles_lost = 0
         self.n_macroparticles_alive = self.n_macroparticles - self.n_macroparticles_lost
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
