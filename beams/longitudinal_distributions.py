@@ -24,10 +24,10 @@ def matched_from_line_density(Beam, line_density):
 
 
 
-def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options, 
-                                      emittance = None, TotalInducedVoltage = None, 
-                                      bunch_length = None, 
-                                      main_harmonic_option = 'lowest_freq'):
+def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
+                                      main_harmonic_option = 'lowest_freq', 
+                                      bunch_length = None,
+                                      TotalInducedVoltage = None):
     '''
     *Function to generate a beam by inputing the distribution density (by
     choosing the type of distribution and the emittance). 

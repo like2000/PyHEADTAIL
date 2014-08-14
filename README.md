@@ -1,6 +1,20 @@
 Implementation in this branch (intensity effects)
 =============================
 
+- Major
+  - Bunch generation from distribution function implemented
+    - Input is distribution type and emittance (bunch length to be included)
+    - Intensity effects to be included
+
+- Normal
+
+- Minor
+  - n_macroparticles converted to int in beam class (solve some warnings)
+    
+
+Implementation in this branch (intensity effects)
+=============================
+
 - Major (feature implementation that may need further review and agreement):
   - Deleted transverse calculations from slices (need discussions with transverse development)
   - Deleted transverse coordinates from beam (need discussions with transverse development)
