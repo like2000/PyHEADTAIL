@@ -1,9 +1,11 @@
-# Compiled files #
-##################
-*.pyc
 
-# Cython files #
-################
+*.pyc
+.pyc
 stats.pyd
 stats.c
 stats.html
+
+.project
+.pydevproject
+
+/build/
