@@ -90,7 +90,6 @@ class RingAndRFSection(object):
             self.mpi_r = 0
             self.theta = np.empty([0])
             self.dE = np.empty([0])
-            self.delta = np.empty([0])
  
         
            
@@ -111,6 +110,7 @@ class RingAndRFSection(object):
                 beam.dE += self.voltage[i,self.counter[0]] * \
                         np.sin(self.harmonic[i,self.counter[0]] * 
                                beam.theta + self.phi_offset[i,self.counter[0]])
+
         else:
             for i in range(self.n_rf):
                 self.dE += self.voltage[i,self.counter[0]] * \
@@ -157,23 +157,25 @@ class RingAndRFSection(object):
         '''
         
         if self.solver == 'full': 
-            if self.mpi_comm == None:            
+            if self.mpi_comm == None:    
                 beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
                             + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(beam.delta) * 
                                                 beam.delta) - 1) * self.length_ratio
             else:
+                delta = self.dE / (beam.beta_r**2 * beam.energy)
                 self.theta = self.beta_ratio[self.counter[0]] * self.theta \
-                            + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(self.delta) * 
-                                                self.delta) - 1) * self.length_ratio                
+                            + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(delta) * 
+                                                delta) - 1) * self.length_ratio                
         elif self.solver == 'simple':
             if self.mpi_comm == None: 
                 beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
                             + 2 * np.pi * self.eta_0[self.counter[0]] \
                             * beam.delta * self.length_ratio
             else:
+                delta = self.dE / (beam.beta_r**2 * beam.energy)
                 self.theta = self.beta_ratio[self.counter[0]] * self.theta \
                             + 2 * np.pi * self.eta_0[self.counter[0]] \
-                            * self.delta * self.length_ratio                
+                            * delta * self.length_ratio                
         else:
             raise RuntimeError("ERROR: Choice of longitudinal solver not \
                                recognized! Aborting...")
@@ -202,7 +204,6 @@ class RingAndRFSection(object):
             # Scatter data from rank = 0 to all workers 
             self.mpi_comm.Scatterv([beam.theta, n_range, n_start, MPI.DOUBLE], self.theta)
             self.mpi_comm.Scatterv([beam.dE, n_range, n_start, MPI.DOUBLE], self.dE)
-            self.mpi_comm.Scatterv([beam.delta, n_range, n_start, MPI.DOUBLE], self.delta)
 
         # Track (common for serial and parallel) 
         self.kick(beam)
@@ -220,7 +221,6 @@ class RingAndRFSection(object):
         if self.mpi_comm != None:
             self.mpi_comm.Gatherv(self.theta, [beam.theta, n_range, n_start, MPI.DOUBLE])
             self.mpi_comm.Gatherv(self.dE, [beam.dE, n_range, n_start, MPI.DOUBLE])
-            self.mpi_comm.Gatherv(self.delta, [beam.delta, n_range, n_start, MPI.DOUBLE])
 
 
 

@@ -43,13 +43,12 @@ mpi_conf = MPI_Config()
 
 
 # Pre-processing: RF phase noise -----------------------------------------------
+# Generate the same noise on both nodes, use seeds!!
+f = np.arange(0, 5.6227612455e+03, 1.12455000e-02)
+spectrum = np.concatenate((1.11100000e-07 * np.ones(4980), np.zeros(495021)))
+noise_t, noise_dphi = Phase_noise(f, spectrum, seed1=1234, seed2=7564).spectrum_to_phase_noise()
+n_dphi = noise_dphi[0:N_t+1]
 if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
-    t0 = time.clock()
-    f = np.arange(0, 5.6227612455e+03, 1.12455000e-02)
-    spectrum = np.concatenate((1.11100000e-07 * np.ones(4980), np.zeros(495021)))
-    noise_t, noise_dphi = Phase_noise(f, spectrum, seed1=1234, seed2=7564).spectrum_to_phase_noise()
-    #noise_dphi = mpi_conf.mpi_comm.Bcast(noise_dphi)
-
     plot_noise_spectrum(f, spectrum, sampling=100)
     plot_phase_noise(noise_t, noise_dphi, sampling=100)
     #plot_phase_noise(noise_t[0:10000], noise_dphi[0:10000], sampling=1)
@@ -66,8 +65,8 @@ if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
 general_params = GeneralParameters(N_t, C, alpha, p_s, 'proton')
 
 # Define RF station parameters and corresponding tracker
-rf_params = RFSectionParameters(general_params, 1, 1, h, V, dphi)
-#rf_params = RFSectionParameters(general_params, 1, 1, h, V, noise_dphi)
+#rf_params = RFSectionParameters(general_params, 1, 1, h, V, dphi)
+rf_params = RFSectionParameters(general_params, 1, 1, h, V, n_dphi)
 
 long_tracker = RingAndRFSection(rf_params, mpi_conf=mpi_conf)
 
@@ -85,26 +84,15 @@ if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
     # Read in old distribution
     #beam.theta, beam.dE = np.loadtxt('initial_long_distr.dat', unpack=True)
 
-#     if mpi_conf.mpi_size > 1:
-#         mpi_conf.mpi_comm.Bcast(beam.theta)
-#         mpi_conf.mpi_comm.Bcast(beam.dE)
-
 # Need slices for the Gaussian fit; slice for the first plot
     slice_beam = Slices(100)
     slice_beam.track(beam)
-
 
 # Define what to save in file
     bunchmonitor = BunchMonitor('output_data', N_t, statistics = "Longitudinal", long_gaussian_fit = "On")
     print "Statistics set..."
 
 
-# Accelerator map
-#     map_ = [long_tracker] + [slice_beam] # No intensity effects, no aperture limitations
-#     print "Map set"
-#     print ""
-# else:
-#     map_ = [long_tracker] # No intensity effects, no aperture limitations
 
 map_ = [long_tracker] # No intensity effects, no aperture limitations
 print "Map set"
@@ -116,6 +104,7 @@ for i in range(N_t):
     t0 = time.clock()
     
     # Define losses according to separatrix and/or longitudinal position
+    # Slice
     # Save data
     if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
         beam.losses_separatrix(general_params, rf_params)
@@ -140,13 +129,10 @@ for i in range(N_t):
             plot_bunch_length_evol(beam, 'output_data', general_params, i, unit='ns')
             plot_bunch_length_evol_gaussian(beam, 'output_data', general_params, slice_beam, i, unit='ns')
             plot_beam_profile(i, general_params, slice_beam)
-            if i > 100:
-                np.savetxt('final_distribution.dat', np.c_[beam.theta, beam.dE], fmt='%.6e')
 
     # Track
     for m in map_:
         m.track(beam)
-
 
 
 if mpi_conf.mpi_comm == None or mpi_conf.mpi_rank == 0:
