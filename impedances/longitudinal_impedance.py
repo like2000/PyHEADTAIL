@@ -566,10 +566,7 @@ class InductiveImpedance(object):
                             
     def track(self, Beam):
         '''
-        *Method to calculate the induced voltage through the bunch spectrum, or
-        the derivative of profile, or both; these three choices are represented
-        by the mode 'only_spectrum', 'only_derivative', 'spectrum + derivative'
-        respectively.*
+        *Track method.*
         '''
         
         self.induced_voltage_generation(Beam)
