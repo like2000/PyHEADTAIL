@@ -110,9 +110,7 @@ for i in range(N_t):
         beam.losses_separatrix(general_params, rf_params)
         beam.losses_longitudinal_cut(0., 1.763e-4)
         slice_beam.track(beam)
-        bunchmonitor.dump(beam, slice_beam)
-        print "Prtcl 5001 theta = %.8e dE = %.8e" %(beam.theta[5000], beam.dE[5000])
-  
+        bunchmonitor.dump(beam, slice_beam)  
     
     # Plot has to be done before tracking (at least for cases with separatrix)
         if (i % dt_plt) == 0:
