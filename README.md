@@ -4,9 +4,11 @@ Implementation in this branch (intensity effects)
 - Major
   - Bunch generation from distribution function implemented
     - Input is distribution type and emittance (bunch length to be included)
-    - Intensity effects to be included
 
 - Normal
+  - Option in beam spectrum calculation in order to compute the frequency_array only wrt the sampling and time step
+  - Functions in the induced voltage objects to reprocess the wake/impedance sources according to a new slicing
+  - Corrected InputArray object in longitudinal_impedance
 
 - Minor
   - n_macroparticles converted to int in beam class (solve some warnings)

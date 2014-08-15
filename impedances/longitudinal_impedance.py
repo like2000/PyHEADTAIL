@@ -37,6 +37,17 @@ class TotalInducedVoltage(object):
         #: *Time array of the wake in [s]*
         self.time_array = self.slices.bins_centers
         
+        
+    def reprocess(self, new_slicing):
+        '''
+        *Reprocess the impedance contributions with respect to the new_slicing.*
+        '''
+        
+        self.slices = new_slicing
+        
+        for induced_voltage_object in self.induced_voltage_list:
+            induced_voltage_object.reprocess(self.slices)
+                    
 
     def induced_voltage_sum(self, Beam):
         '''
@@ -95,6 +106,17 @@ class InducedVoltageTime(object):
             self.precalc = 'on'
             self.time_array = self.slices.bins_centers - self.slices.bins_centers[0]
             self.sum_wakes(self.time_array)
+            
+            
+    def reprocess(self, new_slicing):
+        '''
+        *Reprocess the wake contributions with respect to the new_slicing.*
+        '''
+        
+        self.slices = new_slicing
+        
+        self.time_array = self.slices.bins_centers - self.slices.bins_centers[0]
+        self.sum_wakes(self.time_array)
     
     
     def sum_wakes(self, time_array):
@@ -160,7 +182,7 @@ class InducedVoltageFreq(object):
     will be at least your input, so you always have a better resolution.*
     '''
         
-    def __init__(self, Slices, impedance_source_list, frequency_resolution, 
+    def __init__(self, Slices, impedance_source_list, frequency_resolution_input, 
                  freq_res_option = 'round'):
     
 
@@ -178,13 +200,63 @@ class InducedVoltageFreq(object):
         self.impedance_source_list = impedance_source_list
         
         time_resolution = (self.slices.bins_centers[1] - self.slices.bins_centers[0])
-        if freq_res_option is 'round':
+        
+        #: *Frequency resolution calculation option*
+        self.freq_res_option = freq_res_option
+        
+        #: *Input frequency resolution in [Hz], the beam profile sampling for the spectrum
+        #: will be adapted according to the freq_res_option.*
+        self.frequency_resolution_input = frequency_resolution_input
+        
+        if self.freq_res_option is 'round':
             #: *Number of points used to FFT the beam profile (by padding zeros), 
             #: this is calculated in order to have at least the input 
             #: frequency_resolution.*
-            self.n_fft_sampling = 2**int(np.round(np.log(1 / (frequency_resolution * time_resolution)) / np.log(2)))
-        elif freq_res_option is 'best':
+            self.n_fft_sampling = 2**int(np.round(np.log(1 / (self.frequency_resolution_input * time_resolution)) / np.log(2)))
+        elif self.freq_res_option is 'best':
+            self.n_fft_sampling = 2**int(np.ceil(np.log(1 / (self.frequency_resolution_input * time_resolution)) / np.log(2)))
+        else:
+            raise RuntimeError('The input freq_res_option is not recognized')
+        
+        if self.n_fft_sampling < self.slices.n_slices:
+            print 'The input frequency resolution step is too big, and the whole \
+                   bunch is not sliced... The number of sampling points for the \
+                   FFT is corrected in order to sample the whole bunch (and \
+                   you might consider changing the input in order to have \
+                   a finer resolution).'
+            frequency_resolution = 1 / (self.slices.bins_centers[-1] - self.slices.bins_centers[0])
             self.n_fft_sampling = 2**int(np.ceil(np.log(1 / (frequency_resolution * time_resolution)) / np.log(2)))
+        
+        #: *Real frequency resolution in [Hz], according to the obtained n_fft_sampling.*
+        self.frequency_resolution = 1 / (self.n_fft_sampling * time_resolution)
+
+        self.slices.beam_spectrum_generation(self.n_fft_sampling)
+        #: *Frequency array of the impedance in [Hz]*
+        self.frequency_array = self.slices.beam_spectrum_freq
+        
+        #: *Total impedance array of all sources in* [:math:`\Omega`]
+        self.total_impedance = 0
+        self.sum_impedances(self.frequency_array)
+        
+        #: *Induced voltage from the sum of the wake sources in [V]*
+        self.induced_voltage = 0
+
+        
+    def reprocess(self, new_slicing):
+        '''
+        *Reprocess the impedance contributions with respect to the new_slicing.*
+        '''
+        
+        self.slices = new_slicing
+        
+        time_resolution = (self.slices.bins_centers[1] - self.slices.bins_centers[0])
+        if self.freq_res_option is 'round':
+            #: *Number of points used to FFT the beam profile (by padding zeros), 
+            #: this is calculated in order to have at least the input 
+            #: frequency_resolution.*
+            self.n_fft_sampling = 2**int(np.round(np.log(1 / (self.frequency_resolution_input * time_resolution)) / np.log(2)))
+        elif self.freq_res_option is 'best':
+            self.n_fft_sampling = 2**int(np.ceil(np.log(1 / (self.frequency_resolution_input * time_resolution)) / np.log(2)))
         else:
             raise RuntimeError('The input freq_res_option is not recognized')
         
@@ -201,16 +273,13 @@ class InducedVoltageFreq(object):
         #: will be adapted accordingly.*
         self.frequency_resolution = 1 / (self.n_fft_sampling * time_resolution)
 
-        self.slices.beam_spectrum_generation(self.n_fft_sampling)
+        self.slices.beam_spectrum_generation(self.n_fft_sampling, only_rfft = True)
         #: *Frequency array of the impedance in [Hz]*
         self.frequency_array = self.slices.beam_spectrum_freq
         
         #: *Total impedance array of all sources in* [:math:`\Omega`]
         self.total_impedance = 0
         self.sum_impedances(self.frequency_array)
-        
-        #: *Induced voltage from the sum of the wake sources in [V]*
-        self.induced_voltage = 0
             
     
     def sum_impedances(self, frequency_array):
@@ -288,8 +357,9 @@ class InputTable(object):
         *The wake is interpolated in order to scale with the new time array.*
         '''
         
-        self.wake = np.interp(new_time_array, self.time_array, self.wake_array, 
+        wake = np.interp(new_time_array, self.time_array, self.wake_array, 
                            right = 0)
+        self.wake_array = wake
         self.time_array = new_time_array
         
     
@@ -298,12 +368,14 @@ class InputTable(object):
         *The impedance is interpolated in order to scale with the new frequency
         array.*
         '''
-        
+
         Re_Z = np.interp(new_frequency_array, self.frequency_array, self.Re_Z_array, 
                       right = 0)
         Im_Z = np.interp(new_frequency_array, self.frequency_array, self.Im_Z_array, 
                       right = 0)
         self.frequency_array = new_frequency_array
+        self.Re_Z_array = Re_Z
+        self.Im_Z_array = Im_Z
         self.impedance = Re_Z + 1j * Im_Z
         
     
@@ -536,6 +608,14 @@ class InductiveImpedance(object):
         self.calc_domain = calc_domain
         
         
+    def reprocess(self, new_slicing):
+        '''
+        *Reprocess the impedance contributions with respect to the new_slicing.*
+        '''
+        
+        self.slices = new_slicing
+        
+        
     def imped_calc(self, freq_array):
         '''
         *Impedance calculation method as a function of frequency.*
@@ -544,8 +624,8 @@ class InductiveImpedance(object):
         self.freq_array = freq_array
         self.impedance = (self.freq_array / self.revolution_frequency) * \
                          self.Z_over_n * 1j
-             
                          
+
     def induced_voltage_generation(self, Beam):
         '''
         *Method to calculate the induced voltage through the derivative of the
