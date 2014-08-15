@@ -1,6 +1,7 @@
 '''
-@author: Kevin Li, Michael Schenk, Danilo Quartullo
-@date: 11.02.2014
+**Module to save beam statistics in h5 file**
+
+:Authors: **Kevin Li**, **Michael Schenk**, **Danilo Quartullo**
 '''
 
 import h5py as hp
@@ -13,28 +14,36 @@ class Monitor(object):
     __metaclass__ = abc.ABCMeta
     
     @abc.abstractmethod
-    def dump(self, bunch):
+    def track(self, bunch):
         pass
 
 
 class BunchMonitor(Monitor):
 
-    def __init__(self, filename, n_steps, statistics = "All", long_gaussian_fit = "Off"):
+    def __init__(self, filename, n_steps, statistics = "All", slices = None):
         
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
         self.i_steps = 0
         self.statistics = statistics
-        self.long_gaussian_fit = long_gaussian_fit 
+        self.slices = slices
         self.h5file.create_group('Bunch')
 
-    def dump(self, bunch, slices = None):
+    def track(self, bunch):
         
         if self.statistics == "All":
-            bunch.longit_statistics(self.long_gaussian_fit, slices)
+            bunch.longit_statistics()
+            try:
+                self.slices.gaussian_fit()
+            except AttributeError:
+                pass
             bunch.transv_statistics()
         elif self.statistics == "Longitudinal":
-            bunch.longit_statistics(self.long_gaussian_fit, slices)
+            bunch.longit_statistics()
+            try:
+                self.slices.gaussian_fit()
+            except AttributeError:
+                pass
         else:
             bunch.transv_statistics()
         
@@ -51,7 +60,7 @@ class BunchMonitor(Monitor):
         
         h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
         
-        if self.statistics == "All" or self.statistics == "Transverse": 
+        if self.statistics != "Longitudinal": 
             # Transverse statistics
             h5group.create_dataset("mean_x",   dims, compression="gzip", compression_opts=9)
             h5group.create_dataset("mean_xp",  dims, compression="gzip", compression_opts=9)
@@ -73,7 +82,7 @@ class BunchMonitor(Monitor):
             h5group.create_dataset("sigma_theta",  dims, compression="gzip", compression_opts=9)
             h5group.create_dataset("sigma_dE", dims, compression="gzip", compression_opts=9)
             h5group.create_dataset("epsn_rms_l",   dims, compression="gzip", compression_opts=9)
-            if self.long_gaussian_fit == "On":
+            if self.slices:
                 h5group.create_dataset("bunch_length_gauss_theta", dims, compression="gzip", compression_opts=9)
 
     def write_data(self, bunch, h5group, i_steps):
@@ -102,8 +111,8 @@ class BunchMonitor(Monitor):
             h5group["sigma_theta"][i_steps]  = bunch.sigma_theta
             h5group["sigma_dE"][i_steps] = bunch.sigma_dE
             h5group["epsn_rms_l"][i_steps]   = bunch.epsn_rms_l
-            if self.long_gaussian_fit == "On":
-                h5group["bunch_length_gauss_theta"][i_steps] = bunch.bl_gauss
+            if self.slices:
+                h5group["bunch_length_gauss_theta"][i_steps] = self.slices.bl_gauss
             
         
     def close(self):
@@ -125,7 +134,7 @@ class SliceMonitor(Monitor):
         self.h5file.create_group('Bunch')
         self.h5file.create_group('Slices')
 
-    def dump(self, bunch):
+    def track(self, bunch):
         if not self.slices:
             self.slices = bunch.slices
 
@@ -149,27 +158,6 @@ class SliceMonitor(Monitor):
 
         self.i_steps += 1
 
-    def dump_tmp(self, bunch):
-        if not self.slices:
-            self.slices = bunch.slices
-
-        # These methods may be called several times in different places of the code. Ok. for now.
-        #bunch.compute_statistics()
-        #self.slices.update_slices(bunch)
-        #self.slices.compute_statistics(bunch)
-
-        if not self.i_steps:
-            n_steps = self.n_steps
-            n_slices = self.slices.n_slices
-
-            self.create_data_tmp(self.h5file['Slices'], (n_slices, n_steps))
-
-            self.write_data_tmp(self.slices, self.h5file['Slices'], self.i_steps, rank=2)
-        else:
-            self.write_data_tmp(self.slices, self.h5file['Slices'], self.i_steps, rank=2)
-
-        self.i_steps += 1
-
     def create_data(self, h5group, dims):
         h5group.create_dataset("mean_x",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("mean_xp",  dims, compression="gzip", compression_opts=9)
@@ -186,10 +174,6 @@ class SliceMonitor(Monitor):
         h5group.create_dataset("epsn_z",   dims, compression="gzip", compression_opts=9)
         h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
 
-    def create_data_tmp(self, h5group, dims):
-        #h5group.create_dataset("bins_centers",   dims, compression="gzip", compression_opts=9)
-        h5group.create_dataset("n_macroparticles", dims, compression="gzip", compression_opts=9)
-       
     def write_data(self, data, h5group, i_steps, rank=1):
         if rank == 1:
             h5group["mean_x"][i_steps]   = data.mean_x
@@ -224,13 +208,6 @@ class SliceMonitor(Monitor):
         else:
             raise ValueError("Rank > 2 not supported!")
 
-    def write_data_tmp(self, data, h5group, i_steps, rank=2):
-        if rank == 2:
-            #h5group["bins_centers"][:,i_steps]   = data.bins_centers
-            h5group["n_macroparticles"][:,i_steps] = data.n_macroparticles
-        else:
-            raise ValueError("Rank != 2 not supported!")
-
     def close(self):
         self.h5file.close()
 
@@ -248,7 +225,7 @@ class ParticleMonitor(Monitor):
         # self.n_steps = n_steps
         self.i_steps = 0
 
-    def dump(self, bunch):
+    def track(self, bunch):
 
         if not self.i_steps:
             resorting_indices = np.argsort(bunch.id)[::self.stride]

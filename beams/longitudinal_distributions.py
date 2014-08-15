@@ -11,8 +11,9 @@ from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 
 
-def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_x,
-                             sigma_y, xunit=None, yunit=None, reinsertion = 'off'):
+def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, 
+                            sigma_x, sigma_y, xunit=None, yunit=None, 
+                            seed=None, reinsertion = 'off'):
     
     warnings.filterwarnings("once")
     if GeneralParameters.n_sections > 1:
@@ -22,6 +23,7 @@ def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_
         warnings.warn("longitudinal_bigaussian for multiple RF is not yet implemented")
     
     counter = RFSectionParameters.counter[0]
+    
     harmonic = RFSectionParameters.harmonic[0,counter]
     energy = RFSectionParameters.energy[counter]
     beta = RFSectionParameters.beta_r[counter]
@@ -43,6 +45,8 @@ def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_
     beam.sigma_dE = sigma_dE
     phi_s = RFSectionParameters.phi_s[counter]
     
+    
+    np.random.seed(seed)
     beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
                         + phi_s/harmonic
     beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
@@ -64,7 +68,8 @@ def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_
   
 
 def longitudinal_gaussian_matched(GeneralParameters, RFSectionParameters, beam, 
-                                  four_sigma_bunch_length, unit=None, reinsertion = 'off'):
+                                  four_sigma_bunch_length, unit=None, 
+                                  seed=None, reinsertion = 'off'):
     
     warnings.filterwarnings("once")
         
@@ -100,6 +105,7 @@ def longitudinal_gaussian_matched(GeneralParameters, RFSectionParameters, beam,
     beam.sigma_theta = sigma_theta
     beam.sigma_dE = sigma_dE
     
+    np.random.seed(seed)
     beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
                         + phi_s/harmonic
     beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)

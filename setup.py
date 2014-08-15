@@ -8,14 +8,14 @@ import numpy as np
 import os
 import sys
 import subprocess
-import cython_gsl
 
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 
-# Remember that you have to launch this setup.py script from console with the exact following syntax "python setup.py cleanall build_ext --inplace"
+# Remember that you have to launch this setup.py script from console with the 
+# exact following syntax "python setup.py cleanall build_ext --inplace"
 
 args = sys.argv[1:]
 
@@ -25,39 +25,32 @@ if "cleanall" in args:
     print "Deleting cython files..."
     if "lin" in sys.platform:
         subprocess.Popen("rm -rf build", shell = True, executable = "/bin/bash")
-        subprocess.Popen("rm -rf *.c", shell = True, executable = "/bin/bash")
-        subprocess.Popen("rm -rf *.so", shell = True, executable = "/bin/bash")
+        subprocess.Popen("rm -rf cython_functions/*.c", shell = True, executable = "/bin/bash")
+        subprocess.Popen("rm -rf cython_functions/*.so", shell = True, executable = "/bin/bash")
         sys.argv[1] = "clean"
     elif "win" in sys.platform:
         os.system('rd /s/q '+ os.getcwd() +'\\build')
-        os.system('del /s/q '+ os.getcwd() +'\\*.c')
-        os.system('del /s/q '+ os.getcwd() +'\\*.html')
-        os.system('del /s/q '+ os.getcwd() +'\\*.pyd')
-        os.system('del /s/q '+ os.getcwd() +'\\*.h5')
-        os.system('del /s/q '+ os.getcwd() +'\\*.h5part')
+        os.system('del /s/q '+ os.getcwd() +'\\cython_functions\\*.c')
+        os.system('del /s/q '+ os.getcwd() +'\\cython_functions\\*.html')
+        os.system('del /s/q '+ os.getcwd() +'\\cython_functions\\*.pyd')
         sys.argv[1] = "clean"
     else:
         print "You have not a Windows or Linux operating system. Aborting..."
         sys.exit()
 
 # We want to always use build_ext --inplace
+
 if args.count("build_ext") > 0 and args.count("--inplace") == 0:
     sys.argv.insert(sys.argv.index("build_ext") + 1, "--inplace")
 
 # Set up extension and build
+
 cy_ext = [
         Extension("cython_functions.stats",
                  ["cython_functions/stats.pyx"],
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
-                 ),
-        Extension("cython_functions.random",
-                 ["cython_functions/random.pyx"],
-                 include_dirs=[np.get_include(), cython_gsl.get_cython_include_dir()],
-                 #extra_compile_args=["-g"],
-                 #extra_link_args=["-g"],
-                 library_dirs=[], libraries=["gsl", "gslcblas"],
                  )
         ]
 
