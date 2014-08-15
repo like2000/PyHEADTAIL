@@ -73,8 +73,44 @@
 <em class="property">class </em><tt class="descclassname">trackers.longitudinal_tracker.</tt><tt class="descname">LinearMap</tt><big>(</big><em>GeneralParameters</em>, <em>Qs</em><big>)</big><a class="headerlink" href="#trackers.longitudinal_tracker.LinearMap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Linear Map represented by a Courant-Snyder transportation matrix.
-self.alpha is the linear momentum compaction factor.
 Qs is forced to be constant.</p>
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.LinearMap.Qs">
+<tt class="descname">Qs</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.LinearMap.Qs" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Synchrotron tune (constant)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.LinearMap.beta_r">
+<tt class="descname">beta_r</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.LinearMap.beta_r" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of the relativistic beta (from GeneralParameters)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.LinearMap.eta">
+<tt class="descname">eta</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.LinearMap.eta" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of the 0th order slippage factor (from GeneralParameters)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.LinearMap.omega_0">
+<tt class="descname">omega_0</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.LinearMap.omega_0" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of the revolution angular frequency (from GeneralParameters)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.LinearMap.omega_s">
+<tt class="descname">omega_s</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.LinearMap.omega_s" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Synchrotron angular frequency in [rad/s]</em>
+<img class="math" src="_images/math/fa8c2ddd389a0c445058787b13ae3864332864e1.png" alt=": \quad \omega_s = Q_s \omega_0"/></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.LinearMap.ring_circumference">
+<tt class="descname">ring_circumference</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.LinearMap.ring_circumference" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of the ring circumference (from GeneralParameters)</em></p>
+</dd></dl>
+
 <dl class="method">
 <dt id="trackers.longitudinal_tracker.LinearMap.track">
 <tt class="descname">track</tt><big>(</big><em>beam</em><big>)</big><a class="headerlink" href="#trackers.longitudinal_tracker.LinearMap.track" title="Permalink to this definition">¶</a></dt>
@@ -84,7 +120,7 @@ Qs is forced to be constant.</p>
 
 <dl class="class">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection">
-<em class="property">class </em><tt class="descclassname">trackers.longitudinal_tracker.</tt><tt class="descname">RingAndRFSection</tt><big>(</big><em>rf_params</em>, <em>solver='full'</em><big>)</big><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">trackers.longitudinal_tracker.</tt><tt class="descname">RingAndRFSection</tt><big>(</big><em>RFSectionParameters</em>, <em>solver='full'</em><big>)</big><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p><em>Definition of an RF station and part of the ring until the next station, 
 see figure.</em></p>
@@ -106,15 +142,19 @@ and finally a drift kick between stations.</em></p>
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.alpha_order">
 <tt class="descname">alpha_order</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.alpha_order" title="Permalink to this definition">¶</a></dt>
-<dd><p><em>Slippage factor up to desired order</em></p>
+<dd><p><em>Copy of the slippage factor order number (from RFSectionParameters)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.beta_av">
+<tt class="descname">beta_av</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.beta_av" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of the averaged relativistic beta (from RFSectionParameters)</em></p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.beta_r">
 <tt class="descname">beta_r</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.beta_r" title="Permalink to this definition">¶</a></dt>
-<dd><div class="line-block">
-<div class="line"><em>... and derived relativistic quantities</em></div>
-</div>
+<dd><p><em>Copy of the relativistic beta (from RFSectionParameters)</em></p>
 </dd></dl>
 
 <dl class="attribute">
@@ -126,9 +166,7 @@ and finally a drift kick between stations.</em></p>
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.counter">
 <tt class="descname">counter</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.counter" title="Permalink to this definition">¶</a></dt>
-<dd><div class="line-block">
-<div class="line"><em>Counter to keep track of time step (used in momentum and voltage)</em></div>
-</div>
+<dd><p><em>Copy of the counter (from RFSectionParameters)</em></p>
 </dd></dl>
 
 <dl class="method">
@@ -136,22 +174,50 @@ and finally a drift kick between stations.</em></p>
 <tt class="descname">drift</tt><big>(</big><em>beam</em><big>)</big><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.drift" title="Permalink to this definition">¶</a></dt>
 <dd><p><em>The drift updates the longitudinal coordinate of the particle after 
 applying the energy kick. The two options of tracking are: full, 
-corresponding to the cases where beta is not considered constant and
-the slippage factor may be of higher orders; and simple, where beta
-is approximatively one and the slippage factor is of order 0. Corresponding
-to the equations:</em></p>
+corresponding to the cases where beta the slippage factor may be of 
+higher orders; and simple, where the slippage factor is of order 0 (the
+code is then faster).</em></p>
+<p><em>Corresponding to the equations:</em></p>
 <div class="math">
 <p><img src="_images/math/af801d05e771f201285be4e64b83668aa190bae6.png" alt="\theta_{n+1} = \frac{\beta_{n+1}}{\beta_n}\theta_n + 2\pi\left(\frac{1}{1 - \eta\delta_n} - 1\right)\frac{L}{C} \quad \text{(full)}"/></p>
 </div><div class="math">
-<p><img src="_images/math/527183dfa330ce745b561a860ea6602021a5e82b.png" alt="\approx&gt; \theta_{n+1} = \theta_n + 2\pi\eta_0\delta_n\frac{L}{C} \quad \text{(simple)}"/></p>
+<p><img src="_images/math/c6a46bec5f1d11674042a0cbf98ee77ba5a71a92.png" alt="\approx&gt; \theta_{n+1} = \frac{\beta_{n+1}}{\beta_n}\theta_n + 2\pi\eta_0\delta_n\frac{L}{C} \quad \text{(simple)}"/></p>
 </div></dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.energy">
+<tt class="descname">energy</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.energy" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of the relativistic energy (from RFSectionParameters)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.eta_0">
+<tt class="descname">eta_0</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.eta_0" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Slippage factor (order 0) for the given RF section</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.eta_1">
+<tt class="descname">eta_1</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.eta_1" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Slippage factor (order 1) for the given RF section</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.eta_2">
+<tt class="descname">eta_2</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.eta_2" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Slippage factor (order 2) for the given RF section</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.gamma_r">
+<tt class="descname">gamma_r</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.gamma_r" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of the relativistic gamma (from RFSectionParameters)</em></p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.harmonic">
 <tt class="descname">harmonic</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.harmonic" title="Permalink to this definition">¶</a></dt>
-<dd><div class="line-block">
-<div class="line"><em>Harmonic number list</em> <img class="math" src="_images/math/25e5d948404472ca9570cd1cc66117d880adf3c7.png" alt=": \quad h_{j,n}"/></div>
-</div>
+<dd><p><em>Copy of harmonic number program (from RFSectionParameters)</em></p>
 </dd></dl>
 
 <dl class="method">
@@ -176,42 +242,49 @@ RF station, so the average beta is used in the calculation of the kick.
 An extra increment in the equation of motion with respect to the Kick
 object is given by:</em></p>
 <div class="math">
-<p><img src="_images/math/87dfa386167dbed575e96d9013fea5a3d1edff8a.png" alt="\Delta E_{n+1} = \Delta E_n + \beta_{av} \Delta p_{n\rightarrow n+1}"/></p>
+<p><img src="_images/math/45957fb232c878bd34699f31946398a10bfad06c.png" alt="\Delta E_{n+1} = \Delta E_n + &lt;\beta&gt; \Delta p_{n\rightarrow n+1}"/></p>
 </div></dd></dl>
 
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.length_ratio">
 <tt class="descname">length_ratio</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.length_ratio" title="Permalink to this definition">¶</a></dt>
-<dd><div class="line-block">
-<div class="line"><em>Import RF section parameters for RF kick</em></div>
-<div class="line"><em>Length ratio between drift and ring circumference</em></div>
-<div class="line"><img class="math" src="_images/math/2c7b130203bfbe568b8412d92ccae33f92f22bfc.png" alt=": \quad \frac{L}{C}"/></div>
-</div>
+<dd><p><em>Copy of length ratio (from RFSectionParameters)</em></p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.momentum">
 <tt class="descname">momentum</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.momentum" title="Permalink to this definition">¶</a></dt>
-<dd><div class="line-block">
-<div class="line"><em>Import RF section parameters for accelerating kick</em></div>
-<div class="line"><em>Momentum (program) in [eV/c]</em> <img class="math" src="_images/math/361fd32ae6699bbe97221e1cfecf8a23d1d4dfe9.png" alt=": \quad p_n"/></div>
-</div>
+<dd><p><em>Copy of the momentum program in [eV/c] (from RFSectionParameters)</em></p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.n_rf">
 <tt class="descname">n_rf</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.n_rf" title="Permalink to this definition">¶</a></dt>
-<dd><div class="line-block">
-<div class="line"><em>Number of RF systems in the RF station</em> <img class="math" src="_images/math/bc61b3d408bd3809fe76c340c5170bbc30fe967e.png" alt=": \quad n_{RF}"/></div>
-</div>
+<dd><p><em>Copy of the number of RF systems (from RFSectionParameters)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.p_increment">
+<tt class="descname">p_increment</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.p_increment" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of the momentum increment in [eV/c] (from RFSectionParameters)</em></p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.phi_offset">
 <tt class="descname">phi_offset</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.phi_offset" title="Permalink to this definition">¶</a></dt>
-<dd><div class="line-block">
-<div class="line"><em>Phase offset list in [rad]</em> <img class="math" src="_images/math/e13ad736f8769505eca84d3c9bc1cbd677394c4a.png" alt=": \quad \phi_{j,n}"/></div>
-</div>
+<dd><p><em>Copy of phi_offset program in [rad] (from RFSectionParameters)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.phi_s">
+<tt class="descname">phi_s</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.phi_s" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of phi_s program in [rad] (from RFSectionParameters)</em></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="trackers.longitudinal_tracker.RingAndRFSection.section_length">
+<tt class="descname">section_length</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.section_length" title="Permalink to this definition">¶</a></dt>
+<dd><p><em>Copy of length (from RFSectionParameters)</em></p>
 </dd></dl>
 
 <dl class="attribute">
@@ -219,22 +292,26 @@ object is given by:</em></p>
 <tt class="descname">solver</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.solver" title="Permalink to this definition">¶</a></dt>
 <dd><div class="line-block">
 <div class="line"><em>Choice of solver for the drift</em></div>
-<div class="line"><em>Use &#8216;full&#8217; for full eta solver</em></div>
-<div class="line"><em>Use &#8216;simple&#8217; for 0th order eta solver</em></div>
+<div class="line"><em>Set to &#8216;simple&#8217; if only 0th order of slippage factor eta</em></div>
+<div class="line"><em>Set to &#8216;full&#8217; if higher orders of slippage factor eta</em></div>
 </div>
 </dd></dl>
 
 <dl class="method">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.track">
 <tt class="descname">track</tt><big>(</big><em>beam</em><big>)</big><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.track" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><div class="line-block">
+<div class="line"><em>Tracking method for the section, applies the equations in this order:</em></div>
+<div class="line"><em>kick -&gt; kick_acceleration -&gt; drift</em></div>
+<div class="line"><br /></div>
+<div class="line"><em>Updates the relativistic information of the beam.</em></div>
+</div>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="trackers.longitudinal_tracker.RingAndRFSection.voltage">
 <tt class="descname">voltage</tt><em class="property"> = None</em><a class="headerlink" href="#trackers.longitudinal_tracker.RingAndRFSection.voltage" title="Permalink to this definition">¶</a></dt>
-<dd><div class="line-block">
-<div class="line"><em>Voltage program list in [V]</em> <img class="math" src="_images/math/68d6de66610585864a30f3b99b7b82cb01a8ca19.png" alt=": \quad V_{j,n}"/></div>
-</div>
+<dd><p><em>Copy of voltage program in [V] (from RFSectionParameters)</em></p>
 </dd></dl>
 
 </dd></dl>
