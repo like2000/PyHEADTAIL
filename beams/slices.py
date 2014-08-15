@@ -286,15 +286,18 @@ class Slices(object):
 
     
     
-    def beam_spectrum_generation(self, n_sampling_fft, filter_option = None):
+    def beam_spectrum_generation(self, n_sampling_fft, filter_option = None, only_rfft = False):
         '''
         *Beam spectrum calculation, to be extended (normalized profile, different
         coordinates, etc.)*
         '''
         
         time_step = self.convert_coordinates(self.bins_centers[1] - self.bins_centers[0], self.slicing_coord, 'tau')
-        self.beam_spectrum = rfft(self.n_macroparticles, n_sampling_fft)
         self.beam_spectrum_freq = rfftfreq(n_sampling_fft, time_step)
+        
+        if not only_rfft:
+            self.beam_spectrum = rfft(self.n_macroparticles, n_sampling_fft)
+        
              
      
      
