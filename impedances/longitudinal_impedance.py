@@ -55,13 +55,18 @@ class TotalInducedVoltage(object):
         '''
         
         temp_induced_voltage = 0
+        extended_induced_voltage = 0
         for induced_voltage_object in self.induced_voltage_list:
-            extended_induced_voltage = induced_voltage_object.induced_voltage_generation(Beam, length)
+            if isinstance(length, int):
+                extended_induced_voltage += induced_voltage_object.induced_voltage_generation(Beam, length)
+            else:
+                induced_voltage_object.induced_voltage_generation(Beam, length)
             temp_induced_voltage += induced_voltage_object.induced_voltage
             
         self.induced_voltage = temp_induced_voltage
         
-        return extended_induced_voltage
+        if isinstance(length, int):
+            return extended_induced_voltage
     
     
     def track(self, Beam):

@@ -118,7 +118,7 @@ class Slices(object):
             self.pfit_gauss = 0
                     
         # Use of track in order to pre-process the slicing at injection
-        self.track(self.Beam)
+#         self.track(self.Beam)
         
         
     def sort_particles(self):
