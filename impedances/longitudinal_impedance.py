@@ -49,17 +49,19 @@ class TotalInducedVoltage(object):
             induced_voltage_object.reprocess(self.slices)
                     
 
-    def induced_voltage_sum(self, Beam):
+    def induced_voltage_sum(self, Beam, length = 'slice_frame'):
         '''
         *Method to sum all the induced voltages in one single array.*
         '''
         
         temp_induced_voltage = 0
         for induced_voltage_object in self.induced_voltage_list:
-            induced_voltage_object.induced_voltage_generation(Beam)
+            extended_induced_voltage = induced_voltage_object.induced_voltage_generation(Beam, length)
             temp_induced_voltage += induced_voltage_object.induced_voltage
             
         self.induced_voltage = temp_induced_voltage
+        
+        return extended_induced_voltage
     
     
     def track(self, Beam):
@@ -130,7 +132,7 @@ class InducedVoltageTime(object):
             self.total_wake += wake_object.wake
         
     
-    def induced_voltage_generation(self, Beam): 
+    def induced_voltage_generation(self, Beam, length = 'slice_frame'): 
         '''
         *Method to calculate the induced voltage from wakes with convolution 
         or with the matrix method (this method scales with the number of sources 
@@ -143,11 +145,18 @@ class InducedVoltageTime(object):
             # Matrix method
             time_matrix = self.slices.bins_centers - np.transpose([self.slices.bins_centers])
             self.sum_wakes(time_matrix)
-            self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * np.dot(self.slices.n_macroparticles, self.total_wake) 
+            induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * np.dot(self.slices.n_macroparticles, self.total_wake) 
         else:           
             # Convolve method 
-            self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * np.convolve(self.total_wake, self.slices.n_macroparticles)[0:len(self.total_wake)]
-
+            induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * np.convolve(self.total_wake, self.slices.n_macroparticles)
+        
+        self.induced_voltage = induced_voltage[0:self.slices.n_slices]
+        
+        if isinstance(length, int):
+            max_length = len(induced_voltage)
+            if length > max_length:
+                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+            return induced_voltage[0:length]
         
             
     def track(self, Beam):
@@ -293,20 +302,119 @@ class InducedVoltageFreq(object):
             self.total_impedance += imped_object.impedance
 
         
-    def induced_voltage_generation(self, Beam):
+    def induced_voltage_generation(self, Beam, length = 'slice_frame'):
         '''
         *Method to calculate the induced voltage from the inverse FFT of the
         impedance times the spectrum (fourier convolution).*
         '''
         
         self.slices.beam_spectrum_generation(self.n_fft_sampling, filter_option = None)
-        self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.total_impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
-        self.induced_voltage = self.induced_voltage[0:self.slices.n_slices]
+        induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.total_impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
+        
+        self.induced_voltage = induced_voltage[0:self.slices.n_slices]
+        
+        if isinstance(length, int):
+            max_length = len(induced_voltage)
+            if length > max_length:
+                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+            return induced_voltage[0:length]
     
     
     def track(self, Beam):
         '''
         *Tracking method.*
+        '''
+        
+        self.induced_voltage_generation(Beam)
+        
+        induced_voltage_kick = np.interp(Beam.tau, self.slices.bins_centers, self.induced_voltage)
+        Beam.dE += induced_voltage_kick
+        
+        
+        
+class InductiveImpedance(object):
+    '''
+    *Constant imaginary Z/n impedance. This needs to be extended to the
+    cases where there is acceleration as the revolution frequency f0 used
+    in the calculation of n=f/f0 is changing (general_params as input ?).*
+    '''
+    
+    def __init__(self, Slices, Z_over_n, revolution_frequency, calc_domain = 'time', deriv_mode = 'gradient'):
+        
+        #: *Copy of the Slices object in order to access the profile info.*
+        self.slices = Slices
+        
+        # The slicing has to be done in 'tau' in order to use intensity effects
+        if self.slices.slicing_coord is not 'tau':
+            raise RuntimeError('The slicing has to be done in tau (slicing_coord option) in order to use intensity effects !')
+        
+        #: *Constant imaginary Z/n in* [:math:`\Omega / Hz`]
+        self.Z_over_n = Z_over_n
+        
+        #: *Revolution frequency in [Hz]*
+        self.revolution_frequency = revolution_frequency
+        
+        #: *Frequency array of the impedance in [Hz]*
+        self.freq_array = 0
+        
+        #: *Impedance array in* [:math:`\Omega`]
+        self.impedance = 0
+        
+        #: *Induced voltage from the sum of the wake sources in [V]*
+        self.induced_voltage = 0
+        
+        #: *Derivation method to compute induced voltage*
+        self.deriv_mode = deriv_mode
+        
+        #: *Calculation domain (time for derivative, freq for inverse fft.*
+        self.calc_domain = calc_domain
+        
+        
+    def reprocess(self, new_slicing):
+        '''
+        *Reprocess the impedance contributions with respect to the new_slicing.*
+        '''
+        
+        self.slices = new_slicing
+        
+        
+    def imped_calc(self, freq_array):
+        '''
+        *Impedance calculation method as a function of frequency.*
+        '''    
+        
+        self.freq_array = freq_array
+        self.impedance = (self.freq_array / self.revolution_frequency) * \
+                         self.Z_over_n * 1j
+                         
+
+    def induced_voltage_generation(self, Beam, length = 'slice_frame'):
+        '''
+        *Method to calculate the induced voltage through the derivative of the
+        profile; the impedance must be of inductive type. *
+        '''
+        
+        if self.calc_domain is 'time':
+            induced_voltage = - Beam.charge / (2 * np.pi) * Beam.intensity / Beam.n_macroparticles * \
+                                self.Z_over_n / self.revolution_frequency * \
+                                self.slices.beam_profile_derivative(self.deriv_mode, coord = 'tau')[1] / \
+                                (self.slices.bins_centers[1] - self.slices.bins_centers[0])
+        
+#         if self.calc_domain is 'freq':
+#             self.slices.beam_spectrum_generation(self.n_fft_sampling, filter_option = None)
+#             self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
+#             self.induced_voltage = self.induced_voltage[0:self.slices.n_slices]
+
+        if isinstance(length, int):
+            max_length = len(induced_voltage)
+            if length > max_length:
+                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+            return induced_voltage[0:length]
+                            
+                            
+    def track(self, Beam):
+        '''
+        *Track method.*
         '''
         
         self.induced_voltage_generation(Beam)
@@ -568,91 +676,7 @@ class TravelingWaveCavity(object):
             
             self.impedance += Zplus + Zminus   
     
-    
 
-class InductiveImpedance(object):
-    '''
-    *Constant imaginary Z/n impedance. This needs to be extended to the
-    cases where there is acceleration as the revolution frequency f0 used
-    in the calculation of n=f/f0 is changing (general_params as input ?).*
-    '''
-    
-    def __init__(self, Slices, Z_over_n, revolution_frequency, calc_domain = 'time', deriv_mode = 'gradient'):
-        
-        #: *Copy of the Slices object in order to access the profile info.*
-        self.slices = Slices
-        
-        # The slicing has to be done in 'tau' in order to use intensity effects
-        if self.slices.slicing_coord is not 'tau':
-            raise RuntimeError('The slicing has to be done in tau (slicing_coord option) in order to use intensity effects !')
-        
-        #: *Constant imaginary Z/n in* [:math:`\Omega / Hz`]
-        self.Z_over_n = Z_over_n
-        
-        #: *Revolution frequency in [Hz]*
-        self.revolution_frequency = revolution_frequency
-        
-        #: *Frequency array of the impedance in [Hz]*
-        self.freq_array = 0
-        
-        #: *Impedance array in* [:math:`\Omega`]
-        self.impedance = 0
-        
-        #: *Induced voltage from the sum of the wake sources in [V]*
-        self.induced_voltage = 0
-        
-        #: *Derivation method to compute induced voltage*
-        self.deriv_mode = deriv_mode
-        
-        #: *Calculation domain (time for derivative, freq for inverse fft.*
-        self.calc_domain = calc_domain
-        
-        
-    def reprocess(self, new_slicing):
-        '''
-        *Reprocess the impedance contributions with respect to the new_slicing.*
-        '''
-        
-        self.slices = new_slicing
-        
-        
-    def imped_calc(self, freq_array):
-        '''
-        *Impedance calculation method as a function of frequency.*
-        '''    
-        
-        self.freq_array = freq_array
-        self.impedance = (self.freq_array / self.revolution_frequency) * \
-                         self.Z_over_n * 1j
-                         
-
-    def induced_voltage_generation(self, Beam):
-        '''
-        *Method to calculate the induced voltage through the derivative of the
-        profile; the impedance must be of inductive type. *
-        '''
-        
-        if self.calc_domain is 'time':
-            self.induced_voltage = - Beam.charge / (2 * np.pi) * Beam.intensity / Beam.n_macroparticles * \
-                                self.Z_over_n / self.revolution_frequency * \
-                                self.slices.beam_profile_derivative(self.deriv_mode, coord = 'tau')[1] / \
-                                (self.slices.bins_centers[1] - self.slices.bins_centers[0])
-        
-#         if self.calc_domain is 'freq':
-#             self.slices.beam_spectrum_generation(self.n_fft_sampling, filter_option = None)
-#             self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
-#             self.induced_voltage = self.induced_voltage[0:self.slices.n_slices]
-                            
-                            
-    def track(self, Beam):
-        '''
-        *Track method.*
-        '''
-        
-        self.induced_voltage_generation(Beam)
-        
-        induced_voltage_kick = np.interp(Beam.tau, self.slices.bins_centers, self.induced_voltage)
-        Beam.dE += induced_voltage_kick
 
 
  
