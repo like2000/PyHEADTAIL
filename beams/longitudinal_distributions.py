@@ -11,7 +11,7 @@ import copy
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from scipy.integrate import cumtrapz
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 def matched_from_line_density(Beam, line_density):
@@ -27,8 +27,8 @@ def matched_from_line_density(Beam, line_density):
 
 def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
                                       main_harmonic_option = 'lowest_freq', 
-                                      bunch_length = None,
-                                      TotalInducedVoltage = None):
+                                      TotalInducedVoltage = None,
+                                      n_iterations_input = 1):
     '''
     *Function to generate a beam by inputing the distribution density (by
     choosing the type of distribution and the emittance). 
@@ -65,16 +65,24 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     induced_potential = 0
     total_potential = potential_well_array + induced_potential
     
-    test_index = 0
-    
-    for i in range(0,10):
+    n_iterations = n_iterations_input
+    if not TotalInducedVoltage:
+        n_iterations = 1
+        
+        
+    for i in range(0, n_iterations):
         print i
         
-        old_potential = copy.deepcopy(total_potential)
+#         old_potential = copy.deepcopy(total_potential)
         # Adding the induced potential to the RF potential
         total_potential = potential_well_array + induced_potential
         
-        print np.sqrt(np.sum((old_potential-total_potential)**2))
+#         print np.sqrt(np.sum((old_potential-total_potential)**2))
+#         plt.figure(10)
+#         plt.clf()
+#         plt.plot(old_potential)
+#         plt.plot(total_potential)
+#         plt.pause(0.000001)
         
         # Check for the min/max of the potentiel well
         minmax_positions, minmax_values = minmax_location(theta_coord_array, 
@@ -178,7 +186,8 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
             J_array_dE0[i] = 2 / (2*np.pi) * np.trapz(dE_trajectory, dx=theta_resolution * 
                                                       FullRingAndRF.ring_radius / 
                                                       (Beam.beta_r * c)) 
-            
+
+                
         warnings.filterwarnings("default")
         
         # Sorting the H and J functions in order to be able to interpolate the function J(H)
@@ -191,11 +200,11 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         J_grid = np.interp(H_grid, sorted_H_dE0, sorted_J_dE0, left = 0, right = np.inf)
         
         # Computing the density grid
-        option = 'density_from_J'
-        if option is 'density_from_J':
+        density_variable_option = distribution_options['density_variable']
+        if density_variable_option is 'density_from_J':
             density_grid = distribution_density_function(J_grid, distribution_options['type'], distribution_options['parameters'][0]/ (2*np.pi), distribution_options['parameters'][1])
-        elif option is 'density_from_H':
-            density_grid = distribution_density_function(J_grid, distribution_options['type'], np.interp(distribution_options['parameters'][0] / (2*np.pi), sorted_J_dE0, sorted_H_dE0), distribution_options['parameters'][1])
+        elif density_variable_option is 'density_from_H':
+            density_grid = distribution_density_function(H_grid, distribution_options['type'], np.interp(distribution_options['parameters'][0] / (2*np.pi), sorted_J_dE0, sorted_H_dE0), distribution_options['parameters'][1])
         
         # Normalizing the grid
         density_grid = density_grid / np.sum(density_grid)
@@ -220,11 +229,12 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
             # Calculating the induced voltage
             induced_voltage_length_sep = int(np.ceil((theta_coord_array[-1] -  theta_coord_low_res[0]) / (theta_coord_low_res[1] - theta_coord_low_res[0])))
             induced_voltage = induced_voltage_object.induced_voltage_sum(Beam, length = induced_voltage_length_sep)
-            theta_induced_voltage = np.arange(theta_coord_low_res[0], theta_coord_low_res[0] + induced_voltage_length_sep * (theta_coord_low_res[1] - theta_coord_low_res[0]), theta_coord_low_res[1] - theta_coord_low_res[0])
+            theta_induced_voltage = np.linspace(theta_coord_low_res[0], theta_coord_low_res[0] + (induced_voltage_length_sep - 1) * (theta_coord_low_res[1] - theta_coord_low_res[0]), induced_voltage_length_sep)
             
             # Calculating the induced potential
             induced_potential_low_res = - eom_factor_potential * np.insert(cumtrapz(induced_voltage, dx=theta_induced_voltage[1]-theta_induced_voltage[0]),0,0)
             induced_potential = np.interp(theta_coord_array, theta_induced_voltage, induced_potential_low_res)
+            
     
      
     # Populating the bunch
