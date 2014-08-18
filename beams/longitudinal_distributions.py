@@ -1,7 +1,7 @@
 '''
 **Module to generate longitudinal distributions**
 
-:Authors: **Danilo Quartullo**, **Helga Timko**, **Alexandre Lasheen**
+:Authors: **Danilo Quartullo**, **Helga Timko**, **Alexandre Lasheen**, **Juan Esteban Muller**, **Theodoros Argyropoulos**
 '''
 
 from __future__ import division
@@ -11,7 +11,8 @@ import copy
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from scipy.integrate import cumtrapz
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+from slices import Slices
 
 
 def matched_from_line_density(Beam, line_density):
@@ -68,21 +69,17 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     n_iterations = n_iterations_input
     if not TotalInducedVoltage:
         n_iterations = 1
-        
+
         
     for i in range(0, n_iterations):
-        print i
         
-#         old_potential = copy.deepcopy(total_potential)
+        old_potential = copy.deepcopy(total_potential)
         # Adding the induced potential to the RF potential
         total_potential = potential_well_array + induced_potential
         
-#         print np.sqrt(np.sum((old_potential-total_potential)**2))
-#         plt.figure(10)
-#         plt.clf()
-#         plt.plot(old_potential)
-#         plt.plot(total_potential)
-#         plt.pause(0.000001)
+        sse = np.sqrt(np.sum((old_potential-total_potential)**2))
+
+        print 'Matching the bunch... (iteration: ' + str(i) + ' and sse: ' + str(sse) +')'
         
         # Check for the min/max of the potentiel well
         minmax_positions, minmax_values = minmax_location(theta_coord_array, 
@@ -212,7 +209,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         # Induced voltage contribution
         if TotalInducedVoltage is not None:
             # Calculating the line density
-            line_density = np.sum(density_grid, axis = 1)
+            line_density = np.sum(density_grid, axis = 0)
             line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
 
             # Calculating the induced voltage
@@ -221,7 +218,9 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
             # Inputing new line density
             induced_voltage_object.slices.n_macroparticles = line_density
             induced_voltage_object.slices.bins_centers = theta_coord_low_res * FullRingAndRF.ring_radius / (Beam.beta_r * c)
+            induced_voltage_object.slices.edges = np.linspace(induced_voltage_object.slices.bins_centers[0]-(induced_voltage_object.slices.bins_centers[1]-induced_voltage_object.slices.bins_centers[0])/2,induced_voltage_object.slices.bins_centers[-1]+(induced_voltage_object.slices.bins_centers[1]-induced_voltage_object.slices.bins_centers[0])/2,len(induced_voltage_object.slices.bins_centers)+1)
             induced_voltage_object.slices.n_slices = n_points_grid
+            induced_voltage_object.slices.fit_option = 'off'
             
             # Re-calculating the sources of wakes/impedances according to this slicing
             induced_voltage_object.reprocess(induced_voltage_object.slices)
@@ -235,7 +234,6 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
             induced_potential_low_res = - eom_factor_potential * np.insert(cumtrapz(induced_voltage, dx=theta_induced_voltage[1]-theta_induced_voltage[0]),0,0)
             induced_potential = np.interp(theta_coord_array, theta_induced_voltage, induced_potential_low_res)
             
-    
      
     # Populating the bunch
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
@@ -245,7 +243,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
      
     Beam.theta = bunch[0,:]
     Beam.dE = bunch[1,:]
-
+    
 
 
 def distribution_density_function(action_array, dist_type, length, exponent = None):
