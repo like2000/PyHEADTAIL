@@ -11,6 +11,7 @@ Implementation in this branch (intensity effects)
   - Corrected InputArray object in longitudinal_impedance
   - Added returns in the induced_voltage_generation in order to return induced_voltage after the frame of the slicing
   - Initialization to 0 instead of empty for arrays
+  - Initial guess for gaussian fit corrected
 
 - Minor
   - n_macroparticles converted to int in beam class (solve some warnings)

@@ -275,7 +275,7 @@ class Slices(object):
         position.*
         '''
             
-        if self.bl_gauss is 0 and self.bp_gauss is 0:
+        if self.bl_gauss == 0 and self.bp_gauss == 0:
             p0 = [max(self.n_macroparticles), np.mean(self.beam_coordinates), np.std(self.beam_coordinates)]
         else:
             p0 = [max(self.n_macroparticles), self.bp_gauss, self.bl_gauss/4]
