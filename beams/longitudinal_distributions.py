@@ -12,10 +12,9 @@ from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
-from slices import Slices
 
 
-def matched_from_line_density(Beam, line_density):
+def matched_from_line_density(Beam, FullRingAndRF, line_density, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = None):
     '''
     *Function to generate a beam by inputing the line density. The distribution
     density is then reconstructed with the Abel transform and the particles
@@ -23,6 +22,21 @@ def matched_from_line_density(Beam, line_density):
     '''
     
     pass
+
+#     # Initialize variables depending on the accelerator parameters
+#     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
+#     eom_factor_dE = (np.pi * slippage_factor * c) / \
+#                     (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
+#     eom_factor_potential = (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
+#     
+#     # Generate potential well
+#     n_points_potential = int(1e5)
+#     FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
+#                                             theta_margin_percent = 0.05, 
+#                                             main_harmonic_option = main_harmonic_option)
+#     potential_well_array = FullRingAndRF.potential_well
+#     theta_coord_array = FullRingAndRF.potential_well_coordinates
+#     theta_resolution = theta_coord_array[1] - theta_coord_array[0]
 
 
 
@@ -80,73 +94,9 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         sse = np.sqrt(np.sum((old_potential-total_potential)**2))
 
         print 'Matching the bunch... (iteration: ' + str(i) + ' and sse: ' + str(sse) +')'
-        
-        # Check for the min/max of the potentiel well
-        minmax_positions, minmax_values = minmax_location(theta_coord_array, 
-                                                          total_potential)
-        min_theta_positions = minmax_positions[0]
-        max_theta_positions = minmax_positions[1]
-        max_potential_values = minmax_values[1]
-        n_minima = len(min_theta_positions)
-        n_maxima = len(max_theta_positions)
                 
         # Process the potential well in order to take a frame around the separatrix
-        if n_minima == 0:
-            raise RuntimeError('The potential well has no minima...')
-        if n_minima > n_maxima and n_maxima == 1:
-            raise RuntimeError('The potential well has more minima than maxima, and only one maximum')
-        if n_maxima == 0:
-            print ('Warning: The maximum of the potential well could not be found... \
-                    You may reconsider the options to calculate the potential well \
-                    as the main harmonic is probably not the expected one. \
-                    You may also increase the percentage of margin to compute \
-                    the potentiel well. The full potential well will be taken')
-        elif n_maxima == 1:
-            if min_theta_positions[0] > max_theta_positions[0]:
-                saved_indexes = (total_potential < max_potential_values[0]) * \
-                                (theta_coord_array > max_theta_positions[0])
-                theta_coord_sep = theta_coord_array[saved_indexes]
-                potential_well_sep = total_potential[saved_indexes]
-                if total_potential[-1] < total_potential[0]:
-                    raise RuntimeError('The potential well is not well defined. \
-                                        You may reconsider the options to calculate \
-                                        the potential well as the main harmonic is \
-                                        probably not the expected one.')
-            else:
-                saved_indexes = (total_potential < max_potential_values[0]) * \
-                                (theta_coord_array < max_theta_positions[0])
-                theta_coord_sep = theta_coord_array[saved_indexes]
-                potential_well_sep = total_potential[saved_indexes]
-                if total_potential[-1] > total_potential[0]:
-                    raise RuntimeError('The potential well is not well defined. \
-                                        You may reconsider the options to calculate \
-                                        the potential well as the main harmonic is \
-                                        probably not the expected one.')
-        elif n_maxima == 2:
-            lower_maximum_value = np.min(max_potential_values)
-            higher_maximum_value = np.max(max_potential_values)
-            lower_maximum_theta = max_theta_positions[max_potential_values == lower_maximum_value]
-            higher_maximum_theta = max_theta_positions[max_potential_values == higher_maximum_value]
-            if min_theta_positions[0] > lower_maximum_theta:
-                saved_indexes = (total_potential < lower_maximum_value) * \
-                                (theta_coord_array > lower_maximum_theta) * \
-                                (theta_coord_array < higher_maximum_theta)
-                theta_coord_sep = theta_coord_array[saved_indexes]
-                potential_well_sep = total_potential[saved_indexes]
-            else:
-                saved_indexes = (total_potential < lower_maximum_value) * \
-                                (theta_coord_array < lower_maximum_theta) * \
-                                (theta_coord_array > higher_maximum_theta)
-                theta_coord_sep = theta_coord_array[saved_indexes]
-                potential_well_sep = total_potential[saved_indexes]
-        elif n_maxima > 2:
-#             raise RuntimeError('Work in progress, case to be included in the future...')
-            left_max_theta = np.min(max_theta_positions)
-            right_max_theta = np.max(max_theta_positions)
-            saved_indexes = (theta_coord_array > left_max_theta) * (theta_coord_array < right_max_theta)
-            theta_coord_sep = theta_coord_array[saved_indexes]
-            potential_well_sep = total_potential[saved_indexes]
-                        
+        theta_coord_sep, potential_well_sep = potential_well_cut(theta_coord_array, total_potential)
         
         # Potential is shifted to put the minimum on 0
         potential_well_sep = potential_well_sep - np.min(potential_well_sep)
@@ -288,6 +238,83 @@ def minmax_location(x,f):
     warnings.filterwarnings("default")
                                           
     return [min_x_position, max_x_position], [min_values, max_values]
+
+
+
+def potential_well_cut(theta_coord_array, potential_array):
+    '''
+    *Function to cut the potential well in order to take only the separatrix
+    (several cases according to the number of min/max).*
+    '''
+    
+    # Check for the min/max of the potential well
+    minmax_positions, minmax_values = minmax_location(theta_coord_array, 
+                                                      potential_array)
+    min_theta_positions = minmax_positions[0]
+    max_theta_positions = minmax_positions[1]
+    max_potential_values = minmax_values[1]
+    n_minima = len(min_theta_positions)
+    n_maxima = len(max_theta_positions)
+    
+    if n_minima == 0:
+        raise RuntimeError('The potential well has no minima...')
+    if n_minima > n_maxima and n_maxima == 1:
+        raise RuntimeError('The potential well has more minima than maxima, and only one maximum')
+    if n_maxima == 0:
+        print ('Warning: The maximum of the potential well could not be found... \
+                You may reconsider the options to calculate the potential well \
+                as the main harmonic is probably not the expected one. \
+                You may also increase the percentage of margin to compute \
+                the potentiel well. The full potential well will be taken')
+    elif n_maxima == 1:
+        if min_theta_positions[0] > max_theta_positions[0]:
+            saved_indexes = (potential_array < max_potential_values[0]) * \
+                            (theta_coord_array > max_theta_positions[0])
+            theta_coord_sep = theta_coord_array[saved_indexes]
+            potential_well_sep = potential_array[saved_indexes]
+            if potential_array[-1] < potential_array[0]:
+                raise RuntimeError('The potential well is not well defined. \
+                                    You may reconsider the options to calculate \
+                                    the potential well as the main harmonic is \
+                                    probably not the expected one.')
+        else:
+            saved_indexes = (potential_array < max_potential_values[0]) * \
+                            (theta_coord_array < max_theta_positions[0])
+            theta_coord_sep = theta_coord_array[saved_indexes]
+            potential_well_sep = potential_array[saved_indexes]
+            if potential_array[-1] > potential_array[0]:
+                raise RuntimeError('The potential well is not well defined. \
+                                    You may reconsider the options to calculate \
+                                    the potential well as the main harmonic is \
+                                    probably not the expected one.')
+    elif n_maxima == 2:
+        lower_maximum_value = np.min(max_potential_values)
+        higher_maximum_value = np.max(max_potential_values)
+        lower_maximum_theta = max_theta_positions[max_potential_values == lower_maximum_value]
+        higher_maximum_theta = max_theta_positions[max_potential_values == higher_maximum_value]
+        if min_theta_positions[0] > lower_maximum_theta:
+            saved_indexes = (potential_array < lower_maximum_value) * \
+                            (theta_coord_array > lower_maximum_theta) * \
+                            (theta_coord_array < higher_maximum_theta)
+            theta_coord_sep = theta_coord_array[saved_indexes]
+            potential_well_sep = potential_array[saved_indexes]
+        else:
+            saved_indexes = (potential_array < lower_maximum_value) * \
+                            (theta_coord_array < lower_maximum_theta) * \
+                            (theta_coord_array > higher_maximum_theta)
+            theta_coord_sep = theta_coord_array[saved_indexes]
+            potential_well_sep = potential_array[saved_indexes]
+    elif n_maxima > 2:
+#             raise RuntimeError('Work in progress, case to be included in the future...')
+        left_max_theta = np.min(max_theta_positions)
+        right_max_theta = np.max(max_theta_positions)
+        saved_indexes = (theta_coord_array > left_max_theta) * (theta_coord_array < right_max_theta)
+        theta_coord_sep = theta_coord_array[saved_indexes]
+        potential_well_sep = potential_array[saved_indexes]
+        
+        
+    return theta_coord_sep, potential_well_sep
+
 
 
 def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_x,
