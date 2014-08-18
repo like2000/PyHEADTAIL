@@ -25,7 +25,7 @@ class Slices(object):
     
     def __init__(self, Beam, n_slices, n_sigma = None, cut_left = None, 
                  cut_right = None, cuts_coord = 'tau', slicing_coord = 'tau', 
-                 mode = 'const_space', statistics_option = 'off', fit_option = 'off'):
+                 mode = 'const_space', statistics_option = 'off', fit_option = 'off', slice_immediately = 'off'):
         
         #: *Copy (reference) of the beam to be sliced (from Beam)*
         self.Beam = Beam
@@ -121,7 +121,8 @@ class Slices(object):
             self.pfit_gauss = 0
                   
         # Use of track in order to pre-process the slicing at injection
-        self.track(self.Beam)
+        if slice_immediately == 'on':
+            self.track(self.Beam)
           
         
     def sort_particles(self):

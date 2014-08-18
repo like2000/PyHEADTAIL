@@ -84,11 +84,11 @@ number_slices = 100
 slice_beam = Slices(my_beam, number_slices, cut_left = 0, 
                     cut_right = 2 * np.pi / harmonic_number, mode = 
                     'const_space', cuts_coord = 'theta', slicing_coord = 'tau', 
-                    statistics_option = 'on', fit_option = 'gaussian')
+                    statistics_option = 'on', fit_option = 'gaussian', slice_immediately = 'on')
 slice_beam_copy = Slices(my_beam_copy, number_slices, cut_left = 0, 
                     cut_right = 2 * np.pi / harmonic_number, mode = 
                     'const_space', cuts_coord = 'theta', slicing_coord = 'tau', 
-                    statistics_option = 'on', fit_option = 'gaussian')
+                    statistics_option = 'on', fit_option = 'gaussian', slice_immediately = 'on')
 
 
 # MONITOR----------------------------------------------------------------------

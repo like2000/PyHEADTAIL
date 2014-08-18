@@ -96,7 +96,7 @@ print "Beam set and distribution generated..."
 
 
 # Need slices for the Gaussian fit; slice for the first plot
-slice_beam = Slices(beam, 100, slicing_coord = 'theta', fit_option = 'gaussian')
+slice_beam = Slices(beam, 100, slicing_coord = 'theta', fit_option = 'gaussian', slice_immediately = 'on')
 
 # Define what to save in file
 bunchmonitor = BunchMonitor('output_data', N_t+1, "Longitudinal", slice_beam)

@@ -23,7 +23,7 @@ from impedances.longitudinal_impedance import *
 
 # Beam parameters
 particle_type = 'proton'
-n_particles = int(1e11)          
+n_particles = int(1.6e12)          
 n_macroparticles = int(5e5)
 sigma_tau = 180e-9 / 4 # [s]     
 sigma_delta = .5e-4 # [1]          
@@ -35,7 +35,7 @@ gamma_transition = 4.4  # [1]
 C = 2 * np.pi * radius  # [m]       
       
 # Tracking details
-n_turns = 2          
+n_turns = 10          
 n_turns_between_two_plots = 1          
 
 # Derived parameters
@@ -165,7 +165,7 @@ total_induced_voltage = TotalInducedVoltage(slice_beam, [ind_volt_freq])
 
 # ACCELERATION MAP-------------------------------------------------------------
 
-map_ = [total_induced_voltage] + [ring_RF_section] + [slice_beam] + [bunchmonitor] 
+map_ = [total_induced_voltage] + [ring_RF_section] + [slice_beam] + [bunchmonitor]
 
 
 # TRACKING + PLOTS-------------------------------------------------------------
@@ -181,20 +181,20 @@ for i in range(n_turns):
     # Plots
     if ((i+1) % n_turns_between_two_plots) == 0:
         
-        plot_long_phase_space(my_beam, general_params, RF_sct_par, 
-          - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, 
-          - my_beam.sigma_dE * 4 * 1e-6, my_beam.sigma_dE * 4 * 1e-6, xunit = 'ns')
-         
-        plot_impedance_vs_frequency(i+1, general_params, ind_volt_freq, 
-          option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
-         
-        plot_induced_voltage_vs_bins_centers(i+1, general_params, total_induced_voltage, style = '-')
-         
-        plot_beam_profile(i+1, general_params, slice_beam)
+#         plot_long_phase_space(my_beam, general_params, RF_sct_par, 
+#           - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, 
+#           - my_beam.sigma_dE * 4 * 1e-6, my_beam.sigma_dE * 4 * 1e-6, xunit = 'ns')
+#          
+#         plot_impedance_vs_frequency(i+1, general_params, ind_volt_freq, 
+#           option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
+#          
+#         plot_induced_voltage_vs_bins_centers(i+1, general_params, total_induced_voltage, style = '-')
+#          
+#         plot_beam_profile(i+1, general_params, slice_beam)
          
         plot_bunch_length_evol(my_beam, 'beam', general_params, n_turns)
         
-        plot_position_evol(i+1, my_beam, 'beam', general_params, unit = None, dirname = 'fig')
+#         plot_position_evol(i+1, my_beam, 'beam', general_params, unit = None, dirname = 'fig')
 
 
 print "Done!"

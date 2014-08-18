@@ -73,10 +73,10 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
         for i in range(len(ind_volt_from_imp.impedance_source_list)):
                 if isinstance(ind_volt_from_imp.impedance_source_list[i], 
                               InputTable) and option3 == "freq_table":
-                    ax0.plot(ind_volt_from_imp.impedance_source_list[i].freq_array, 
-                             ind_volt_from_imp.impedance_source_list[i].Re_Z_array, style)
-                    ax1.plot(ind_volt_from_imp.impedance_source_list[i].freq_array, 
-                             ind_volt_from_imp.impedance_source_list[i].Im_Z_array, style) 
+                    ax0.plot(ind_volt_from_imp.impedance_source_list[i].frequency_array_loaded, 
+                             ind_volt_from_imp.impedance_source_list[i].Re_Z_array_loaded, style)
+                    ax1.plot(ind_volt_from_imp.impedance_source_list[i].frequency_array_loaded, 
+                             ind_volt_from_imp.impedance_source_list[i].Im_Z_array_loaded, style) 
                 else:
                     ax0.plot(ind_volt_from_imp.frequency_array, 
                              ind_volt_from_imp.impedance_source_list[i].impedance.real, style)
