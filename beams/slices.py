@@ -62,13 +62,13 @@ class Slices(object):
             raise RuntimeError('The slicing_coord is not recognized')
         
         #: *Number of macroparticles per slice (~profile).*
-        self.n_macroparticles = np.empty(n_slices)
+        self.n_macroparticles = np.zeros(n_slices)
         
         #: *Edges positions of the slicing*
-        self.edges = np.empty(n_slices + 1)
+        self.edges = np.zeros(n_slices + 1)
         
         #: *Center of the bins*
-        self.bins_centers = np.empty(n_slices)
+        self.bins_centers = np.zeros(n_slices)
         
         # Pre-processing the slicing edges
         self.set_longitudinal_cuts()
@@ -83,19 +83,19 @@ class Slices(object):
         elif self.statistics_option is 'on':
             #: *Average theta position of the particles in each slice (needs 
             #: the compute_statistics_option to be 'on').*
-            self.mean_theta = np.empty(n_slices)
+            self.mean_theta = np.zeros(n_slices)
             #: *Average dE position of the particles in each slice (needs 
             #: the compute_statistics_option to be 'on').*
-            self.mean_dE = np.empty(n_slices)
+            self.mean_dE = np.zeros(n_slices)
             #: *RMS theta position of the particles in each slice (needs 
             #: the compute_statistics_option to be 'on').*
-            self.sigma_theta = np.empty(n_slices)
+            self.sigma_theta = np.zeros(n_slices)
             #: *RMS dE position of the particles in each slice (needs 
             #: the compute_statistics_option to be 'on').*
-            self.sigma_dE = np.empty(n_slices)
+            self.sigma_dE = np.zeros(n_slices)
             #: *RMS dE position of the particles in each slice (needs 
             #: the compute_statistics_option to be 'on').*
-            self.eps_rms_l = np.empty(n_slices)
+            self.eps_rms_l = np.zeros(n_slices)
             
         #: *Fit option allows to fit the Beam profile, with the options
         #: 'off' (default), 'gaussian'.*
