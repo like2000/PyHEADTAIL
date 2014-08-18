@@ -4,16 +4,27 @@ PYHEADTAIL LONGITUDINAL
 Longitudinal version of the CERN PyHeadTail code for the simulation of 
 multi-particle beam dynamics with collective effects.
 
+Documentation: http://like2000.github.io/PyHEADTAIL/
+
 The structure is as follows:
 
-1) the folder __EXAMPLE_MAIN_FILES contains several main_files which
+1) the folder __EXAMPLE_MAIN_FILES contains several main files which
    show how to use the principal features of the code; for additional examples
    have a look at the code developers' personal folders present 
    in the corresponding git branches; 
-2) the __doc folder contains the documentation; to look at it go to build, html 
-   and open the index file; note that you need Latex and dvipng (if not present
-   in the Latex distribution) to be able to see displayed all the math formulas;
-3) the various packages which constitute the code;
+2) the __doc folder contains the source files for the documentation; 
+   to have an output for example in html format, type make html into the console 
+   from the folder itself, then go to build, html and open the index file;
+   note that you need Latex and dvipng (if not present in the Latex 
+   distribution) to be able to see displayed all the math formulas;
+   the latest docs should be uploaded to the "gh-pages" branch
+3) the various packages which constitute the code together with a beta-version
+   package named mpi in which the longitudinal tracker method is parallelised 
+   in order to save computational time when the main file RFnoise_mpi is launched.
+   If you are using a Windows system download either OpenMPI or MS-MPI together
+   with mpi4py from the following link: http://www.lfd.uci.edu/~gohlke/pythonlibs/ 
+   which is very useful in general to get easely a lot of Python extension 
+   packages for Windows 32-64 bit without building sources.
 4) a setup file needed to compile the cython files present in the 
    cython_functions package; this file should be run before launching any 
    simulation; from the console window type "python setup.py cleanall 
@@ -22,6 +33,38 @@ The structure is as follows:
 
 VERSION CONTENTS
 ==========
+
+2014-08-17
+v1.2.3 - The monitor package has been revisited and cleaned, the SlicesMonitor
+		 class has been tested.
+	   - The warnings derived from the compute_statistics method have been
+	     disabled since the NaN entities don't create problems for the plots,
+	     arithmetic operations and prints.
+	   - The main file Wake_impedance has been corrected and revisited; in it
+	     there is an example of how to use the SlicesMonitor class together 
+	     with an example of how the option seed is able to generate a clone of 
+	     a random generated beam.
+	   - Found a very easy way to set MPI on Windows systems (read point 3 in
+	     the description of the code structure) so now the user can test
+	     the main script in the mpi package on Windows as well.
+
+
+2014-08-15
+v1.2.2 - RNG seeds for numpy.random fixed in RF_noise.py and 
+       	 longitudinal_distributions.py
+       - updated example files
+       - full documentation of RF_noise (see llrf.rst)
+       - small improvement of profile plot 
+       - change bunchmonitor.dump to bunchmonitor.track
+       - MPI parallelized tracker (optional)
+
+2014-08-15
+v1.2.1 Elimination of the useless .pyd files from the various packages and of 
+	   the _doc/build directory; now the user has to build herself to see the
+	   documentation.
+	   Fixed a bug in the setup.py file that caused the undesired elimination
+	   of all the html and h5 files present in the structure of the code.
+
 
 2014-08-14
 v1.2.0 Reorganisation of the slices module
