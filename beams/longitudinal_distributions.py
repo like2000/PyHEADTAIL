@@ -14,29 +14,67 @@ from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
 
 
-def matched_from_line_density(Beam, FullRingAndRF, line_density, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = None):
+def matched_from_line_density(Beam, FullRingAndRF, line_density_theta_coord_input, line_density_input, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = None):
     '''
     *Function to generate a beam by inputing the line density. The distribution
     density is then reconstructed with the Abel transform and the particles
     randomly generated.*
     '''
-    
-    pass
 
-#     # Initialize variables depending on the accelerator parameters
-#     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
-#     eom_factor_dE = (np.pi * slippage_factor * c) / \
-#                     (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
-#     eom_factor_potential = (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
-#     
-#     # Generate potential well
-#     n_points_potential = int(1e5)
-#     FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
-#                                             theta_margin_percent = 0.05, 
-#                                             main_harmonic_option = main_harmonic_option)
-#     potential_well_array = FullRingAndRF.potential_well
-#     theta_coord_array = FullRingAndRF.potential_well_coordinates
-#     theta_resolution = theta_coord_array[1] - theta_coord_array[0]
+    # Initialize variables depending on the accelerator parameters
+    slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
+    eom_factor_dE = (np.pi * slippage_factor * c) / \
+                    (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
+    eom_factor_potential = (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
+     
+    # Generate potential well
+    n_points_potential = int(1e5)
+    FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
+                                            theta_margin_percent = 0.05, 
+                                            main_harmonic_option = main_harmonic_option)
+    potential_well_array = FullRingAndRF.potential_well
+    theta_coord_array = FullRingAndRF.potential_well_coordinates
+    theta_resolution = theta_coord_array[1] - theta_coord_array[0]
+    
+    # Normalizing the line density
+    line_density = line_density_input / np.sum(line_density_input) * Beam.n_macroparticles
+    line_density_theta_coord = line_density_theta_coord_input
+    
+    # Induced voltage contribution
+    induced_voltage_potential = 0
+    total_potential = potential_well_array + induced_voltage_potential
+    
+    # Process the potential well in order to take a frame around the separatrix
+    theta_coord_sep, potential_well_sep = potential_well_cut(theta_coord_array, total_potential)
+    
+    # Centering the line density into the synchronous phase
+    n_iterations = 100
+    if not TotalInducedVoltage:
+        n_iterations = 1
+        
+    for i in range(0, n_iterations):
+        if TotalInducedVoltage:
+            pass
+        minmax_positions_potential, minmax_values_potential = minmax_location(theta_coord_sep, potential_well_sep)
+        minmax_positions_profile, minmax_values_profile = minmax_location(line_density_theta_coord, line_density)
+        min_theta_positions_potential = minmax_positions_potential[0]
+        max_theta_positions_potential = minmax_positions_potential[1]
+        min_potential_values_potential = minmax_values_potential[0]
+        max_potential_values_potential = minmax_values_potential[1]
+        n_minima_potential = len(min_theta_positions_potential)
+        n_maxima_potential = len(max_theta_positions_potential)
+        min_theta_positions_profile = minmax_positions_profile[0]
+        max_theta_positions_profile = minmax_positions_profile[1]
+        min_potential_values_profile = minmax_values_profile[0]
+        max_potential_values_profile = minmax_values_profile[1]
+        n_minima_profile = len(min_potential_values_profile)
+        n_maxima_profile = len(max_theta_positions_profile)
+        
+        if n_minima_potential > 1 or n_maxima_profile > 1:
+            raise RuntimeError('n_minmax not good')
+        
+        line_density_theta_coord = line_density_theta_coord - (max_theta_positions_profile[0] - min_theta_positions_potential[0])
+ 
 
 
 
@@ -101,7 +139,6 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         # Potential is shifted to put the minimum on 0
         potential_well_sep = potential_well_sep - np.min(potential_well_sep)
         n_points_potential = len(potential_well_sep)
-        
         
         # Compute deltaE frame corresponding to the separatrix
         max_potential = np.max(potential_well_sep)
@@ -188,7 +225,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     # Populating the bunch
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
     bunch = np.zeros((2,Beam.n_macroparticles))
-    bunch[0,:] = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_array[1]-theta_coord_array[0])
+    bunch[0,:] = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_low_res[1]-theta_coord_low_res[0])
     bunch[1,:] = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_coord_array[1]-deltaE_coord_array[0])
      
     Beam.theta = bunch[0,:]
