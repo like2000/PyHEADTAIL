@@ -40,7 +40,7 @@ def fig_folder(dirname):
 
 def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp, 
                                 option1 = "sum", option2 = "no_spectrum", 
-                                option3 = "freq_fft", style = '-', dirname = 'fig'):
+                                option3 = "freq_fft", style = '-', cut_right = None, dirname = 'fig'):
 
     """
     Plot of impedance vs frequency.
@@ -61,6 +61,7 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
             ax2.plot(ind_volt_from_imp.frequency_array, 
                      np.abs(ind_volt_from_imp.slices.beam_spectrum))
         fign = dirname +'/sum_imp_vs_freq_fft' "%d" %counter + '.png'
+        plt.show()
         plt.savefig(fign, dpi=300)
         plt.clf()
     
@@ -68,35 +69,47 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
         
         fig0 = plt.figure(0)
         ax0 = fig0.add_subplot(111)
+        
         fig1 = plt.figure(1)
         ax1 = fig1.add_subplot(111)
+        
         for i in range(len(ind_volt_from_imp.impedance_source_list)):
                 if isinstance(ind_volt_from_imp.impedance_source_list[i], 
                               InputTable) and option3 == "freq_table":
                     ax0.plot(ind_volt_from_imp.impedance_source_list[i].frequency_array_loaded, 
                              ind_volt_from_imp.impedance_source_list[i].Re_Z_array_loaded, style)
+                    ax0.set_xlim([0, cut_right])
                     ax1.plot(ind_volt_from_imp.impedance_source_list[i].frequency_array_loaded, 
-                             ind_volt_from_imp.impedance_source_list[i].Im_Z_array_loaded, style) 
+                             ind_volt_from_imp.impedance_source_list[i].Im_Z_array_loaded, style)
+                    ax1.set_xlim([0, cut_right]) 
                 else:
                     ax0.plot(ind_volt_from_imp.frequency_array, 
                              ind_volt_from_imp.impedance_source_list[i].impedance.real, style)
+                    ax0.set_xlim([0, cut_right])
                     ax1.plot(ind_volt_from_imp.frequency_array, 
                              ind_volt_from_imp.impedance_source_list[i].impedance.imag, style)
+                    ax1.set_xlim([0, cut_right]) 
         
         fign1 = dirname +'/real_imp_vs_'+option3+'_' "%d" %counter + '.png'
         if option2 == "spectrum":
             ax2 = ax0.twinx()
             ax2.plot(ind_volt_from_imp.frequency_array, 
                      np.abs(ind_volt_from_imp.slices.beam_spectrum))
+            ax2.set_xlim([0, cut_right])
         plt.figure(0)
+        
         plt.savefig(fign1, dpi=300)
         plt.clf()
         fign2 = dirname +'/imag_imp_vs_'+option3+'_' "%d" %counter + '.png'
-        plt.figure(1)
+        
         if option2 == "spectrum":
+            
             ax3 = ax1.twinx()
             ax3.plot(ind_volt_from_imp.frequency_array, 
                      np.abs(ind_volt_from_imp.slices.beam_spectrum))
+            ax3.set_xlim([0, cut_right])
+        plt.figure(1)
+        
         plt.savefig(fign2, dpi=300)
         plt.clf()
         

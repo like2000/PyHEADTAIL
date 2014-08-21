@@ -24,63 +24,60 @@ from impedances.longitudinal_impedance import *
 # Beam parameters
 particle_type = 'proton'
 n_particles = int(1.6e12)          
-n_macroparticles = int(5e5)
-sigma_tau = 180e-9 / 4 # [s]     
-sigma_delta = .5e-4 # [1]          
+n_macroparticles = int(1e6)
 kin_beam_energy = 1.4e9 # [eV]
+emittance = 1.3 # [eVs]
 
 # Machine and RF parameters
 radius = 25
-gamma_transition = 4.4  # [1]
+gamma_transition = 4.05  # [1]
 C = 2 * np.pi * radius  # [m]       
       
 # Tracking details
-n_turns = 10          
-n_turns_between_two_plots = 1          
+n_turns = 10000       
+n_turns_between_two_plots = 100          
 
 # Derived parameters
 E_0 = m_p * c**2 / e    # [eV]
 tot_beam_energy =  E_0 + kin_beam_energy # [eV]
 sync_momentum = np.sqrt(tot_beam_energy**2 - E_0**2) # [eV / c]
-gamma = tot_beam_energy / E_0  # [1]        
-beta = np.sqrt(1 - 1 / gamma**2)  # [1]
-sigma_theta = beta * c / radius * sigma_tau # [rad]     
-sigma_dE = beta**2 * tot_beam_energy * sigma_delta # [eV]
 momentum_compaction = 1 / gamma_transition**2 # [1]       
 
 # Cavities parameters
-n_rf_systems = 1                                     
-harmonic_numbers = 1                         
-voltage_program = 8.e3
-phi_offset = 0
+n_rf_systems = 2                                     
+harmonic_numbers_1 = 1    
+harmonic_numbers_2 = 2                        
+voltage_program_1 = 8e3
+voltage_program_2 = 1.3e3
+phi_offset_1 = 0
+phi_offset_2 = np.pi
 
 # DEFINE RING------------------------------------------------------------------
 
 general_params = GeneralParameters(n_turns, C, momentum_compaction, sync_momentum, 
                                    particle_type, number_of_sections = 1)
+print len([[harmonic_numbers_1], [harmonic_numbers_2]])
+RF_sct_par = RFSectionParameters(general_params, n_rf_systems, [[harmonic_numbers_1], [harmonic_numbers_2]],
+                          [[voltage_program_1], [voltage_program_2]], [[phi_offset_1], [phi_offset_2]])
 
-RF_sct_par = RFSectionParameters(general_params, n_rf_systems, harmonic_numbers, 
-                          voltage_program, phi_offset)
-
-ring_RF_section = RingAndRFSection(RF_sct_par)
+longitudinal_tracker = RingAndRFSection(RF_sct_par)
+full_tracker = FullRingAndRF([longitudinal_tracker])
 
 # DEFINE BEAM------------------------------------------------------------------
 
 my_beam = Beam(general_params, n_macroparticles, n_particles)
 
-longitudinal_bigaussian(general_params, RF_sct_par, my_beam, sigma_theta, sigma_dE)
-
 
 # DEFINE SLICES----------------------------------------------------------------
 
-number_slices = 100
+number_slices = 200
 slice_beam = Slices(my_beam, number_slices, cut_left = - 5.72984173562e-07 / 2, 
                     cut_right = 5.72984173562e-07 / 2, mode = 'const_space_hist')
 
 # MONITOR----------------------------------------------------------------------
 
-bunchmonitor = BunchMonitor('beam', n_turns+1, statistics = "Longitudinal")
-bunchmonitor.track(my_beam)
+bunchmonitor = BunchMonitor('6', n_turns+1, statistics = "Longitudinal")
+
 
 # LOAD IMPEDANCE TABLES--------------------------------------------------------
 
@@ -121,8 +118,6 @@ ISC = np.loadtxt('ps_booster_impedances/Indirect space charge/ISC_' + var + 'GeV
 
 ISC_table = InputTable(ISC[:,0].real, ISC[:,1].real, ISC[:,1].imag)
 
-# steps
-steps = InductiveImpedance(slice_beam, 34.6669349520904 / 10e9 * general_params.f_rev[0], 2e5) 
 
 # Finemet cavity
 
@@ -147,54 +142,74 @@ elif option == "shorted":
 else:
     pass
 
-# direct space charge
 
-dir_space_charge = InductiveImpedance(slice_beam, -376.730313462   
-                     / (general_params.beta_r[0,0] *
-                     general_params.gamma_r[0,0]**2), 2e5)
+# inductive impedance from steps plus space charge
 
+steps_plus_space_charge = InductiveImpedance(slice_beam, 
+     34.6669349520904 / 10e9 * general_params.f_rev[0] 
+     -376.730313462 / (general_params.beta_r[0,0] * general_params.gamma_r[0,0]**2), general_params.f_rev[0])
+
+# cavity C02
+cavity_02 = Resonators(350, 1.8*1e6, 2.8)
+
+# cavity C04
+cavity_04 = Resonators(430, 3.9*1e6, 6.8)
+
+# cavity C16
+cavity_16 = Resonators(0, 16*1e6, 30)
 
 # INDUCED VOLTAGE FROM IMPEDANCE------------------------------------------------
 
-imp_list = [Ekicker_table, Ekicker_cables_table, KSW_table, RW_table, F_C_table, ISC_table, steps, dir_space_charge]
-
-ind_volt_freq = InducedVoltageFreq(slice_beam, imp_list, 2e5)
+imp_list = [steps_plus_space_charge, RW_table, KSW_table, Ekicker_cables_table, Ekicker_table]
+ind_volt_freq = InducedVoltageFreq(slice_beam, imp_list, 1e5)
 
 total_induced_voltage = TotalInducedVoltage(slice_beam, [ind_volt_freq])
+
+# BEAM GENERATION
+
+matched_from_distribution_density(my_beam, full_tracker, {'type':'parabolic', 
+            'parameters':[emittance, 1.5], 'density_variable':'density_from_H'}, 
+            main_harmonic_option = 'lowest_freq', TotalInducedVoltage = 
+            total_induced_voltage, n_iterations_input = 100)
+
+slice_beam.track(my_beam)
+bunchmonitor.track(my_beam)
 
 
 # ACCELERATION MAP-------------------------------------------------------------
 
-map_ = [total_induced_voltage] + [ring_RF_section] + [slice_beam] + [bunchmonitor]
+map_ = [total_induced_voltage] + [full_tracker] + [slice_beam] + [bunchmonitor] 
 
 
 # TRACKING + PLOTS-------------------------------------------------------------
 
 for i in range(n_turns):
     
-    print i+1
+    print '%d turn'%i
     t0 = time.clock()
     for m in map_:
         m.track(my_beam)
     t1 = time.clock()
     print t1 - t0
     # Plots
+    
     if ((i+1) % n_turns_between_two_plots) == 0:
-        
-#         plot_long_phase_space(my_beam, general_params, RF_sct_par, 
-#           - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, 
-#           - my_beam.sigma_dE * 4 * 1e-6, my_beam.sigma_dE * 4 * 1e-6, xunit = 'ns')
-#          
-#         plot_impedance_vs_frequency(i+1, general_params, ind_volt_freq, 
-#           option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum")
-#          
-#         plot_induced_voltage_vs_bins_centers(i+1, general_params, total_induced_voltage, style = '-')
-#          
-#         plot_beam_profile(i+1, general_params, slice_beam)
-         
-        plot_bunch_length_evol(my_beam, 'beam', general_params, n_turns)
-        
-#         plot_position_evol(i+1, my_beam, 'beam', general_params, unit = None, dirname = 'fig')
+#         
+        plot_long_phase_space(my_beam, general_params, RF_sct_par, 
+        - 5.72984173562e-07 / 2 * 1e9, 5.72984173562e-07 / 2 * 1e9, 
+        - 1e1, 1e1, xunit = 'ns', sampling = 10, separatrix_plot = True, dirname = '6_figNoFC')
+          
+        plot_induced_voltage_vs_bins_centers(i+1, general_params, total_induced_voltage, 
+                                             style = '-', dirname = '6_figNoFC')
+           
+        plot_beam_profile(i+1, general_params, slice_beam, dirname = '6_figNoFC')
+    
+    
+# plot_impedance_vs_frequency(n_turns, general_params, ind_volt_freq, 
+#            option1 = "single", style = '-', option3 = "freq_table", option2 = "spectrum", dirname = 'figCL',
+#            cut_right = 0.1e8)
+plot_bunch_length_evol(my_beam, '6', general_params, n_turns, dirname = '6_figNoFC')
+plot_position_evol(n_turns, my_beam, '6', general_params, unit = None, dirname = '6_figNoFC')
 
 
 print "Done!"

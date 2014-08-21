@@ -51,7 +51,7 @@ class RFSectionParameters(object):
         
         #: | *Counter to keep track of time step (used in momentum and voltage)*
         #: | *Definined as a list in order to be passed by reference.*
-        self.counter = [0]
+        self.counter = [-1]
                 
         #: | *Index of the RF section -- has to be unique*
         #: | *Counter for RF section is:* :math:`k`
@@ -134,11 +134,7 @@ class RFSectionParameters(object):
             self.voltage = [voltage]
             self.phi_offset = [phi_offset] 
         else:
-            if (not n_rf == len(self.harmonic) == 
-                len(voltage) == len(phi_offset)):
-                raise RuntimeError('The RF parameters to define \
-                                    RFSectionParameters are not homogeneous \
-                                    (n_rf is not matching the input)')
+            
             self.harmonic = harmonic
             self.voltage = voltage 
             self.phi_offset = phi_offset

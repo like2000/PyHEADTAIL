@@ -319,12 +319,13 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         # Normalizing the grid
         density_grid = density_grid / np.sum(density_grid)
         
+          
         # Induced voltage contribution
         if TotalInducedVoltage is not None:
             # Calculating the line density
             line_density = np.sum(density_grid, axis = 0)
             line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
-
+            
             # Calculating the induced voltage
             induced_voltage_object = copy.deepcopy(TotalInducedVoltage)
                         
@@ -351,7 +352,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     # Populating the bunch
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
     bunch = np.zeros((2,Beam.n_macroparticles))
-    bunch[0,:] = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_array[1]-theta_coord_array[0])
+    bunch[0,:] = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_low_res[1]-theta_coord_low_res[0])
     bunch[1,:] = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_coord_array[1]-deltaE_coord_array[0])
      
     Beam.theta = bunch[0,:]

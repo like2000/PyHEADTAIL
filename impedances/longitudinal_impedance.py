@@ -344,7 +344,7 @@ class InductiveImpedance(object):
     in the calculation of n=f/f0 is changing (general_params as input ?).*
     '''
     
-    def __init__(self, Slices, Z_over_n, revolution_frequency, calc_domain = 'time', deriv_mode = 'gradient'):
+    def __init__(self, Slices, Z_over_n, revolution_frequency, calc_domain = 'time', deriv_mode = 'filter1d'):
         
         #: *Copy of the Slices object in order to access the profile info.*
         self.slices = Slices
