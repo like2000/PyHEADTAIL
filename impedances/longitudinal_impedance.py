@@ -160,7 +160,7 @@ class InducedVoltageTime(object):
         if isinstance(length, int):
             max_length = len(induced_voltage)
             if length > max_length:
-                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+                induced_voltage = np.lib.pad(induced_voltage, (0,length - max_length), 'constant', constant_values=(0,0))
             return induced_voltage[0:length]
         
             
@@ -321,7 +321,7 @@ class InducedVoltageFreq(object):
         if isinstance(length, int):
             max_length = len(induced_voltage)
             if length > max_length:
-                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+                induced_voltage = np.lib.pad(induced_voltage, (0, length-max_length), 'constant', constant_values=(0,0))
             return induced_voltage[0:length]
     
     
