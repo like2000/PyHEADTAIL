@@ -37,7 +37,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options, main_ha
     theta_resolution = theta_coord_array[1] - theta_coord_array[0]
     
     # Theta coordinates for the line density
-    n_points_line_den = int(1e3)
+    n_points_line_den = int(1e4)
     theta_line_den = np.linspace(theta_coord_array[0], theta_coord_array[-1], n_points_line_den)
     line_den_resolution = theta_line_den[1] - theta_line_den[0]
                     
@@ -48,6 +48,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options, main_ha
     line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
     
     induced_potential_final = 0
+    n_iterations = 1
     
     if TotalInducedVoltage is not None:
         # Calculating the induced voltage
@@ -66,55 +67,56 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options, main_ha
         # Calculating the induced voltage
         induced_voltage_object.induced_voltage_sum(Beam)
         
+        # Calculating the induced voltage
+        induced_voltage_length = int(1.5*n_points_line_den)
+        induced_voltage = induced_voltage_object.induced_voltage_sum(Beam, length = induced_voltage_length)
+        theta_induced_voltage = np.linspace(theta_line_den[0], theta_line_den[0] + (induced_voltage_length - 1) * line_den_resolution, induced_voltage_length)
+      
         # Calculating the induced potential
-        induced_potential = - eom_factor_potential * np.insert(cumtrapz(induced_voltage_object.induced_voltage, dx=line_den_resolution),0,0)
-        induced_potential_final = np.interp(theta_coord_array, theta_line_den, induced_potential)
-
-    # Induced voltage contribution
-    total_potential = potential_well_array + induced_potential_final
+        induced_potential = - eom_factor_potential * np.insert(cumtrapz(induced_voltage, dx=theta_induced_voltage[1] - theta_induced_voltage[0]),0,0)
+        
+        # Changing number of iterations
+        n_iterations = 100
     
-    # Process the potential well in order to take a frame around the separatrix
-    theta_coord_sep, potential_well_sep = potential_well_cut(theta_coord_array, total_potential)
     
-    minmax_positions_potential = minmax_location(theta_coord_sep, potential_well_sep)[0]
-    minmax_positions_profile = minmax_location(theta_line_den[line_density != 0], line_density[line_density != 0])[0]
+    for i in range(0, n_iterations):
+        
+        # Interpolating the potential well
+        induced_potential_final = np.interp(theta_coord_array, theta_induced_voltage, induced_potential)
+        
+        # Induced voltage contribution
+        total_potential = potential_well_array + induced_potential_final
+        
+        # Process the potential well in order to take a frame around the separatrix
+        theta_coord_sep, potential_well_sep = potential_well_cut(theta_coord_array, total_potential)
+        
+        minmax_positions_potential, minmax_values_potential = minmax_location(theta_coord_sep, potential_well_sep)[0]
+        minmax_positions_profile = minmax_location(theta_line_den[line_density != 0], line_density[line_density != 0])[0]
+        
+        n_minima_potential = len(minmax_positions_potential)
+        n_maxima_profile = len(minmax_positions_profile[1])
+        
+        # Warnings
+        if n_maxima_profile > 1:
+            raise RuntimeError('Profile has several max...')
+        elif n_minima_potential > 1:
+            print 'Warning: the potential well has serveral min, the deepest one is taken'
+            min_potential_pos = minmax_positions_potential[np.where(minmax_values_potential[0] == np.min(minmax_values_potential[0]))]
+            max_profile_pos = minmax_positions_profile[1][0]
+        else:
+            min_potential_pos = minmax_positions_potential[0]
+            max_profile_pos = minmax_positions_profile[1][0]
+                    
+        # Moving the bunch
+        theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
+        theta_induced_voltage = np.linspace(theta_line_den[0], theta_line_den[0] + (induced_voltage_length - 1) * line_den_resolution, induced_voltage_length)           
+        induced_voltage_object.slices.bins_centers = induced_voltage_object.slices.bins_centers - (max_profile_pos - min_potential_pos) * FullRingAndRF.ring_radius / (Beam.beta_r * c)
+        induced_voltage_object.slices.edges = induced_voltage_object.slices.edges - (max_profile_pos - min_potential_pos) * FullRingAndRF.ring_radius / (Beam.beta_r * c)
     
-    print minmax_positions_potential
-    print minmax_positions_profile
-    
-    plt.plot(theta_coord_sep, potential_well_sep)
-    plt.plot(theta_line_den, line_density/np.max(line_density)*np.max(abs(potential_well_sep)))
+    # Abel transform
+    plt.plot(theta_line_den, line_density / np.max(line_density) * np.max(abs(total_potential)))    
+    plt.plot(theta_coord_sep, -potential_well_sep)
     plt.show()
-    
-#     # Centering the line density into the synchronous phase
-#     n_iterations = 100
-#     if not TotalInducedVoltage:
-#         n_iterations = 1
-#         
-#     for i in range(0, n_iterations):
-#         if TotalInducedVoltage:
-#             pass
-#         minmax_positions_potential, minmax_values_potential = minmax_location(theta_coord_sep, potential_well_sep)
-#         minmax_positions_profile, minmax_values_profile = minmax_location(line_density_theta_coord, line_density)
-#         min_theta_positions_potential = minmax_positions_potential[0]
-#         max_theta_positions_potential = minmax_positions_potential[1]
-#         min_potential_values_potential = minmax_values_potential[0]
-#         max_potential_values_potential = minmax_values_potential[1]
-#         n_minima_potential = len(min_theta_positions_potential)
-#         n_maxima_potential = len(max_theta_positions_potential)
-#         min_theta_positions_profile = minmax_positions_profile[0]
-#         max_theta_positions_profile = minmax_positions_profile[1]
-#         min_potential_values_profile = minmax_values_profile[0]
-#         max_potential_values_profile = minmax_values_profile[1]
-#         n_minima_profile = len(min_potential_values_profile)
-#         n_maxima_profile = len(max_theta_positions_profile)
-#         
-#         if n_minima_potential > 1 or n_maxima_profile > 1:
-#             raise RuntimeError('n_minmax not good')
-#         
-#         line_density_theta_coord = line_density_theta_coord - (max_theta_positions_profile[0] - min_theta_positions_potential[0])
- 
-
 
 
 def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
