@@ -289,7 +289,7 @@ def plot_position_evol(counter, beam, h5file, General_parameters, unit = None, s
         ax.set_ylabel (r"Position [m]") 
      
     # Save plot 
-    fign = dirname +'/position_evolution_' "%d" %counter + '.png' 
+    fign = dirname +'/position_evolution.png' 
     plt.savefig(fign) 
     plt.clf() 
 

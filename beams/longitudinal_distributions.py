@@ -1,7 +1,7 @@
 '''
-Created on 12.06.2014
+**Module to generate longitudinal distributions**
 
-@author: Danilo Quartullo, Helga Timko, Alexandre Lasheen
+:Authors: **Danilo Quartullo**, **Helga Timko**, **Alexandre Lasheen**, **Juan Esteban Muller**, **Theodoros Argyropoulos**
 '''
 
 from __future__ import division
@@ -12,130 +12,69 @@ from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
-from slices import Slices
 
 
-def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, 
-                            sigma_x, sigma_y, xunit=None, yunit=None, 
-                            seed=None, reinsertion = 'off'):
-    
-    warnings.filterwarnings("once")
-    if GeneralParameters.n_sections > 1:
-        warnings.warn("WARNING: longitudinal_bigaussian is not yet properly computed for several sections!")
-        
-    if RFSectionParameters.n_rf > 1:
-        warnings.warn("longitudinal_bigaussian for multiple RF is not yet implemented")
-    
-    counter = RFSectionParameters.counter[0]
-    
-    harmonic = RFSectionParameters.harmonic[0,counter]
-    energy = RFSectionParameters.energy[counter]
-    beta = RFSectionParameters.beta_r[counter]
-    
-    if xunit == None or xunit == 'rad':
-        sigma_theta = sigma_x
-    elif xunit == 'm':
-        sigma_theta = sigma_x / (- beam.ring_radius * harmonic) 
-    elif xunit == 'ns':       
-        sigma_theta = sigma_x * beta * c * 1.e-9 / beam.ring_radius
-        
-    if yunit == None or yunit == 'eV':
-        sigma_dE = sigma_y
-    elif yunit == '1':    
-        sigma_dE = sigma_y * beta**2 * energy
-        
-    
-    beam.sigma_theta = sigma_theta
-    beam.sigma_dE = sigma_dE
-    phi_s = RFSectionParameters.phi_s[counter]
-    
-    
-    np.random.seed(seed)
-    beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
-                        + phi_s/harmonic
-    beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
-    
-    if reinsertion is 'on':
-    
-        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
-                                     beam.theta, beam.dE, beam.delta) == False)[0]
-         
-        while itemindex.size != 0:
-         
-            beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
-                    + phi_s/harmonic
-            beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
-            itemindex = np.where(is_in_separatrix(GeneralParameters, 
-                                RFSectionParameters, beam.theta, beam.dE, beam.delta) 
-                                 == False)[0]
-
-  
-
-def longitudinal_gaussian_matched(GeneralParameters, RFSectionParameters, beam, 
-                                  four_sigma_bunch_length, unit=None, 
-                                  seed=None, reinsertion = 'off'):
-    
-    warnings.filterwarnings("once")
-        
-    if GeneralParameters.n_sections > 1:
-        warnings.warn("WARNING: longitudinal_gaussian_matched is not yet properly computed for several sections!")
-        
-    if RFSectionParameters.n_rf > 1:
-        warnings.warn("longitudinal_gaussian_matched for multiple RF is not yet implemented!")
-    
-    counter = RFSectionParameters.counter[0]
-    harmonic = RFSectionParameters.harmonic[0,counter]
-    energy = RFSectionParameters.energy[counter]
-    voltage = RFSectionParameters.voltage[0,counter]
-    beta = RFSectionParameters.beta_r[counter]
-    eta0 = RFSectionParameters.eta_0[counter]
-    
-    if unit == None or unit == 'rad':
-        sigma_theta = four_sigma_bunch_length / 4
-    elif unit == 'm':
-        sigma_theta = four_sigma_bunch_length / (-4 * GeneralParameters.ring_radius) 
-    elif unit == 'ns':       
-        sigma_theta = four_sigma_bunch_length * beta * c * \
-        0.25e-9 / GeneralParameters.ring_radius
-    
-    phi_s = RFSectionParameters.phi_s[counter]
-  
-    phi_b = harmonic*sigma_theta + phi_s
-    
-    sigma_dE = np.sqrt( voltage * energy * beta**2  
-             * (np.cos(phi_b) - np.cos(phi_s) + (phi_b - phi_s) * np.sin(phi_s)) 
-             / (np.pi * harmonic * eta0) )
-        
-    beam.sigma_theta = sigma_theta
-    beam.sigma_dE = sigma_dE
-    
-    np.random.seed(seed)
-    beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
-                        + phi_s/harmonic
-    beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
-    
-    if reinsertion is 'on':
-    
-        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
-                                     beam.theta, beam.dE, beam.delta) == False)[0]
-         
-        while itemindex.size != 0:
-         
-            beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
-                    + phi_s/harmonic
-            beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
-            itemindex = np.where(is_in_separatrix(GeneralParameters, 
-                                RFSectionParameters, beam.theta, beam.dE, beam.delta) 
-                                 == False)[0]
-
-def matched_from_line_density(Beam, line_density):
+def matched_from_line_density(Beam, FullRingAndRF, line_density_theta_coord_input, line_density_input, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = None):
     '''
     *Function to generate a beam by inputing the line density. The distribution
     density is then reconstructed with the Abel transform and the particles
     randomly generated.*
     '''
+
+    # Initialize variables depending on the accelerator parameters
+    slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
+    eom_factor_dE = (np.pi * slippage_factor * c) / \
+                    (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
+    eom_factor_potential = (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
+     
+    # Generate potential well
+    n_points_potential = int(1e5)
+    FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
+                                            theta_margin_percent = 0.05, 
+                                            main_harmonic_option = main_harmonic_option)
+    potential_well_array = FullRingAndRF.potential_well
+    theta_coord_array = FullRingAndRF.potential_well_coordinates
+    theta_resolution = theta_coord_array[1] - theta_coord_array[0]
     
-    pass
+    # Normalizing the line density
+    line_density = line_density_input / np.sum(line_density_input) * Beam.n_macroparticles
+    line_density_theta_coord = line_density_theta_coord_input
+    
+    # Induced voltage contribution
+    induced_voltage_potential = 0
+    total_potential = potential_well_array + induced_voltage_potential
+    
+    # Process the potential well in order to take a frame around the separatrix
+    theta_coord_sep, potential_well_sep = potential_well_cut(theta_coord_array, total_potential)
+    
+    # Centering the line density into the synchronous phase
+    n_iterations = 100
+    if not TotalInducedVoltage:
+        n_iterations = 1
+        
+    for i in range(0, n_iterations):
+        if TotalInducedVoltage:
+            pass
+        minmax_positions_potential, minmax_values_potential = minmax_location(theta_coord_sep, potential_well_sep)
+        minmax_positions_profile, minmax_values_profile = minmax_location(line_density_theta_coord, line_density)
+        min_theta_positions_potential = minmax_positions_potential[0]
+        max_theta_positions_potential = minmax_positions_potential[1]
+        min_potential_values_potential = minmax_values_potential[0]
+        max_potential_values_potential = minmax_values_potential[1]
+        n_minima_potential = len(min_theta_positions_potential)
+        n_maxima_potential = len(max_theta_positions_potential)
+        min_theta_positions_profile = minmax_positions_profile[0]
+        max_theta_positions_profile = minmax_positions_profile[1]
+        min_potential_values_profile = minmax_values_profile[0]
+        max_potential_values_profile = minmax_values_profile[1]
+        n_minima_profile = len(min_potential_values_profile)
+        n_maxima_profile = len(max_theta_positions_profile)
+        
+        if n_minima_potential > 1 or n_maxima_profile > 1:
+            raise RuntimeError('n_minmax not good')
+        
+        line_density_theta_coord = line_density_theta_coord - (max_theta_positions_profile[0] - min_theta_positions_potential[0])
+ 
 
 
 
@@ -161,11 +100,14 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     documentation should be implemented*
     '''
     
+    if not distribution_options.has_key('exponent'):  
+        distribution_options['exponent'] = None
+    
     # Initialize variables depending on the accelerator parameters
     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
     eom_factor_dE = (np.pi * slippage_factor * c) / \
                     (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
-    eom_factor_potential = (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
+    eom_factor_potential = np.sign(FullRingAndRF.RingAndRFSection_list[0].eta_0[0]) * (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
     
     # Generate potential well
     n_points_potential = int(1e5)
@@ -193,78 +135,13 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         sse = np.sqrt(np.sum((old_potential-total_potential)**2))
 
         print 'Matching the bunch... (iteration: ' + str(i) + ' and sse: ' + str(sse) +')'
-        
-        # Check for the min/max of the potentiel well
-        minmax_positions, minmax_values = minmax_location(theta_coord_array, 
-                                                          total_potential)
-        min_theta_positions = minmax_positions[0]
-        max_theta_positions = minmax_positions[1]
-        max_potential_values = minmax_values[1]
-        n_minima = len(min_theta_positions)
-        n_maxima = len(max_theta_positions)
                 
         # Process the potential well in order to take a frame around the separatrix
-        if n_minima == 0:
-            raise RuntimeError('The potential well has no minima...')
-        if n_minima > n_maxima and n_maxima == 1:
-            raise RuntimeError('The potential well has more minima than maxima, and only one maximum')
-        if n_maxima == 0:
-            print ('Warning: The maximum of the potential well could not be found... \
-                    You may reconsider the options to calculate the potential well \
-                    as the main harmonic is probably not the expected one. \
-                    You may also increase the percentage of margin to compute \
-                    the potentiel well. The full potential well will be taken')
-        elif n_maxima == 1:
-            if min_theta_positions[0] > max_theta_positions[0]:
-                saved_indexes = (total_potential < max_potential_values[0]) * \
-                                (theta_coord_array > max_theta_positions[0])
-                theta_coord_sep = theta_coord_array[saved_indexes]
-                potential_well_sep = total_potential[saved_indexes]
-                if total_potential[-1] < total_potential[0]:
-                    raise RuntimeError('The potential well is not well defined. \
-                                        You may reconsider the options to calculate \
-                                        the potential well as the main harmonic is \
-                                        probably not the expected one.')
-            else:
-                saved_indexes = (total_potential < max_potential_values[0]) * \
-                                (theta_coord_array < max_theta_positions[0])
-                theta_coord_sep = theta_coord_array[saved_indexes]
-                potential_well_sep = total_potential[saved_indexes]
-                if total_potential[-1] > total_potential[0]:
-                    raise RuntimeError('The potential well is not well defined. \
-                                        You may reconsider the options to calculate \
-                                        the potential well as the main harmonic is \
-                                        probably not the expected one.')
-        elif n_maxima == 2:
-            lower_maximum_value = np.min(max_potential_values)
-            higher_maximum_value = np.max(max_potential_values)
-            lower_maximum_theta = max_theta_positions[max_potential_values == lower_maximum_value]
-            higher_maximum_theta = max_theta_positions[max_potential_values == higher_maximum_value]
-            if min_theta_positions[0] > lower_maximum_theta:
-                saved_indexes = (total_potential < lower_maximum_value) * \
-                                (theta_coord_array > lower_maximum_theta) * \
-                                (theta_coord_array < higher_maximum_theta)
-                theta_coord_sep = theta_coord_array[saved_indexes]
-                potential_well_sep = total_potential[saved_indexes]
-            else:
-                saved_indexes = (total_potential < lower_maximum_value) * \
-                                (theta_coord_array < lower_maximum_theta) * \
-                                (theta_coord_array > higher_maximum_theta)
-                theta_coord_sep = theta_coord_array[saved_indexes]
-                potential_well_sep = total_potential[saved_indexes]
-        elif n_maxima > 2:
-#             raise RuntimeError('Work in progress, case to be included in the future...')
-            left_max_theta = np.min(max_theta_positions)
-            right_max_theta = np.max(max_theta_positions)
-            saved_indexes = (theta_coord_array > left_max_theta) * (theta_coord_array < right_max_theta)
-            theta_coord_sep = theta_coord_array[saved_indexes]
-            potential_well_sep = total_potential[saved_indexes]
-                        
+        theta_coord_sep, potential_well_sep = potential_well_cut(theta_coord_array, total_potential)
         
         # Potential is shifted to put the minimum on 0
         potential_well_sep = potential_well_sep - np.min(potential_well_sep)
         n_points_potential = len(potential_well_sep)
-        
         
         # Compute deltaE frame corresponding to the separatrix
         max_potential = np.max(potential_well_sep)
@@ -309,23 +186,46 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         H_grid = eom_factor_dE * deltaE_grid**2 + potential_well_grid
         J_grid = np.interp(H_grid, sorted_H_dE0, sorted_J_dE0, left = 0, right = np.inf)
         
-        # Computing the density grid
+        # Computing bunch length (4-rms) as a function of H/J
         density_variable_option = distribution_options['density_variable']
+        if distribution_options.has_key('bunch_length'):        
+            sorted_tau_dE0 = np.zeros(n_points_grid)
+            time_low_res = theta_coord_low_res * FullRingAndRF.ring_radius / (Beam.beta_r * c)
+            for i in range(0,n_points_grid):
+                if density_variable_option is 'density_from_J':
+                    density_grid = distribution_density_function(J_grid, distribution_options['type'], sorted_J_dE0[i], distribution_options['exponent'])
+                elif density_variable_option is 'density_from_H':
+                    density_grid = distribution_density_function(H_grid, distribution_options['type'], sorted_H_dE0[i], distribution_options['exponent'])                
+                density_grid = density_grid / np.sum(density_grid)
+                
+                line_density = np.sum(density_grid, axis = 0)
+                
+                if (line_density>0).any():
+                    sorted_tau_dE0[i] = 4.0*np.sqrt(np.sum((time_low_res-np.sum(line_density*time_low_res)/np.sum(line_density))**2*line_density)/np.sum(line_density))            
+        
+        # Computing the density grid
         if density_variable_option is 'density_from_J':
-            density_grid = distribution_density_function(J_grid, distribution_options['type'], distribution_options['parameters'][0]/ (2*np.pi), distribution_options['parameters'][1])
+            if distribution_options.has_key('emittance'):
+                J0 = distribution_options['emittance']/ (2*np.pi)
+            elif distribution_options.has_key('bunch_length'):
+                J0 = np.interp(distribution_options['bunch_length'], sorted_tau_dE0, sorted_J_dE0)
+            density_grid = distribution_density_function(J_grid, distribution_options['type'], J0, distribution_options['exponent'])
         elif density_variable_option is 'density_from_H':
-            density_grid = distribution_density_function(H_grid, distribution_options['type'], np.interp(distribution_options['parameters'][0] / (2*np.pi), sorted_J_dE0, sorted_H_dE0), distribution_options['parameters'][1])
+            if distribution_options.has_key('emittance'):
+                H0 = np.interp(distribution_options['emittance'] / (2*np.pi), sorted_J_dE0, sorted_H_dE0)
+            elif distribution_options.has_key('bunch_length'):
+                H0 = np.interp(distribution_options['bunch_length'], sorted_tau_dE0, sorted_H_dE0)
+            density_grid = distribution_density_function(H_grid, distribution_options['type'], H0, distribution_options['exponent'])
         
         # Normalizing the grid
         density_grid = density_grid / np.sum(density_grid)
         
-          
         # Induced voltage contribution
         if TotalInducedVoltage is not None:
             # Calculating the line density
             line_density = np.sum(density_grid, axis = 0)
             line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
-            
+
             # Calculating the induced voltage
             induced_voltage_object = copy.deepcopy(TotalInducedVoltage)
                         
@@ -351,12 +251,9 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
      
     # Populating the bunch
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
-    bunch = np.zeros((2,Beam.n_macroparticles))
-    bunch[0,:] = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_low_res[1]-theta_coord_low_res[0])
-    bunch[1,:] = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_coord_array[1]-deltaE_coord_array[0])
      
-    Beam.theta = bunch[0,:]
-    Beam.dE = bunch[1,:]
+    Beam.theta = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_low_res[1]-theta_coord_low_res[0])
+    Beam.dE = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_coord_array[1]-deltaE_coord_array[0])
     
 
 
@@ -365,7 +262,7 @@ def distribution_density_function(action_array, dist_type, length, exponent = No
     *Distribution density (formulas from Laclare).*
     '''
     
-    if dist_type is 'parabolic':
+    if dist_type is 'binomial':
         warnings.filterwarnings("ignore")
         density_function = (1 - action_array / length)**exponent
         warnings.filterwarnings("default")
@@ -402,6 +299,201 @@ def minmax_location(x,f):
     warnings.filterwarnings("default")
                                           
     return [min_x_position, max_x_position], [min_values, max_values]
+
+
+
+def potential_well_cut(theta_coord_array, potential_array):
+    '''
+    *Function to cut the potential well in order to take only the separatrix
+    (several cases according to the number of min/max).*
+    '''
+    
+    # Check for the min/max of the potential well
+    minmax_positions, minmax_values = minmax_location(theta_coord_array, 
+                                                      potential_array)
+    min_theta_positions = minmax_positions[0]
+    max_theta_positions = minmax_positions[1]
+    max_potential_values = minmax_values[1]
+    n_minima = len(min_theta_positions)
+    n_maxima = len(max_theta_positions)
+    
+    if n_minima == 0:
+        raise RuntimeError('The potential well has no minima...')
+    if n_minima > n_maxima and n_maxima == 1:
+        raise RuntimeError('The potential well has more minima than maxima, and only one maximum')
+    if n_maxima == 0:
+        print ('Warning: The maximum of the potential well could not be found... \
+                You may reconsider the options to calculate the potential well \
+                as the main harmonic is probably not the expected one. \
+                You may also increase the percentage of margin to compute \
+                the potentiel well. The full potential well will be taken')
+    elif n_maxima == 1:
+        if min_theta_positions[0] > max_theta_positions[0]:
+            saved_indexes = (potential_array < max_potential_values[0]) * \
+                            (theta_coord_array > max_theta_positions[0])
+            theta_coord_sep = theta_coord_array[saved_indexes]
+            potential_well_sep = potential_array[saved_indexes]
+            if potential_array[-1] < potential_array[0]:
+                raise RuntimeError('The potential well is not well defined. \
+                                    You may reconsider the options to calculate \
+                                    the potential well as the main harmonic is \
+                                    probably not the expected one.')
+        else:
+            saved_indexes = (potential_array < max_potential_values[0]) * \
+                            (theta_coord_array < max_theta_positions[0])
+            theta_coord_sep = theta_coord_array[saved_indexes]
+            potential_well_sep = potential_array[saved_indexes]
+            if potential_array[-1] > potential_array[0]:
+                raise RuntimeError('The potential well is not well defined. \
+                                    You may reconsider the options to calculate \
+                                    the potential well as the main harmonic is \
+                                    probably not the expected one.')
+    elif n_maxima == 2:
+        lower_maximum_value = np.min(max_potential_values)
+        higher_maximum_value = np.max(max_potential_values)
+        lower_maximum_theta = max_theta_positions[max_potential_values == lower_maximum_value]
+        higher_maximum_theta = max_theta_positions[max_potential_values == higher_maximum_value]
+        if min_theta_positions[0] > lower_maximum_theta:
+            saved_indexes = (potential_array < lower_maximum_value) * \
+                            (theta_coord_array > lower_maximum_theta) * \
+                            (theta_coord_array < higher_maximum_theta)
+            theta_coord_sep = theta_coord_array[saved_indexes]
+            potential_well_sep = potential_array[saved_indexes]
+        else:
+            saved_indexes = (potential_array < lower_maximum_value) * \
+                            (theta_coord_array < lower_maximum_theta) * \
+                            (theta_coord_array > higher_maximum_theta)
+            theta_coord_sep = theta_coord_array[saved_indexes]
+            potential_well_sep = potential_array[saved_indexes]
+    elif n_maxima > 2:
+#             raise RuntimeError('Work in progress, case to be included in the future...')
+        left_max_theta = np.min(max_theta_positions)
+        right_max_theta = np.max(max_theta_positions)
+        saved_indexes = (theta_coord_array > left_max_theta) * (theta_coord_array < right_max_theta)
+        theta_coord_sep = theta_coord_array[saved_indexes]
+        potential_well_sep = potential_array[saved_indexes]
+        
+        
+    return theta_coord_sep, potential_well_sep
+
+
+
+def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_x,
+                             sigma_y, xunit=None, yunit=None, reinsertion = 'off'):
+    '''
+    *Method to generate a bigaussian distribution by manually input the sigma values.*
+    '''
+    
+    warnings.filterwarnings("once")
+    if GeneralParameters.n_sections > 1:
+        warnings.warn("WARNING: longitudinal_bigaussian is not yet properly computed for several sections!")
+        
+    if RFSectionParameters.n_rf > 1:
+        warnings.warn("longitudinal_bigaussian for multiple RF is not yet implemented")
+    
+    counter = RFSectionParameters.counter[0]
+    
+    harmonic = RFSectionParameters.harmonic[0,counter]
+    energy = RFSectionParameters.energy[counter]
+    beta = RFSectionParameters.beta_r[counter]
+    
+    if xunit == None or xunit == 'rad':
+        sigma_theta = sigma_x
+    elif xunit == 'm':
+        sigma_theta = sigma_x / (- beam.ring_radius * harmonic) 
+    elif xunit == 'ns':       
+        sigma_theta = sigma_x * beta * c * 1.e-9 / beam.ring_radius
+        
+    if yunit == None or yunit == 'eV':
+        sigma_dE = sigma_y
+    elif yunit == '1':    
+        sigma_dE = sigma_y * beta**2 * energy
+        
+    
+    beam.sigma_theta = sigma_theta
+    beam.sigma_dE = sigma_dE
+    phi_s = RFSectionParameters.phi_s[counter]
+    
+    
+    beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
+                        + phi_s/harmonic
+    beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
+    
+    if reinsertion is 'on':
+    
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
+                                     beam.theta, beam.dE, beam.delta) == False)[0]
+         
+        while itemindex.size != 0:
+         
+            beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
+                    + phi_s/harmonic
+            beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
+            itemindex = np.where(is_in_separatrix(GeneralParameters, 
+                                RFSectionParameters, beam.theta, beam.dE, beam.delta) 
+                                 == False)[0]
+
+  
+
+def longitudinal_gaussian_matched(GeneralParameters, RFSectionParameters, beam, 
+                                  four_sigma_bunch_length, unit=None, reinsertion = 'off'):
+    '''
+    *Method to generate a bigaussian distribution by inputing the sigma value
+    on the position coordinate and compute the sigma in the momentum coordinate
+    with respect to the RF input.*
+    '''
+    
+    warnings.filterwarnings("once")
+        
+    if GeneralParameters.n_sections > 1:
+        warnings.warn("WARNING: longitudinal_gaussian_matched is not yet properly computed for several sections!")
+        
+    if RFSectionParameters.n_rf > 1:
+        warnings.warn("longitudinal_gaussian_matched for multiple RF is not yet implemented!")
+    
+    counter = RFSectionParameters.counter[0]
+    harmonic = RFSectionParameters.harmonic[0,counter]
+    energy = RFSectionParameters.energy[counter]
+    voltage = RFSectionParameters.voltage[0,counter]
+    beta = RFSectionParameters.beta_r[counter]
+    eta0 = RFSectionParameters.eta_0[counter]
+    
+    if unit == None or unit == 'rad':
+        sigma_theta = four_sigma_bunch_length / 4
+    elif unit == 'm':
+        sigma_theta = four_sigma_bunch_length / (-4 * GeneralParameters.ring_radius) 
+    elif unit == 'ns':       
+        sigma_theta = four_sigma_bunch_length * beta * c * \
+        0.25e-9 / GeneralParameters.ring_radius
+    
+    phi_s = RFSectionParameters.phi_s[counter]
+  
+    phi_b = harmonic*sigma_theta + phi_s
+    
+    sigma_dE = np.sqrt( voltage * energy * beta**2  
+             * (np.cos(phi_b) - np.cos(phi_s) + (phi_b - phi_s) * np.sin(phi_s)) 
+             / (np.pi * harmonic * eta0) )
+        
+    beam.sigma_theta = sigma_theta
+    beam.sigma_dE = sigma_dE
+    
+    beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
+                        + phi_s/harmonic
+    beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)
+    
+    if reinsertion is 'on':
+    
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
+                                     beam.theta, beam.dE, beam.delta) == False)[0]
+         
+        while itemindex.size != 0:
+         
+            beam.theta[itemindex] = sigma_theta * np.random.randn(itemindex.size) \
+                    + phi_s/harmonic
+            beam.dE[itemindex] = sigma_dE * np.random.randn(itemindex.size)
+            itemindex = np.where(is_in_separatrix(GeneralParameters, 
+                                RFSectionParameters, beam.theta, beam.dE, beam.delta) 
+                                 == False)[0]
     
     
 
