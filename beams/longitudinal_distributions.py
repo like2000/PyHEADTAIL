@@ -189,32 +189,46 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         # Computing bunch length (4-rms) as a function of H/J
         density_variable_option = distribution_options['density_variable']
         if distribution_options.has_key('bunch_length'):        
-            sorted_tau_dE0 = np.zeros(n_points_grid)
             time_low_res = theta_coord_low_res * FullRingAndRF.ring_radius / (Beam.beta_r * c)
-            for i in range(0,n_points_grid):
+            tau = 0.0
+            if density_variable_option is 'density_from_J':
+                X_low = sorted_J_dE0[0]
+                X_hi = sorted_J_dE0[n_points_grid - 1]
+            elif density_variable_option is 'density_from_H':
+                X_low = sorted_H_dE0[0]
+                X_hi = sorted_H_dE0[n_points_grid - 1]
+
+            while np.abs(distribution_options['bunch_length']-tau) > (time_low_res.max() - time_low_res.min()) / n_points_grid / 10:
+                X0 = 0.5 * (X_low+X_hi)
                 if density_variable_option is 'density_from_J':
-                    density_grid = distribution_density_function(J_grid, distribution_options['type'], sorted_J_dE0[i], distribution_options['exponent'])
+                    density_grid = distribution_density_function(J_grid, distribution_options['type'], X0, distribution_options['exponent'])
                 elif density_variable_option is 'density_from_H':
-                    density_grid = distribution_density_function(H_grid, distribution_options['type'], sorted_H_dE0[i], distribution_options['exponent'])                
+                    density_grid = distribution_density_function(H_grid, distribution_options['type'], X0, distribution_options['exponent'])                
                 density_grid = density_grid / np.sum(density_grid)
                 
                 line_density = np.sum(density_grid, axis = 0)
                 
                 if (line_density>0).any():
-                    sorted_tau_dE0[i] = 4.0*np.sqrt(np.sum((time_low_res-np.sum(line_density*time_low_res)/np.sum(line_density))**2*line_density)/np.sum(line_density))            
+                    tau = 4.0*np.sqrt(np.sum((time_low_res-np.sum(line_density*time_low_res)/np.sum(line_density))**2*line_density)/np.sum(line_density))            
+                
+                if tau >= distribution_options['bunch_length']:
+                    X_hi = X0
+                else:
+                    X_low = X0
+                    
+            if density_variable_option is 'density_from_J':
+                J0 = X0
+            elif density_variable_option is 'density_from_H':
+                H0 = X0
         
         # Computing the density grid
         if density_variable_option is 'density_from_J':
             if distribution_options.has_key('emittance'):
                 J0 = distribution_options['emittance']/ (2*np.pi)
-            elif distribution_options.has_key('bunch_length'):
-                J0 = np.interp(distribution_options['bunch_length'], sorted_tau_dE0, sorted_J_dE0)
             density_grid = distribution_density_function(J_grid, distribution_options['type'], J0, distribution_options['exponent'])
         elif density_variable_option is 'density_from_H':
             if distribution_options.has_key('emittance'):
                 H0 = np.interp(distribution_options['emittance'] / (2*np.pi), sorted_J_dE0, sorted_H_dE0)
-            elif distribution_options.has_key('bunch_length'):
-                H0 = np.interp(distribution_options['bunch_length'], sorted_tau_dE0, sorted_H_dE0)
             density_grid = distribution_density_function(H_grid, distribution_options['type'], H0, distribution_options['exponent'])
         
         # Normalizing the grid
