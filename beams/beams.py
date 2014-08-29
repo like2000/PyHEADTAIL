@@ -141,6 +141,7 @@ class Beam(object):
         self.sigma_dE = np.std(self.dE[itemindex])
        
         ##### R.m.s. emittance in Gaussian approximation, other emittances to be defined
+        ##### Assuming single RF and small amplitude oscillations
         self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
                         * self.ring_radius / (self.beta_r * c) # in eVs
 
