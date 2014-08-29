@@ -45,7 +45,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     line_den_resolution = theta_line_den[1] - theta_line_den[0]
                     
     # Normalizing the line density                
-    line_density = line_density_function(theta_line_den, line_density_options['type'], line_density_options['bunch_length'], exponent = line_density_options['exponent'][1],
+    line_density = line_density_function(theta_line_den, line_density_options['type'], line_density_options['bunch_length'], exponent = line_density_options['exponent'],
                                          bunch_position = (theta_coord_array[0]+theta_coord_array[-1])/2)
     
     line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
