@@ -10,6 +10,7 @@ import warnings
 import copy
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
+from slices import Slices
 from scipy.integrate import cumtrapz
 
 
@@ -32,7 +33,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     eom_factor_potential = np.sign(FullRingAndRF.RingAndRFSection_list[0].eta_0[0]) * (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
      
     # Generate potential well
-    n_points_potential = int(1e5)
+    n_points_potential = int(1e4)
     FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
                                             theta_margin_percent = 0.05, 
                                             main_harmonic_option = main_harmonic_option)
@@ -40,7 +41,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     theta_coord_array = FullRingAndRF.potential_well_coordinates
     
     # Theta coordinates for the line density
-    n_points_line_den = int(1e4)
+    n_points_line_den = int(1e3)
     theta_line_den = np.linspace(theta_coord_array[0], theta_coord_array[-1], n_points_line_den)
     line_den_resolution = theta_line_den[1] - theta_line_den[0]
                     
@@ -120,7 +121,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     line_density_norm = line_density / np.trapz(line_density) / line_den_resolution
 
     # Taking the first half of line density and potential inside separatrix
-    n_points_abel = int(1e5)
+    n_points_abel = int(1e4)
     theta_coord_half = np.linspace(theta_coord_sep[0], max_profile_pos, n_points_abel)
     line_den_half = np.interp(theta_coord_half, theta_line_den, line_density_norm)
     potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
@@ -297,36 +298,61 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         H_grid = eom_factor_dE * deltaE_grid**2 + potential_well_grid
         J_grid = np.interp(H_grid, sorted_H_dE0, sorted_J_dE0, left = 0, right = np.inf)
         
-        # Computing bunch length (4-rms) as a function of H/J
+        # Computing bunch length as a function of H/J if needed
+        # Bunch length can be calculated as 4-rms, Gaussian fit, or FWHM
         density_variable_option = distribution_options['density_variable']
         if distribution_options.has_key('bunch_length'):        
             time_low_res = theta_coord_low_res * FullRingAndRF.ring_radius / (Beam.beta_r * c)
             tau = 0.0
+            # Choice of either H or J as the variable used
             if density_variable_option is 'density_from_J':
                 X_low = sorted_J_dE0[0]
                 X_hi = sorted_J_dE0[n_points_grid - 1]
             elif density_variable_option is 'density_from_H':
                 X_low = sorted_H_dE0[0]
                 X_hi = sorted_H_dE0[n_points_grid - 1]
-
-            while np.abs(distribution_options['bunch_length']-tau) > (time_low_res.max() - time_low_res.min()) / n_points_grid / 10:
+            
+            bunch_length_accuracy = (time_low_res[1] - time_low_res[0]) / 10
+            
+            # Iteration to find H0/J0 from the bunch length
+            while np.abs(distribution_options['bunch_length']-tau) > bunch_length_accuracy:
+                # Takes middle point of the interval [X_low,X_hi]                
                 X0 = 0.5 * (X_low + X_hi)
+                
+                # Calculating the line density for the parameter X0
                 if density_variable_option is 'density_from_J':
                     density_grid = distribution_density_function(J_grid, distribution_options['type'], X0, distribution_options['exponent'])
                 elif density_variable_option is 'density_from_H':
                     density_grid = distribution_density_function(H_grid, distribution_options['type'], X0, distribution_options['exponent'])                
-                density_grid = density_grid / np.sum(density_grid)
                 
+                density_grid = density_grid / np.sum(density_grid)                
                 line_density = np.sum(density_grid, axis = 0)
                 
+                # Calculating the bunch length of that line density
                 if (line_density>0).any():
                     tau = 4.0 * np.sqrt(np.sum((time_low_res - np.sum(line_density * time_low_res) / np.sum(line_density))**2 * line_density) / np.sum(line_density))            
+                    
+                    if distribution_options.has_key('bunch_length_fit'):
+                        slices = Slices(Beam,n_points_grid)
+                        slices.n_macroparticles = line_density
+                        slices.bins_centers = time_low_res
+                        slices.edges = np.linspace(slices.bins_centers[0]-(slices.bins_centers[1]-slices.bins_centers[0])/2,slices.bins_centers[-1]+(slices.bins_centers[1]-slices.bins_centers[0])/2,len(slices.bins_centers)+1)
+                        
+                        if distribution_options['bunch_length_fit'] is 'gauss':                              
+                            slices.bl_gauss = tau
+                            slices.bp_gauss = np.sum(line_density * time_low_res) / np.sum(line_density)
+                            slices.gaussian_fit()
+                            tau = slices.bl_gauss
+                        elif distribution_options['bunch_length_fit'] is 'fwhm': 
+                            slices.fwhm()
+                            tau = slices.bl_fwhm
                 
+                # Update of the interval for the next iteration
                 if tau >= distribution_options['bunch_length']:
                     X_hi = X0
                 else:
                     X_low = X0
-                    
+            
             if density_variable_option is 'density_from_J':
                 J0 = X0
             elif density_variable_option is 'density_from_H':

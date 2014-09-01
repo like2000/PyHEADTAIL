@@ -1,31 +1,127 @@
-PYHEADTAIL LONGITUDINAL
+Implementation in this branch (bunch generation with intensity effects)
+=============================
+
+- Major
+  - Bunch generation from distribution function implemented
+    - Input is distribution type, emittance and bunch length
+  - Bunch generation from line density implemented
+    - From Abel Transform
+    - Input is line density type and bunch length
+
+- Normal
+  - Option in beam spectrum calculation in order to compute the frequency_array only wrt the sampling and time step
+  - Functions in the induced voltage objects to reprocess the wake/impedance sources according to a new slicing
+  - Corrected InputArray object in longitudinal_impedance
+  - Added returns in the induced_voltage_generation in order to return induced_voltage after the frame of the slicing
+  - Initialization to 0 instead of empty for arrays
+  - Initial guess for gaussian fit corrected
+
+- Minor
+  - n_macroparticles converted to int in beam class (solve some warnings)
+    
+
+Implementation in this branch (intensity effects)
+=============================
+
+- Major (feature implementation that may need further review and agreement):
+  - Deleted transverse calculations from slices (need discussions with transverse development)
+  - Deleted transverse coordinates from beam (need discussions with transverse development)
+  - Reorganisation of the slices module
+  	- The different coordinates type is redone, a function to convert values from one coordinates type to another is included to reduce the code length
+  	- Constant_space_histogram is not faster than constant_space (weird correlation, does not give the same result whether you use intensity effects or not... needs proper profiling...)
+  	- Constant_space is now the reference (and is constant frame also)
+  	- Constant_charge is working, but the losses are not taken into account (the frame can diverge...)
+  	- Gaussian fit inside the slice module (and the track method updates the bunch length in Beams class)
+  - Reorganisation of the longitudinal_impedance module
+  	- All calculations are now done in tau
+    - The impedance coming from and impedance table is assumed to be 0 for higher frequencies
+    - The wake_calc in InputTable assumes that the wake begins at t=0
+    - The precalculation is always done in InducedVoltageTime unless you use constant_charge slicing
+   	  - The input parameters have been changed and the constructor reorganized accordingly
+   	- The number of sampling points for the fft is now a power of 2
+  
+- Normal (small changes that are not transparent, the example main files should be adapted accordingly):
+  - PEP8 corrections:
+  	- Slices module
+  	- Impedance module
+  	- Renamed classes/variables
+  
+- Minor (can be implemented in a transparent way):
+  - Corrected cut_left and cut_right calculation for n_sigma (divided by 2)
+  - Documentation:
+  	- Slices module done (figures and more details might be added)
+  	- Impedance (Work in progress)
+  	
+- Thoughts
+  - Smoothing in the slicing can be done (by weighing the particles in the bins)
+  -	Better method to convert directly any kind of value from one coordinate to another, just for this values to be called as properties (like in 
+  - To be discussed : standard input/output for the functions/objects etc...
+  - Should we include the normalized density in the slicing ?
+  - To be implemented : varying frame for slicing with constant_space (for cases where you don't mind recalculating all the time the impedance)
+  - Wake calculations can be improved by doing pure matrix calculations (this might be useful in case you don't have pre-processing)
+  - Should we be able to use only one source of impedance (and have track methods for all sources) ?
+  - Inductive impedance to be updated in order to take into account acceleration
+  - Formulas to be included in the documentation
+  - Pre-processing the induced_voltage (in order to be used directly afterwards for beam generation for example)
+  - Include better filtering options
+  
+  
+Implementation in this branch (longitudinal tracking)
+=============================
+
+- Major (feature implementation that may need further review and agreement):
+  - FullRingAndRF object implementation in order to compute potential well, hamiltonian, separatrix, etc.
+  
+- Normal (small changes that are not transparent, the example main files should be adapted accordingly):
+  - PEP8 changes:
+    - Changed LLRF module name to llrf
+    - Changed GeneralParameters.T0 to t_rev + correcting the calculation method
+    - Changed RFSectionParameters.sno to section_index
+  - Put section_number as an option in RFSectionParameters input + changing its name to section_index
+  - Optimization of the longitudinal_tracker.RingAndRFSection object
+  	- Moved eta_tracking from rf_parameters to longitudinal_tracker (transparent)
+  	- Changed documentation in order to refer to the RFSectionParameters documentation (transparent)
+  	- Added a method that chooses the solver to be 'simple' or 'full' wrt the input order
+  
+- Minor (can be implemented in a transparent way):
+  - Documentation
+  	- Small corrections in input_paramters.general_parameters
+  	- Small corrections in input_paramters.rf_parameters
+  	- Small corrections in trackers.longitudinal_tracker
+  - Changed general_parameters to GeneralParameters as an input for RFSectionParameters
+  - Changed rf_params to RFSectionParameters as an input for RingAndRFSection
+  - Secured the cases where the user input momentum compaction with higher orders than 2
+  
+- Thoughts:
+  - Better input check for GeneralParameters
+  
+
+Implementation in this branch (file management)
+=============================
+- Removed cython functions (obsolete for the moment, will be re-implemented when dedicated functions will be in use)
+- Updated .gitignore
+
+
+
+PYHEADTAIL LONGITUDINAL v1.0
 ==========
 
-Longitudinal version of the CERN PyHeadTail code for the simulation of 
-multi-particle beam dynamics with collective effects.
-
-Documentation: http://like2000.github.io/PyHEADTAIL/
+Longitudinal version of the CERN PyHeadTail code for the simulation of multi-particle 
+beam dynamics with collective effects.
 
 The structure is as follows:
 
-1) the folder __EXAMPLE_MAIN_FILES contains several main files which
-   show how to use the principal features of the code; for additional examples
-   have a look at the code developers' personal folders present 
-   in the corresponding git branches; 
-2) the __doc folder contains the source files for the documentation; 
-   to have an output for example in html format, type make html into the console 
-   from the folder itself, then go to build, html and open the index file;
-   note that you need Latex and dvipng (if not present in the Latex 
-   distribution) to be able to see displayed all the math formulas;
-   the latest docs should be uploaded to the "gh-pages" branch
-3) the various packages which constitute the code together with a beta-version
-   package named mpi in which the longitudinal tracker method is parallelised 
-   in order to save computational time when the main file RFnoise_mpi is launched.
-   If you are using a Windows system download either OpenMPI or MS-MPI together
-   with mpi4py from the following link: http://www.lfd.uci.edu/~gohlke/pythonlibs/ 
-   which is very useful in general to get easely a lot of Python extension 
-   packages for Windows 32-64 bit without building sources.
-4) a setup file needed to compile the cython files present in the 
+1) for example main files, see __EXAMPLE_MAIN_FILES; contains examples for using
+   the longitudinal package with acceleration, several RF stations, etc.;
+2) 5 folders reserved for the current members of the "longitudinal team" for
+   their main files, input and output data;	
+3) the doc folder contains the documentation, type make html into the console 
+   from the folder itself, then go to build, html and open the index file; 
+   note that you need Latex and dvipng (if not present in the Latex distribution) 
+   to be able to see displayed all the math formulas;
+4) the various packages which are the basis of the simulation code;
+5) this README.md file;
+6) a setup file to compile the various cython files present in the 
    cython_functions package; this file should be run before launching any 
    simulation; from the console window type "python setup.py cleanall 
    build_ext --inplace".
@@ -34,93 +130,12 @@ The structure is as follows:
 VERSION CONTENTS
 ==========
 
-2014-08-17
-v1.2.3 - The monitor package has been revisited and cleaned, the SlicesMonitor
-		 class has been tested.
-	   - The warnings derived from the compute_statistics method have been
-	     disabled since the NaN entities don't create problems for the plots,
-	     arithmetic operations and prints.
-	   - The main file Wake_impedance has been corrected and revisited; in it
-	     there is an example of how to use the SlicesMonitor class together 
-	     with an example of how the option seed is able to generate a clone of 
-	     a random generated beam.
-	   - Found a very easy way to set MPI on Windows systems (read point 3 in
-	     the description of the code structure) so now the user can test
-	     the main script in the mpi package on Windows as well.
-
-
-2014-08-15
-v1.2.2 - RNG seeds for numpy.random fixed in RF_noise.py and 
-       	 longitudinal_distributions.py
-       - updated example files
-       - full documentation of RF_noise (see llrf.rst)
-       - small improvement of profile plot 
-       - change bunchmonitor.dump to bunchmonitor.track
-       - MPI parallelized tracker (optional)
-
-2014-08-15
-v1.2.1 Elimination of the useless .pyd files from the various packages and of 
-	   the _doc/build directory; now the user has to build herself to see the
-	   documentation.
-	   Fixed a bug in the setup.py file that caused the undesired elimination
-	   of all the html and h5 files present in the structure of the code.
-
-
-2014-08-14
-v1.2.0 Reorganisation of the slices module
-  		- the different coordinates type is redone, a function to convert values
-  		  from one coordinates type to another is included to reduce the code 
-  		  length
-  		- constant_space is now the reference (and it is constant frame also)
-  		- Gaussian fit inside the slice module (and the track method updates the
-  		  bunch length in Beams class)
-  	   Reorganisation of the longitudinal_impedance module
-  		- all calculations are now done in tau
-    	- the impedance coming from the impedance table is assumed to be 0 for 
-    	  higher frequencies
-    	- the wake_calc in InputTable assumes that the wake begins at t=0
-    	- the precalculation is always done in InducedVoltageTime unless you use 
-    	  constant_charge slicing
-   	  	- the input parameters have been changed and the constructor 
-   	  	  reorganised accordingly
-   		- the number of sampling points for the fft is now a power of 2
-   	   PEP8 corrections in the slices and longitudinal_impedance modules
-   	   and renaming of some classes and variables.
-   	   Corrected cut_left and cut_right calculation for n_sigma (divided by 2).
-       Documentation has been improved in the slices and longitudinal_impedance 
-       modules.
-  	   The monitors module and the various plots modules have been revised
-   	   according to these reorganisations; the same is true for the main files
-   	   present in the EXAMPLE folder.
-   	   Elimination of the developers' personal folders.
-
-
-2014-08-13
-v1.1.2 PEP8 changes:
-        - changed LLRF module name to llrf
-        - changed GeneralParameters.T0 to t_rev plus correcting the calculation
-          method
-        - changed RFSectionParameters.sno to section_index
-       Put section_number as an option in RFSectionParameters input plus 
-       changing its name to section_index.
-       Optimization of the longitudinal_tracker.RingAndRFSection object
-  	   Applied little changes to documentation.
-       Added a method that chooses the solver to be 'simple' or 'full' wrt the 
-       input order.
-  	   Changed general_parameters to GeneralParameters as an input for
-  	   RFSectionParameters.
-  	   Changed rf_params to RFSectionParameters as an input for RingAndRFSection
-       Secured the cases where the user input momentum compaction with higher 
-       orders than 2.
-
-
 2014-07-23
 v1.1.1 Plotting routines now separated into different files:
        beams.plot_beams.py -> phase space, beam statistics plots
        beams.plot_slices.py -> profile, slice statistics
        impedances.plot_impedance.py -> induced voltage, wakes, impedances
        LLRF.plot_llrf.py -> noise in time and frequency domain
-
 
 2014-07-22
 v1.1   Added method in 'longitudinal_impedance' to calculate through the 
@@ -135,7 +150,6 @@ v1.1   Added method in 'longitudinal_impedance' to calculate through the
        of the tree.
        Several bugs, mostly in the 'longitudinal_impedance' script, have been
        fixed.
-
 
 2014-07-17
 v1.0   Longitudinal tracker tested. Works for acceleration and multiple
