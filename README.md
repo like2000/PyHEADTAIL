@@ -1,9 +1,12 @@
-Implementation in this branch (intensity effects)
+Implementation in this branch (bunch generation with intensity effects)
 =============================
 
 - Major
   - Bunch generation from distribution function implemented
-    - Input is distribution type and emittance (bunch length to be included)
+    - Input is distribution type, emittance and bunch length
+  - Bunch generation from line density implemented
+    - From Abel Transform
+    - Input is line density type and bunch length
 
 - Normal
   - Option in beam spectrum calculation in order to compute the frequency_array only wrt the sampling and time step

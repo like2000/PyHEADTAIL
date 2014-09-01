@@ -8,7 +8,7 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 import os
-os.chdir('/users/alasheen/documents/work/eclipse/git/PyHEADTAIL_alasheen/_Alex/')
+os.chdir('C:\work\git\PyHEADTAIL_alasheen\_Alex')
 
 # PyHEADTAIL imports
 from input_parameters.general_parameters import GeneralParameters 
@@ -22,18 +22,15 @@ from impedances.longitudinal_impedance import TravelingWaveCavity, Resonators, \
                                               InductiveImpedance, InputTable, \
                                               InducedVoltageTime, InducedVoltageFreq, \
                                               TotalInducedVoltage
-# from beams.plot_beams import plot_long_phase_space
-# 
-# # Other imports
-# from scipy.optimize import curve_fit, brentq
-# from scipy.interpolate import interp1d
+
+# Other imports
 from scipy.constants import c
 
 
 # Simulation parameters -------------------------------------------------------
 # Simulation parameters
 n_turns = 1500          # Number of turns to track
-plot_step = 100           # Time steps between plots
+plot_step = 1           # Time steps between plots
 output_step = 100
 
 # General parameters
@@ -60,7 +57,6 @@ phi_offset_2 = np.pi            # Phase offset
 # intensity = 2.6e11           # Intensity
 intensity = 8.e10           # Intensity
 n_macroparticles = 5e5   # Macro-particles
-# tau_0 = 2.0                 # Initial bunch length, 4 sigma [ns]
 # beam_loaded = np.loadtxt('test_input_files/distributions/distribution_parabolic_ESME_0.12.crd')
 # n_macroparticles = len(beam_loaded[:,0])   # Macro-particles
 
@@ -161,31 +157,14 @@ SPS_inductive = InductiveImpedance(slicing, Space_charge_Z_over_n + Steps_Z_over
     
 SPS_longitudinal_intensity = TotalInducedVoltage(slicing, [SPS_intensity_time, SPS_intensity_freq]) # SPS_inductive
 
-
 # Beam generation
 # emittance = 0.4
-# coefficient = 2.
-# matched_from_distribution_density(SPS_beam, full_tracker, {'type':'parabolic', 'parameters':[emittance, coefficient], 'density_variable':'density_from_H'}, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = SPS_longitudinal_intensity, n_iterations_input = 50)
+# matched_from_distribution_density(SPS_beam, full_tracker, {'type':'parabolic_amplitude', 'emittance':emittance, 'density_variable':'density_from_H'}, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = SPS_longitudinal_intensity, n_iterations_input = 50)
 bunch_length = 2.e-9 / (SPS_beam.ring_radius / (SPS_beam.beta_r * c))
-coefficient = 5/2
-matched_from_line_density(SPS_beam, full_tracker, {'type':'parabolic', 'parameters':[bunch_length,coefficient]}, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = SPS_longitudinal_intensity)
-
-
-# # Initial kick
-# SPS_longitudinal_intensity.induced_voltage_sum(SPS_beam)
-# effective_voltage = voltage_program_1 * np.sin(harmonic_numbers_1*slicing.convert_coordinates(slicing.bins_centers, 'tau', 'theta')) + SPS_longitudinal_intensity.induced_voltage
-# effective_voltage_interp = interp1d(slicing.bins_centers, effective_voltage)
-# plt.plot(slicing.bins_centers, effective_voltage)
-# plt.plot(slicing.bins_centers, voltage_program_1 * np.sin(harmonic_numbers_1*slicing.convert_coordinates(slicing.bins_centers, 'tau', 'theta')))
-# plt.plot(slicing.bins_centers, SPS_longitudinal_intensity.induced_voltage)
-# plt.show()
-# sync_phase_intensity = brentq(effective_voltage_interp, 2e-9, 3e-9)
-# SPS_beam.tau = SPS_beam.tau + (sync_phase_intensity - SPS_beam.bp_gauss_tau)
-#        
-# print (sync_phase_intensity - SPS_beam.bp_gauss)
+matched_from_line_density(SPS_beam, full_tracker, {'type':'parabolic_amplitude', 'bunch_length':bunch_length}, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = SPS_longitudinal_intensity)
          
 # Total simulation map
-sim_map = [full_tracker] + [slicing] + [SPS_longitudinal_intensity]# # + [SPS_intensity_time] + [SPS_intensity_freq] + [SPS_inductive]
+sim_map = [full_tracker] + [slicing] + [SPS_longitudinal_intensity]# + [SPS_intensity_time] + [SPS_intensity_freq] + [SPS_inductive]
          
 # Tracking ---------------------------------------------------------------------
 
@@ -217,8 +196,8 @@ for i in range(n_turns):
 #         plt.clf()
 #         plt.show()
         plt.plot(SPS_longitudinal_intensity.time_array, SPS_longitudinal_intensity.induced_voltage)
-        plt.plot(SPS_longitudinal_intensity.time_array, slicing.n_macroparticles / np.max(slicing.n_macroparticles) *1e6)#* np.max(SPS_longitudinal_intensity.induced_voltage))
-        plt.ylim((-2e6, 2e6))
+        plt.plot(SPS_longitudinal_intensity.time_array, slicing.n_macroparticles / np.max(slicing.n_macroparticles) *0.25e6)#* np.max(SPS_longitudinal_intensity.induced_voltage))
+        plt.ylim((-0.5e6, 0.5e6))
 #         plt.plot(slicing.bins_centers, slicing.n_macroparticles)
 #         plt.ylim((0,6e3))
 #         plt.plot(slicing.bins_centers, gauss(slicing.bins_centers, *slicing.pfit_gauss))

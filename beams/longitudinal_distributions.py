@@ -11,7 +11,6 @@ import copy
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from scipy.integrate import cumtrapz
-import matplotlib.pyplot as plt
 
 
 def matched_from_line_density(Beam, FullRingAndRF, line_density_options, 
@@ -22,15 +21,18 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     density is then reconstructed with the Abel transform and the particles
     randomly generated.*
     '''
-
+    
+    if not line_density_options.has_key('exponent'):  
+        line_density_options['exponent'] = None
+        
     # Initialize variables depending on the accelerator parameters
     slippage_factor = FullRingAndRF.RingAndRFSection_list[0].eta_0[0]
     eom_factor_dE = (np.pi * abs(slippage_factor) * c) / \
                     (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
-    eom_factor_potential = (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
+    eom_factor_potential = np.sign(FullRingAndRF.RingAndRFSection_list[0].eta_0[0]) * (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
      
     # Generate potential well
-    n_points_potential = int(1e5)
+    n_points_potential = int(1e4)
     FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
                                             theta_margin_percent = 0.05, 
                                             main_harmonic_option = main_harmonic_option)
@@ -38,12 +40,12 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     theta_coord_array = FullRingAndRF.potential_well_coordinates
     
     # Theta coordinates for the line density
-    n_points_line_den = int(1e4)
+    n_points_line_den = int(1e3)
     theta_line_den = np.linspace(theta_coord_array[0], theta_coord_array[-1], n_points_line_den)
     line_den_resolution = theta_line_den[1] - theta_line_den[0]
                     
     # Normalizing the line density                
-    line_density = line_density_function(theta_line_den, line_density_options['type'], line_density_options['parameters'][0], exponent = line_density_options['parameters'][1],
+    line_density = line_density_function(theta_line_den, line_density_options['type'], line_density_options['bunch_length'], exponent = line_density_options['exponent'],
                                          bunch_position = (theta_coord_array[0]+theta_coord_array[-1])/2)
     
     line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
@@ -96,7 +98,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
         
         n_minima_potential = len(minmax_positions_potential)
         n_maxima_profile = len(minmax_positions_profile[1])
-        
+                
         # Warnings
         if n_maxima_profile > 1:
             raise RuntimeError('Profile has several max...')
@@ -118,7 +120,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     line_density_norm = line_density / np.trapz(line_density) / line_den_resolution
 
     # Taking the first half of line density and potential inside separatrix
-    n_points_abel = int(1e5)
+    n_points_abel = int(1e4)
     theta_coord_half = np.linspace(theta_coord_sep[0], max_profile_pos, n_points_abel)
     line_den_half = np.interp(theta_coord_half, theta_line_den, line_density_norm)
     potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
@@ -182,12 +184,9 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     
     # Populating the bunch
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
-    bunch = np.zeros((2,Beam.n_macroparticles))
-    bunch[0,:] = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_for_grid[1]-theta_coord_for_grid[0])
-    bunch[1,:] = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_for_grid[1]-deltaE_for_grid[0])
-     
-    Beam.theta = bunch[0,:]
-    Beam.dE = bunch[1,:]
+    Beam.theta = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_for_grid[1]-theta_coord_for_grid[0])
+    Beam.dE = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_for_grid[1]-deltaE_for_grid[0])
+
 
 
 def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
@@ -212,11 +211,14 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     documentation should be implemented*
     '''
     
+    if not distribution_options.has_key('exponent'):  
+        distribution_options['exponent'] = None
+    
     # Initialize variables depending on the accelerator parameters
-    slippage_factor = FullRingAndRF.RingAndRFSection_list[0].eta_0[0]
-    eom_factor_dE = (np.pi * abs(slippage_factor) * c) / \
+    slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
+    eom_factor_dE = (np.pi * slippage_factor * c) / \
                     (FullRingAndRF.ring_circumference * Beam.beta_r * Beam.energy)
-    eom_factor_potential = (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
+    eom_factor_potential = np.sign(FullRingAndRF.RingAndRFSection_list[0].eta_0[0]) * (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
     
     # Generate potential well
     n_points_potential = int(1e5)
@@ -295,12 +297,50 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         H_grid = eom_factor_dE * deltaE_grid**2 + potential_well_grid
         J_grid = np.interp(H_grid, sorted_H_dE0, sorted_J_dE0, left = 0, right = np.inf)
         
-        # Computing the density grid
+        # Computing bunch length (4-rms) as a function of H/J
         density_variable_option = distribution_options['density_variable']
+        if distribution_options.has_key('bunch_length'):        
+            time_low_res = theta_coord_low_res * FullRingAndRF.ring_radius / (Beam.beta_r * c)
+            tau = 0.0
+            if density_variable_option is 'density_from_J':
+                X_low = sorted_J_dE0[0]
+                X_hi = sorted_J_dE0[n_points_grid - 1]
+            elif density_variable_option is 'density_from_H':
+                X_low = sorted_H_dE0[0]
+                X_hi = sorted_H_dE0[n_points_grid - 1]
+
+            while np.abs(distribution_options['bunch_length']-tau) > (time_low_res.max() - time_low_res.min()) / n_points_grid / 10:
+                X0 = 0.5 * (X_low + X_hi)
+                if density_variable_option is 'density_from_J':
+                    density_grid = distribution_density_function(J_grid, distribution_options['type'], X0, distribution_options['exponent'])
+                elif density_variable_option is 'density_from_H':
+                    density_grid = distribution_density_function(H_grid, distribution_options['type'], X0, distribution_options['exponent'])                
+                density_grid = density_grid / np.sum(density_grid)
+                
+                line_density = np.sum(density_grid, axis = 0)
+                
+                if (line_density>0).any():
+                    tau = 4.0 * np.sqrt(np.sum((time_low_res - np.sum(line_density * time_low_res) / np.sum(line_density))**2 * line_density) / np.sum(line_density))            
+                
+                if tau >= distribution_options['bunch_length']:
+                    X_hi = X0
+                else:
+                    X_low = X0
+                    
+            if density_variable_option is 'density_from_J':
+                J0 = X0
+            elif density_variable_option is 'density_from_H':
+                H0 = X0
+        
+        # Computing the density grid
         if density_variable_option is 'density_from_J':
-            density_grid = distribution_density_function(J_grid, distribution_options['type'], distribution_options['parameters'][0]/ (2*np.pi), distribution_options['parameters'][1])
+            if distribution_options.has_key('emittance'):
+                J0 = distribution_options['emittance']/ (2*np.pi)
+            density_grid = distribution_density_function(J_grid, distribution_options['type'], J0, distribution_options['exponent'])
         elif density_variable_option is 'density_from_H':
-            density_grid = distribution_density_function(H_grid, distribution_options['type'], np.interp(distribution_options['parameters'][0] / (2*np.pi), sorted_J_dE0, sorted_H_dE0), distribution_options['parameters'][1])
+            if distribution_options.has_key('emittance'):
+                H0 = np.interp(distribution_options['emittance'] / (2*np.pi), sorted_J_dE0, sorted_H_dE0)
+            density_grid = distribution_density_function(H_grid, distribution_options['type'], H0, distribution_options['exponent'])
         
         # Normalizing the grid
         density_grid = density_grid / np.sum(density_grid)
@@ -336,12 +376,9 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
      
     # Populating the bunch
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
-    bunch = np.zeros((2,Beam.n_macroparticles))
-    bunch[0,:] = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_low_res[1]-theta_coord_low_res[0])
-    bunch[1,:] = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_coord_array[1]-deltaE_coord_array[0])
      
-    Beam.theta = bunch[0,:]
-    Beam.dE = bunch[1,:]
+    Beam.theta = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_low_res[1]-theta_coord_low_res[0])
+    Beam.dE = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_coord_array[1]-deltaE_coord_array[0])
     
 
 
@@ -350,7 +387,14 @@ def distribution_density_function(action_array, dist_type, length, exponent = No
     *Distribution density (formulas from Laclare).*
     '''
     
-    if dist_type is 'parabolic':
+    if dist_type is 'binomial' or 'waterbag' or 'parabolic_amplitude' or 'parabolic_line':
+        if dist_type is 'waterbag':
+            exponent = 0
+        elif dist_type is 'parabolic_amplitude':
+            exponent = 1
+        elif dist_type is 'parabolic_line':
+            exponent = 0.5
+        
         warnings.filterwarnings("ignore")
         density_function = (1 - action_array / length)**exponent
         warnings.filterwarnings("default")
@@ -361,23 +405,24 @@ def distribution_density_function(action_array, dist_type, length, exponent = No
         density_function = np.exp(- 2 * action_array / length)
         return density_function
     
-    elif dist_type is 'waterbag':
-        density_function = np.ones(action_array.shape)
-        density_function[action_array > length] = 0
-        return density_function
-    
     
 def line_density_function(coord_array, dist_type, bunch_length, bunch_position = 0, exponent = None):
     '''
     *Line density*
     '''
     
-    if dist_type is 'parabolic':
+    if dist_type is 'binomial' or 'waterbag' or 'parabolic_amplitude' or 'parabolic_line':
+        if dist_type is 'waterbag':
+            exponent = 0
+        elif dist_type is 'parabolic_amplitude':
+            exponent = 1
+        elif dist_type is 'parabolic_line':
+            exponent = 0.5
+        
         warnings.filterwarnings("ignore")
-        density_function = (1 - ((coord_array - bunch_position) / (bunch_length/2))**2)**exponent
+        density_function = (1 - ((coord_array - bunch_position) / (bunch_length/2))**2)**(exponent+0.5)
         warnings.filterwarnings("default")
-        density_function[coord_array > bunch_length/2 + bunch_position] = 0
-        density_function[coord_array < bunch_position - bunch_length/2] = 0
+        density_function[np.abs(coord_array - bunch_position) > bunch_length/2 ] = 0
         return density_function
     
     elif dist_type is 'gaussian':
@@ -385,6 +430,12 @@ def line_density_function(coord_array, dist_type, bunch_length, bunch_position =
         density_function = np.exp(- (coord_array - bunch_position)**2 /(2*sigma**2))
         return density_function
     
+    elif dist_type is 'cosine_squared':
+        warnings.filterwarnings("ignore")
+        density_function = np.cos(np.pi * (coord_array - bunch_position) / bunch_length)**2
+        warnings.filterwarnings("default")
+        density_function[np.abs(coord_array - bunch_position) > bunch_length/2 ] = 0
+        return density_function   
 
 
 def minmax_location(x,f):
@@ -601,7 +652,3 @@ def longitudinal_gaussian_matched(GeneralParameters, RFSectionParameters, beam,
             itemindex = np.where(is_in_separatrix(GeneralParameters, 
                                 RFSectionParameters, beam.theta, beam.dE, beam.delta) 
                                  == False)[0]
-    
-    
-
-
