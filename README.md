@@ -1,3 +1,9 @@
+Other corrections
+=============================
+
+- Input check in rf_parameters (the voltage program should be n_turns)
+
+
 Implementation in this branch (bunch generation with intensity effects)
 =============================
 

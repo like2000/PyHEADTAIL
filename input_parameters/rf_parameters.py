@@ -144,9 +144,9 @@ class RFSectionParameters(object):
             self.phi_offset = phi_offset
         
         for i in range(self.n_rf):
-            self.harmonic[i] = input_check(self.harmonic[i], self.n_turns+1)
-            self.voltage[i] = input_check(self.voltage[i], self.n_turns+1)
-            self.phi_offset[i] = input_check(self.phi_offset[i], self.n_turns+1)
+            self.harmonic[i] = input_check(self.harmonic[i], self.n_turns)
+            self.voltage[i] = input_check(self.voltage[i], self.n_turns)
+            self.phi_offset[i] = input_check(self.phi_offset[i], self.n_turns)
         
         # Convert to numpy matrix
         self.harmonic = np.array(self.harmonic, ndmin =2)
