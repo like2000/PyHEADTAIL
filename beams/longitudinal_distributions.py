@@ -11,6 +11,7 @@ import copy
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from scipy.integrate import cumtrapz
+import matplotlib.pyplot as plt
 
 
 def matched_from_line_density(Beam, FullRingAndRF, line_density_options, 
@@ -39,16 +40,30 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     potential_well_array = FullRingAndRF.potential_well
     theta_coord_array = FullRingAndRF.potential_well_coordinates
     
-    # Theta coordinates for the line density
-    n_points_line_den = int(1e3)
-    theta_line_den = np.linspace(theta_coord_array[0], theta_coord_array[-1], n_points_line_den)
-    line_den_resolution = theta_line_den[1] - theta_line_den[0]
-                    
-    # Normalizing the line density                
-    line_density = line_density_function(theta_line_den, line_density_options['type'], line_density_options['bunch_length'], exponent = line_density_options['exponent'],
-                                         bunch_position = (theta_coord_array[0]+theta_coord_array[-1])/2)
     
-    line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
+    if line_density_options['type'] is not 'user_input':
+        # Theta coordinates for the line density
+        n_points_line_den = int(1e3)
+        theta_line_den = np.linspace(theta_coord_array[0], theta_coord_array[-1], n_points_line_den)
+        line_den_resolution = theta_line_den[1] - theta_line_den[0]
+                        
+        # Normalizing the line density                
+        line_density = line_density_function(theta_line_den, line_density_options['type'], line_density_options['bunch_length'], exponent = line_density_options['exponent'],
+                                             bunch_position = (theta_coord_array[0]+theta_coord_array[-1])/2)
+        
+        line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
+        line_density = line_density - np.min(line_density)
+    elif line_density_options['type'] is 'user_input':
+        # Theta coordinates for the line density
+        theta_line_den = line_density_options['theta_line_den']
+        line_den_resolution = theta_line_den[1] - theta_line_den[0]
+                        
+        # Normalizing the line density                
+        line_density = line_density_options['line_density']
+        line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
+        line_density = line_density - np.min(line_density)
+    else:
+        raise RuntimeError('The input for the matched_from_line_density function was not recognized')
     
     induced_potential_final = 0
     n_iterations = 1
@@ -84,38 +99,43 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     # Centering the bunch in the potential well
     for i in range(0, n_iterations):
         
-        # Interpolating the potential well
-        induced_potential_final = np.interp(theta_coord_array, theta_induced_voltage, induced_potential)
-        
+        if TotalInducedVoltage is not None:
+            # Interpolating the potential well
+            induced_potential_final = np.interp(theta_coord_array, theta_induced_voltage, induced_potential)
+            
         # Induced voltage contribution
         total_potential = potential_well_array + induced_potential_final
         
         # Process the potential well in order to take a frame around the separatrix
         theta_coord_sep, potential_well_sep = potential_well_cut(theta_coord_array, total_potential)
         
-        minmax_positions_potential, minmax_values_potential = minmax_location(theta_coord_sep, potential_well_sep)[0]
-        minmax_positions_profile = minmax_location(theta_line_den[line_density != 0], line_density[line_density != 0])[0]
-        
-        n_minima_potential = len(minmax_positions_potential)
+        minmax_positions_potential, minmax_values_potential = minmax_location(theta_coord_sep, potential_well_sep)
+        minmax_positions_profile, minmax_values_profile = minmax_location(theta_line_den[line_density != 0], line_density[line_density != 0])
+
+        n_minima_potential = len(minmax_positions_potential[0])
         n_maxima_profile = len(minmax_positions_profile[1])
-                
+        
         # Warnings
         if n_maxima_profile > 1:
-            raise RuntimeError('Profile has several max...')
-        elif n_minima_potential > 1:
-            print 'Warning: the potential well has serveral min, the deepest one is taken'
-            min_potential_pos = minmax_positions_potential[np.where(minmax_values_potential[0] == np.min(minmax_values_potential[0]))]
-            max_profile_pos = minmax_positions_profile[1][0]
+            print 'Warning: the profile has serveral max, the highest one is taken. Be sure the profile is monotonous and not too noisy.'
+            max_profile_pos = minmax_positions_profile[1][np.where(minmax_values_profile[1] == np.max(minmax_values_profile[1]))]
+        else:
+            max_profile_pos = minmax_positions_profile[1]
+        if n_minima_potential > 1:
+            print 'Warning: the potential well has serveral min, the deepest one is taken. The induced potential is probably splitting the potential well.'
+            min_potential_pos = minmax_positions_potential[0][np.where(minmax_values_potential[0] == np.min(minmax_values_potential[0]))]
         else:
             min_potential_pos = minmax_positions_potential[0]
-            max_profile_pos = minmax_positions_profile[1][0]
                     
-        # Moving the bunch (not for the last iteration)
+        # Moving the bunch (not for the last iteration if intensity effects are present)
+        if TotalInducedVoltage is None:
+            theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
+            max_profile_pos = max_profile_pos - (max_profile_pos - min_potential_pos)
         if i != n_iterations - 1:
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
             theta_induced_voltage = np.linspace(theta_line_den[0], theta_line_den[0] + (induced_voltage_length - 1) * line_den_resolution, induced_voltage_length)           
-
-    
+            
+            
     # Normalizing line density
     line_density_norm = line_density / np.trapz(line_density) / line_den_resolution
 
