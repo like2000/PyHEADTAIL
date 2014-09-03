@@ -413,7 +413,7 @@ def distribution_density_function(action_array, dist_type, length, exponent = No
     *Distribution density (formulas from Laclare).*
     '''
     
-    if dist_type is 'binomial' or 'waterbag' or 'parabolic_amplitude' or 'parabolic_line':
+    if dist_type in ['binomial', 'waterbag', 'parabolic_amplitude', 'parabolic_line']:
         if dist_type is 'waterbag':
             exponent = 0
         elif dist_type is 'parabolic_amplitude':
@@ -437,7 +437,7 @@ def line_density_function(coord_array, dist_type, bunch_length, bunch_position =
     *Line density*
     '''
     
-    if dist_type is 'binomial' or 'waterbag' or 'parabolic_amplitude' or 'parabolic_line':
+    if dist_type in ['binomial', 'waterbag', 'parabolic_amplitude', 'parabolic_line']:
         if dist_type is 'waterbag':
             exponent = 0
         elif dist_type is 'parabolic_amplitude':
