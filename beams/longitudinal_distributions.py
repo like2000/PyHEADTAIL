@@ -11,7 +11,6 @@ import copy
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from scipy.integrate import cumtrapz
-import matplotlib.pyplot as plt
 
 
 def matched_from_line_density(Beam, FullRingAndRF, line_density_options, 
@@ -56,6 +55,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     elif line_density_options['type'] is 'user_input':
         # Theta coordinates for the line density
         theta_line_den = line_density_options['theta_line_den']
+        n_points_line_den = len(theta_line_den)
         line_den_resolution = theta_line_den[1] - theta_line_den[0]
                         
         # Normalizing the line density                
@@ -126,7 +126,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
             min_potential_pos = minmax_positions_potential[0][np.where(minmax_values_potential[0] == np.min(minmax_values_potential[0]))]
         else:
             min_potential_pos = minmax_positions_potential[0]
-                    
+        
         # Moving the bunch (not for the last iteration if intensity effects are present)
         if TotalInducedVoltage is None:
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
