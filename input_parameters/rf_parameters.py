@@ -140,9 +140,9 @@ class RFSectionParameters(object):
             self.phi_offset = phi_offset
         
         for i in range(self.n_rf):
-            self.harmonic[i] = input_check(self.harmonic[i], self.n_turns+1)
-            self.voltage[i] = input_check(self.voltage[i], self.n_turns+1)
-            self.phi_offset[i] = input_check(self.phi_offset[i], self.n_turns+1)
+            self.harmonic[i] = input_check(self.harmonic[i], self.n_turns)
+            self.voltage[i] = input_check(self.voltage[i], self.n_turns)
+            self.phi_offset[i] = input_check(self.phi_offset[i], self.n_turns)
         
         # Convert to numpy matrix
         self.harmonic = np.array(self.harmonic, ndmin =2)
@@ -190,7 +190,7 @@ def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):
     if RFSectionParameters.n_rf == 1:
                      
         acceleration_ratio = RFSectionParameters.beta_av * RFSectionParameters.p_increment \
-            / (RFSectionParameters.voltage[0,0:-1] + RFSectionParameters.voltage[0,1:]) * 2 
+            /  RFSectionParameters.voltage[0]
         
         acceleration_test = np.where((acceleration_ratio > -1) * (acceleration_ratio < 1) == False)[0]
                 
@@ -199,8 +199,8 @@ def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):
            
         phi_s = np.arcsin(acceleration_ratio)
         
-        index = np.where((eta0[1:] + eta0[0:-1])/2 > 0)       
-        phi_s[index] = np.pi - phi_s
+        eta0_average = (eta0[1:] + eta0[0:-1])/2
+        phi_s[eta0_average > 0] = np.pi - phi_s
 
         return phi_s 
      
