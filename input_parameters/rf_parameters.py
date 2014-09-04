@@ -172,9 +172,12 @@ def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):
     eta0 = RFSectionParameters.eta_0
          
     if RFSectionParameters.n_rf == 1:
-                     
-        acceleration_ratio = RFSectionParameters.beta_av * RFSectionParameters.p_increment \
-            / RFSectionParameters.voltage[0]
+
+        if np.sum(RFSectionParameters.p_increment) == 0:
+            acceleration_ratio = np.zeros(RFSectionParameters.p_increment.shape)
+        else:             
+            acceleration_ratio = RFSectionParameters.beta_av * RFSectionParameters.p_increment / \
+                                 RFSectionParameters.voltage[0]
         
         acceleration_test = np.where((acceleration_ratio > -1) * (acceleration_ratio < 1) == False)[0]
                 
