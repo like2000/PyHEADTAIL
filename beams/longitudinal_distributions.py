@@ -140,7 +140,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     line_density_norm = line_density / np.trapz(line_density) / line_den_resolution
 
     # Taking the first half of line density and potential inside separatrix
-    n_points_abel = int(1e4)
+    n_points_abel = n_points_line_den
     theta_coord_half = np.linspace(theta_coord_sep[0], max_profile_pos, n_points_abel)
     line_den_half = np.interp(theta_coord_half, theta_line_den, line_density_norm)
     potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
@@ -148,6 +148,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     
     # Derivative of the line density
     line_den_diff = np.diff(line_den_half) / (theta_coord_half[1] - theta_coord_half[0])
+    
     theta_line_den_diff = theta_coord_half[:-1] + (theta_coord_half[1] - theta_coord_half[0]) / 2
     line_den_diff = np.interp(theta_coord_half, theta_line_den_diff, line_den_diff, left = 0, right = 0) 
     
@@ -206,7 +207,8 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
     Beam.theta = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_for_grid[1]-theta_coord_for_grid[0])
     Beam.dE = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_for_grid[1]-deltaE_for_grid[0])
-
+    
+    return [hamiltonian_coord, density_function] 
 
 
 def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
