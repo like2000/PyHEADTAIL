@@ -219,8 +219,6 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     '''
     *Function to generate a beam by inputing the distribution density (by
     choosing the type of distribution and the emittance). 
-    To be implemented: iteratively converge towards the chosen bunch length 
-    and add the potential due to intensity effects.
     The potential well is preprocessed to check for the min/max and center
     the frame around the separatrix.
     An error will be raised if there is not a full potential well (2 max 
@@ -231,11 +229,19 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     The slippage factor should be updated to take the higher orders.
     Outputs should be added in order for the user to check step by step if
     his bunch is going to be well generated. More detailed 'step by step' 
-    documentation should be implemented*
+    documentation should be implemented
+    The user can input a custom distribution function by setting the parameter
+    distribution_options['type'] = 'user_input' and passing the function in the
+    parameter distribution_options['function'], with the following definition:
+    distribution_density_function(action_array, dist_type, length, exponent = None)*
     '''
     
     if not distribution_options.has_key('exponent'):  
         distribution_options['exponent'] = None
+    
+    # Loading the distribution function if provided by the user
+    if distribution_options['type'] is 'user_input':
+        distribution_density_function = distribution_options['function']
     
     # Initialize variables depending on the accelerator parameters
     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
@@ -258,7 +264,6 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     n_iterations = n_iterations_input
     if not TotalInducedVoltage:
         n_iterations = 1
-
         
     for i in range(0, n_iterations):
         
@@ -333,6 +338,8 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
             elif density_variable_option is 'density_from_H':
                 X_low = sorted_H_dE0[0]
                 X_hi = sorted_H_dE0[n_points_grid - 1]
+            else:
+                raise RuntimeError('The density_variable option was not recognized')
             
             bunch_length_accuracy = (time_low_res[1] - time_low_res[0]) / 10
             
@@ -452,7 +459,9 @@ def distribution_density_function(action_array, dist_type, length, exponent = No
     elif dist_type is 'gaussian':
         density_function = np.exp(- 2 * action_array / length)
         return density_function
-    
+
+    else:
+        raise RuntimeError('The dist_type option was not recognized')
     
 def line_density_function(coord_array, dist_type, bunch_length, bunch_position = 0, exponent = None):
     '''
