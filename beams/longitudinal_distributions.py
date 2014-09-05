@@ -139,10 +139,10 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     # Normalizing line density
     line_density_norm = line_density / np.trapz(line_density) / line_den_resolution
 
-    # Taking the first half of line density and potential inside separatrix
-    n_points_abel = n_points_line_den
-    theta_coord_half = np.linspace(theta_coord_sep[0], max_profile_pos, n_points_abel)
-    line_den_half = np.interp(theta_coord_half, theta_line_den, line_density_norm)
+    # Taking the first half of line density and potential
+    line_den_half = line_density_norm[np.where((theta_line_den > theta_line_den[0]) * (theta_line_den < max_profile_pos))]
+    n_points_abel = len(line_den_half)
+    theta_coord_half = np.linspace(theta_line_den[0], max_profile_pos, n_points_abel)
     potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
     potential_half = potential_half - np.min(potential_half)
     
