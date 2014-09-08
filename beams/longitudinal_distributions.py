@@ -10,6 +10,7 @@ import warnings
 import copy
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
+from slices import Slices
 from scipy.integrate import cumtrapz
 
 
@@ -228,8 +229,6 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     '''
     *Function to generate a beam by inputing the distribution density (by
     choosing the type of distribution and the emittance). 
-    To be implemented: iteratively converge towards the chosen bunch length 
-    and add the potential due to intensity effects.
     The potential well is preprocessed to check for the min/max and center
     the frame around the separatrix.
     An error will be raised if there is not a full potential well (2 max 
@@ -240,11 +239,19 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     The slippage factor should be updated to take the higher orders.
     Outputs should be added in order for the user to check step by step if
     his bunch is going to be well generated. More detailed 'step by step' 
-    documentation should be implemented*
+    documentation should be implemented
+    The user can input a custom distribution function by setting the parameter
+    distribution_options['type'] = 'user_input' and passing the function in the
+    parameter distribution_options['function'], with the following definition:
+    distribution_density_function(action_array, dist_type, length, exponent = None)*
     '''
     
     if not distribution_options.has_key('exponent'):  
         distribution_options['exponent'] = None
+    
+    # Loading the distribution function if provided by the user
+    if distribution_options['type'] is 'user_input':
+        distribution_density_function = distribution_options['function']
     
     # Initialize variables depending on the accelerator parameters
     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
@@ -267,7 +274,6 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     n_iterations = n_iterations_input
     if not TotalInducedVoltage:
         n_iterations = 1
-
         
     for i in range(0, n_iterations):
         
@@ -329,36 +335,63 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
         H_grid = eom_factor_dE * deltaE_grid**2 + potential_well_grid
         J_grid = np.interp(H_grid, sorted_H_dE0, sorted_J_dE0, left = 0, right = np.inf)
         
-        # Computing bunch length (4-rms) as a function of H/J
+        # Computing bunch length as a function of H/J if needed
+        # Bunch length can be calculated as 4-rms, Gaussian fit, or FWHM
         density_variable_option = distribution_options['density_variable']
         if distribution_options.has_key('bunch_length'):        
             time_low_res = theta_coord_low_res * FullRingAndRF.ring_radius / (Beam.beta_r * c)
             tau = 0.0
+            # Choice of either H or J as the variable used
             if density_variable_option is 'density_from_J':
                 X_low = sorted_J_dE0[0]
                 X_hi = sorted_J_dE0[n_points_grid - 1]
             elif density_variable_option is 'density_from_H':
                 X_low = sorted_H_dE0[0]
                 X_hi = sorted_H_dE0[n_points_grid - 1]
-
-            while np.abs(distribution_options['bunch_length']-tau) > (time_low_res.max() - time_low_res.min()) / n_points_grid / 10:
+            else:
+                raise RuntimeError('The density_variable option was not recognized')
+            
+            bunch_length_accuracy = (time_low_res[1] - time_low_res[0]) / 10
+            
+            # Iteration to find H0/J0 from the bunch length
+            while np.abs(distribution_options['bunch_length']-tau) > bunch_length_accuracy:
+                # Takes middle point of the interval [X_low,X_hi]                
                 X0 = 0.5 * (X_low + X_hi)
+                
+                # Calculating the line density for the parameter X0
                 if density_variable_option is 'density_from_J':
                     density_grid = distribution_density_function(J_grid, distribution_options['type'], X0, distribution_options['exponent'])
                 elif density_variable_option is 'density_from_H':
                     density_grid = distribution_density_function(H_grid, distribution_options['type'], X0, distribution_options['exponent'])                
-                density_grid = density_grid / np.sum(density_grid)
                 
+                density_grid = density_grid / np.sum(density_grid)                
                 line_density = np.sum(density_grid, axis = 0)
                 
+                # Calculating the bunch length of that line density
                 if (line_density>0).any():
                     tau = 4.0 * np.sqrt(np.sum((time_low_res - np.sum(line_density * time_low_res) / np.sum(line_density))**2 * line_density) / np.sum(line_density))            
+                    
+                    if distribution_options.has_key('bunch_length_fit'):
+                        slices = Slices(Beam,n_points_grid)
+                        slices.n_macroparticles = line_density
+                        slices.bins_centers = time_low_res
+                        slices.edges = np.linspace(slices.bins_centers[0]-(slices.bins_centers[1]-slices.bins_centers[0])/2,slices.bins_centers[-1]+(slices.bins_centers[1]-slices.bins_centers[0])/2,len(slices.bins_centers)+1)
+                        
+                        if distribution_options['bunch_length_fit'] is 'gauss':                              
+                            slices.bl_gauss = tau
+                            slices.bp_gauss = np.sum(line_density * time_low_res) / np.sum(line_density)
+                            slices.gaussian_fit()
+                            tau = slices.bl_gauss
+                        elif distribution_options['bunch_length_fit'] is 'fwhm': 
+                            slices.fwhm()
+                            tau = slices.bl_fwhm
                 
+                # Update of the interval for the next iteration
                 if tau >= distribution_options['bunch_length']:
                     X_hi = X0
                 else:
                     X_low = X0
-                    
+            
             if density_variable_option is 'density_from_J':
                 J0 = X0
             elif density_variable_option is 'density_from_H':
@@ -419,7 +452,7 @@ def distribution_density_function(action_array, dist_type, length, exponent = No
     *Distribution density (formulas from Laclare).*
     '''
     
-    if dist_type is 'binomial' or 'waterbag' or 'parabolic_amplitude' or 'parabolic_line':
+    if dist_type in ['binomial', 'waterbag', 'parabolic_amplitude', 'parabolic_line']:
         if dist_type is 'waterbag':
             exponent = 0
         elif dist_type is 'parabolic_amplitude':
@@ -436,14 +469,16 @@ def distribution_density_function(action_array, dist_type, length, exponent = No
     elif dist_type is 'gaussian':
         density_function = np.exp(- 2 * action_array / length)
         return density_function
-    
+
+    else:
+        raise RuntimeError('The dist_type option was not recognized')
     
 def line_density_function(coord_array, dist_type, bunch_length, bunch_position = 0, exponent = None):
     '''
     *Line density*
     '''
     
-    if dist_type is 'binomial' or 'waterbag' or 'parabolic_amplitude' or 'parabolic_line':
+    if dist_type in ['binomial', 'waterbag', 'parabolic_amplitude', 'parabolic_line']:
         if dist_type is 'waterbag':
             exponent = 0
         elif dist_type is 'parabolic_amplitude':
