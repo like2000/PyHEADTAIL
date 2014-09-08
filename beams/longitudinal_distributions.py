@@ -135,14 +135,11 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
             theta_induced_voltage = np.linspace(theta_line_den[0], theta_line_den[0] + (induced_voltage_length - 1) * line_den_resolution, induced_voltage_length)           
             
-            
-    # Normalizing line density
-    line_density_norm = line_density / np.trapz(line_density) / line_den_resolution
 
     # Taking the first half of line density and potential
-    line_den_half = line_density_norm[np.where((theta_line_den > theta_line_den[0]) * (theta_line_den < max_profile_pos))]
-    n_points_abel = len(line_den_half)
-    theta_coord_half = np.linspace(theta_line_den[0], max_profile_pos, n_points_abel)
+    first_half_indexes = np.where((theta_line_den > theta_line_den[0]) * (theta_line_den < max_profile_pos))
+    line_den_half = line_density[first_half_indexes]
+    theta_coord_half = theta_line_den[first_half_indexes]
     potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
     potential_half = potential_half - np.min(potential_half)
     
@@ -150,54 +147,67 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     line_den_diff = np.diff(line_den_half) / (theta_coord_half[1] - theta_coord_half[0])
     
     theta_line_den_diff = theta_coord_half[:-1] + (theta_coord_half[1] - theta_coord_half[0]) / 2
-    line_den_diff = np.interp(theta_coord_half, theta_line_den_diff, line_den_diff, left = 0, right = 0) 
+    line_den_diff = np.interp(theta_coord_half, theta_line_den_diff, line_den_diff, left = 0, right = 0)
+
+
+    # Interpolating the line density derivative and potential well for Abel transform
+    n_points_abel = int(1e4)
+    theta_abel = np.linspace(theta_coord_half[0], theta_coord_half[-1], n_points_abel)
+    line_den_diff_abel = np.interp(theta_abel, theta_coord_half, line_den_diff)
+    potential_abel = np.interp(theta_abel, theta_coord_half, potential_half)
     
-    # Abel transform
-    k = 0
     density_function = np.zeros(n_points_abel)
     hamiltonian_coord = np.zeros(n_points_abel) 
     
+    # Abel transform
     warnings.filterwarnings("ignore")
-    
-    for i in xrange(n_points_abel,0,-1):
-        integrand = line_den_diff[0:i] / np.sqrt(potential_half[0:i] - potential_half[i-1])
-        
-        if len(integrand)>1:
+
+    for i in range(0, n_points_abel):
+        integrand = line_den_diff_abel[0:i+1] / np.sqrt(potential_abel[0:i+1] - potential_abel[i])
+                
+        if len(integrand)>2:
+            integrand[-1] = integrand[-2] + (integrand[-2] - integrand[-3])
+        elif len(integrand)>1:
             integrand[-1] = integrand[-2]
         else:
-            integrand[-1] = 0
-          
-        primitive = - np.insert(cumtrapz(integrand, dx=theta_line_den_diff[1]-theta_line_den_diff[0]),0,0)
+            integrand = np.array([0])
+            
+        
+            
+        density_function[i] = np.sqrt(eom_factor_dE) / np.pi * np.trapz(integrand, dx = theta_coord_half[1] - theta_coord_half[0])
 
-        density_function[k] = - np.sqrt(eom_factor_dE/2) / np.pi * (primitive[-1] - primitive[0])
-          
-        hamiltonian_coord[k] = potential_half[i-1]
-          
-        k = k+1
-        
+        hamiltonian_coord[i] = potential_abel[i]
+           
+    
     warnings.filterwarnings("default")
-        
+
+    # Cleaning the density function from unphysical results
     density_function[density_function<0] = 0
     density_function[np.isnan(density_function)] = 0
     
     # Compute deltaE frame corresponding to the separatrix
-    max_potential = np.max(potential_half)
+    max_potential = potential_half[0]
     max_deltaE = np.sqrt(max_potential / eom_factor_dE)
     
     # Initializing the grids by reducing the resolution to a 
     # n_points_grid*n_points_grid frame.
     n_points_grid = int(1e3)
-    grid_indexes = np.arange(0,n_points_grid) * n_points_potential / n_points_grid
-    potential_well_indexes = np.arange(0, len(potential_well_sep))
+    grid_indexes = np.arange(0,n_points_grid) * len(theta_line_den) / n_points_grid
+    theta_coord_indexes = np.arange(0, len(theta_line_den))
+    theta_coord_for_grid = np.interp(grid_indexes, theta_coord_indexes, theta_line_den)
     deltaE_for_grid = np.linspace(-max_deltaE, max_deltaE, n_points_grid)
-    potential_well_for_grid = np.interp(grid_indexes, potential_well_indexes, potential_well_sep)
+    potential_well_for_grid = np.interp(theta_coord_for_grid, theta_coord_sep, potential_well_sep)
     potential_well_for_grid = potential_well_for_grid - np.min(potential_well_for_grid)
-    theta_coord_for_grid = np.interp(grid_indexes, potential_well_indexes, theta_coord_sep)
+    
     theta_grid, deltaE_grid = np.meshgrid(theta_coord_for_grid, deltaE_for_grid)
     potential_well_grid = np.meshgrid(potential_well_for_grid, potential_well_for_grid)[0]
     
     hamiltonian_grid = eom_factor_dE * deltaE_grid**2 + potential_well_grid
 
+    # Sort the density function and generate the density grid
+    hamiltonian_argsort = np.argsort(hamiltonian_coord)
+    hamiltonian_coord = hamiltonian_coord.take(hamiltonian_argsort)
+    density_function = density_function.take(hamiltonian_argsort)
     density_grid = np.interp(hamiltonian_grid, hamiltonian_coord, density_function)
     
     # Normalizing density
