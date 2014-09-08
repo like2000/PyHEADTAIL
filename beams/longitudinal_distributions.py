@@ -243,7 +243,11 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     The user can input a custom distribution function by setting the parameter
     distribution_options['type'] = 'user_input' and passing the function in the
     parameter distribution_options['function'], with the following definition:
-    distribution_density_function(action_array, dist_type, length, exponent = None)*
+    distribution_density_function(action_array, dist_type, length, exponent = None).
+    The user can also add an input table by setting the parameter 
+    distribution_options['type'] = 'user_input_table', 
+    distribution_options['user_table_action'] = array of action (in H or in J)
+    and distribution_options['user_table_density']*
     '''
     
     if not distribution_options.has_key('exponent'):  
@@ -398,14 +402,20 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
                 H0 = X0
         
         # Computing the density grid
-        if density_variable_option is 'density_from_J':
-            if distribution_options.has_key('emittance'):
-                J0 = distribution_options['emittance']/ (2*np.pi)
-            density_grid = distribution_density_function(J_grid, distribution_options['type'], J0, distribution_options['exponent'])
-        elif density_variable_option is 'density_from_H':
-            if distribution_options.has_key('emittance'):
-                H0 = np.interp(distribution_options['emittance'] / (2*np.pi), sorted_J_dE0, sorted_H_dE0)
-            density_grid = distribution_density_function(H_grid, distribution_options['type'], H0, distribution_options['exponent'])
+        if distribution_options['type'] is not 'user_input_table':
+            if density_variable_option is 'density_from_J':
+                if distribution_options.has_key('emittance'):
+                    J0 = distribution_options['emittance']/ (2*np.pi)
+                density_grid = distribution_density_function(J_grid, distribution_options['type'], J0, distribution_options['exponent'])
+            elif density_variable_option is 'density_from_H':
+                if distribution_options.has_key('emittance'):
+                    H0 = np.interp(distribution_options['emittance'] / (2*np.pi), sorted_J_dE0, sorted_H_dE0)
+                density_grid = distribution_density_function(H_grid, distribution_options['type'], H0, distribution_options['exponent'])
+        else:
+            if density_variable_option is 'density_from_J':
+                density_grid = np.interp(J_grid, distribution_options['user_table_action'], distribution_options['user_table_density'])
+            elif density_variable_option is 'density_from_H':
+                density_grid = np.interp(H_grid, distribution_options['user_table_action'], distribution_options['user_table_density'])
         
         # Normalizing the grid
         density_grid = density_grid / np.sum(density_grid)
