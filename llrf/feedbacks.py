@@ -13,7 +13,7 @@ import numpy as np
 class LHCNoiseFB(object): 
     
     # Feedback based on bunch length, acting on phase noise used for blow-up 
-    def __init__(self, bl_target, gain=0.1, factor=0.64, dt_update = 100, 
+    def __init__(self, bl_target, gain=0.1, factor=0.64, bl_update = 100, 
                  self_statistics=False ):
 
         self.x = 1 # multiplication factor; initially 1
@@ -21,7 +21,7 @@ class LHCNoiseFB(object):
         self.bl_meas = bl_target # set initial value for measured bunch length
         self.g = gain # in inverse-turns
         self.a = factor
-        self.dt = dt_update # update frequency, in turns
+        self.dt = bl_update # bunch length update frequency, in turns
         self.self_stat = self_statistics # using external/internal statistics
        
 
