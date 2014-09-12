@@ -158,8 +158,8 @@ def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
 
 
 
-def plot_bunch_length_evol(beam, h5file, General_parameters, time_step, 
-                           unit = None, dirname = 'fig'):
+def plot_bunch_length_evol(beam, h5file, General_parameters, 
+                           output_freq = 1, unit = None, dirname = 'fig'):
     """
     Plot of r.m.s. 4-sigma bunch length as a function of time.
     Choice of units: unit = rad, ns, m.
@@ -169,7 +169,7 @@ def plot_bunch_length_evol(beam, h5file, General_parameters, time_step,
     fig_folder(dirname)
 
     # Get bunch length data in metres or nanoseconds
-    t = range(time_step)
+    t = output_freq*range(1, General_parameters.n_turns + 1)
     
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/sigma_theta"], dtype = np.double)
@@ -186,7 +186,7 @@ def plot_bunch_length_evol(beam, h5file, General_parameters, time_step,
     # Plot
     plt.figure(1, figsize=(8,6))
     ax = plt.axes([0.12, 0.1, 0.82, 0.8])
-    ax.plot(t, bl[0:time_step], '.')
+    ax.plot(t, bl[0:General_parameters.n_turns], '.')
     ax.set_xlabel(r"No. turns [T$_0$]")
     if unit == None or unit == 'rad':
         ax.set_ylabel (r"Bunch length, $\vartheta_{4\sigma}$ r.m.s. [rad]")
@@ -204,7 +204,8 @@ def plot_bunch_length_evol(beam, h5file, General_parameters, time_step,
 
 
 def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices, 
-                                    time_step, unit = None, dirname = 'fig'):
+                                    output_freq = 1, unit = None,
+                                    dirname = 'fig'):
 
     """
     Plot of Gaussian 4-sigma bunch length as a function of time; requires slices.
@@ -215,7 +216,7 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices,
     fig_folder(dirname)
 
     # Get bunch length data in metres or nanoseconds
-    t = range(time_step) 
+    t = output_freq*range(1, General_parameters.n_turns + 1) 
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/bunch_length_gauss_theta"], dtype=np.double)
 
@@ -243,7 +244,7 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices,
     # Plot
     plt.figure(1, figsize=(8,6))
     ax = plt.axes([0.12, 0.1, 0.82, 0.8])
-    ax.plot(t, bl[0:time_step], '.')
+    ax.plot(t, bl[0:General_parameters.n_turns], '.')
     ax.set_xlabel(r"No. turns [T$_0$]")
     if unit == None or unit == 'rad':
         ax.set_ylabel (r"Bunch length, $\vartheta_{4\sigma}$ Gaussian fit [rad]")
@@ -260,13 +261,15 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices,
 
 
 
-def plot_position_evol(counter, beam, h5file, General_parameters, unit = None, style = '-', dirname = 'fig'): 
+def plot_position_evol(counter, beam, h5file, General_parameters, 
+                       output_freq = 1, unit = None, style = '-', 
+                       dirname = 'fig'): 
  
     # Directory where longitudinal_plots will be stored 
     fig_folder(dirname) 
  
     # Get position data in metres or nanoseconds 
-    t = range(1, General_parameters.n_turns + 1) 
+    t = output_freq*range(1, General_parameters.n_turns + 1) 
      
     storeddata = h5py.File(h5file + '.h5', 'r') 
     pos = np.array(storeddata["/Bunch/mean_theta"], dtype = np.double) 

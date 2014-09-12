@@ -42,7 +42,8 @@ dt_plt = 200         # Time steps between plots
 # Pre-processing: RF phase noise -----------------------------------------------
 f = np.arange(0, 5.6227612455e+03, 1.12455000e-02)
 spectrum = np.concatenate((1.11100000e-07 * np.ones(4980), np.zeros(495021)))
-noise_t, noise_dphi = PhaseNoise(f, spectrum, seed1=1234, seed2=7564).spectrum_to_phase_noise()
+RFnoise = PhaseNoise(f, spectrum, seed1=1234, seed2=7564)
+RFnoise.spectrum_to_phase_noise()
 
 # Hermitian vs complex FFT (gives the same result)
 # plot_noise_spectrum(f, spectrum, sampling=100)
@@ -62,10 +63,10 @@ noise_t, noise_dphi = PhaseNoise(f, spectrum, seed1=1234, seed2=7564).spectrum_t
 # os.rename('temp/phase_noise.png', 'temp/phase_noise_c.png')
 
 plot_noise_spectrum(f, spectrum, sampling=100)
-plot_phase_noise(noise_t, noise_dphi, sampling=100)
-#plot_phase_noise(noise_t[0:10000], noise_dphi[0:10000], sampling=1)
-print "   Sigma of RF noise is %.4e" %np.std(noise_dphi)
-print "   Time step of RF noise is %.4e" %noise_t[1]
+plot_phase_noise(RFnoise.t, RFnoise.dphi, sampling=100)
+#plot_phase_noise(RFnoise.t[0:10000], RFnoise.dphi[0:10000], sampling=1)
+print "   Sigma of RF noise is %.4e" %np.std(RFnoise.dphi)
+print "   Time step of RF noise is %.4e" %RFnoise.t[1]
 print ""
 
 
@@ -78,7 +79,7 @@ general_params = GeneralParameters(N_t, C, alpha, p_s,
                                    'proton')
 
 # Define RF station parameters and corresponding tracker
-rf_params = RFSectionParameters(general_params, 1, h, V, dphi)
+rf_params = RFSectionParameters(general_params, 1, h, V, RFnoise.dphi)
 long_tracker = RingAndRFSection(rf_params)
 
 print "General and RF parameters set..."
