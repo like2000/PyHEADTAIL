@@ -13,7 +13,6 @@ from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from slices import Slices
 from scipy.integrate import cumtrapz
-from statsmodels.sandbox.regression.kernridgeregress_class import plt_closeall
 
 
 def matched_from_line_density(Beam, FullRingAndRF, line_density_options, 
