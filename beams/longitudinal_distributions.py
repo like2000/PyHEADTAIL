@@ -139,69 +139,91 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
             theta_induced_voltage = np.linspace(theta_line_den[0], theta_line_den[0] + (induced_voltage_length - 1) * line_den_resolution, induced_voltage_length)           
             
     # Taking the first/second half of line density and potential
-    if half_option is 'first':
-        half_indexes = np.where((theta_line_den >= theta_line_den[0]) * (theta_line_den <= max_profile_pos))
-    if half_option is 'second':
-        half_indexes = np.where((theta_line_den >= max_profile_pos) * (theta_line_den <= theta_line_den[-1]))
-    
-    line_den_half = line_density[half_indexes]
-    theta_coord_half = theta_line_den[half_indexes]
-    potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
-    potential_half = potential_half - np.min(potential_half)
-
-    # Derivative of the line density
-    line_den_diff = np.diff(line_den_half) / (theta_coord_half[1] - theta_coord_half[0])
-    
-    theta_line_den_diff = theta_coord_half[:-1] + (theta_coord_half[1] - theta_coord_half[0]) / 2
-    line_den_diff = np.interp(theta_coord_half, theta_line_den_diff, line_den_diff, left = 0, right = 0)
-
-    # Interpolating the line density derivative and potential well for Abel transform
     n_points_abel = int(1e4)
-    theta_abel = np.linspace(theta_coord_half[0], theta_coord_half[-1], n_points_abel)
-    line_den_diff_abel = np.interp(theta_abel, theta_coord_half, line_den_diff)
-    potential_abel = np.interp(theta_abel, theta_coord_half, potential_half)
     
-    density_function = np.zeros(n_points_abel)
-    hamiltonian_coord = np.zeros(n_points_abel) 
+    abel_both_step = 1
+    if half_option is 'both':
+        abel_both_step = 2
+        density_function_average = np.zeros((n_points_abel,2))
+        hamiltonian_average = np.zeros((n_points_abel,2))
+        
+    for abel_index in range(0, abel_both_step):
+
+        if half_option is 'first':
+            half_indexes = np.where((theta_line_den >= theta_line_den[0]) * (theta_line_den <= max_profile_pos))
+        if half_option is 'second':
+            half_indexes = np.where((theta_line_den >= max_profile_pos) * (theta_line_den <= theta_line_den[-1]))
+        if half_option is 'both' and abel_index == 0:
+            half_indexes = np.where((theta_line_den >= theta_line_den[0]) * (theta_line_den <= max_profile_pos))
+        if half_option is 'both' and abel_index == 1:
+            half_indexes = np.where((theta_line_den >= max_profile_pos) * (theta_line_den <= theta_line_den[-1]))
+        
+        line_den_half = line_density[half_indexes]
+        theta_coord_half = theta_line_den[half_indexes]
+        potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
+        potential_half = potential_half - np.min(potential_half)
     
-    # Abel transform
-    warnings.filterwarnings("ignore")
+        # Derivative of the line density
+        line_den_diff = np.diff(line_den_half) / (theta_coord_half[1] - theta_coord_half[0])
+        
+        theta_line_den_diff = theta_coord_half[:-1] + (theta_coord_half[1] - theta_coord_half[0]) / 2
+        line_den_diff = np.interp(theta_coord_half, theta_line_den_diff, line_den_diff, left = 0, right = 0)
     
-    if half_option is 'first':
-        for i in range(0, n_points_abel):
-            integrand = line_den_diff_abel[0:i+1] / np.sqrt(potential_abel[0:i+1] - potential_abel[i])
+        # Interpolating the line density derivative and potential well for Abel transform
+        theta_abel = np.linspace(theta_coord_half[0], theta_coord_half[-1], n_points_abel)
+        line_den_diff_abel = np.interp(theta_abel, theta_coord_half, line_den_diff)
+        potential_abel = np.interp(theta_abel, theta_coord_half, potential_half)
+        
+        density_function = np.zeros(n_points_abel)
+        hamiltonian_coord = np.zeros(n_points_abel) 
+        
+        # Abel transform
+        warnings.filterwarnings("ignore")
+        
+        if (half_option is 'first') or (half_option is 'both' and abel_index == 0):
+            for i in range(0, n_points_abel):
+                integrand = line_den_diff_abel[0:i+1] / np.sqrt(potential_abel[0:i+1] - potential_abel[i])
+                        
+                if len(integrand)>2:
+                    integrand[-1] = integrand[-2] + (integrand[-2] - integrand[-3])
+                elif len(integrand)>1:
+                    integrand[-1] = integrand[-2]
+                else:
+                    integrand = np.array([0])
                     
-            if len(integrand)>2:
-                integrand[-1] = integrand[-2] + (integrand[-2] - integrand[-3])
-            elif len(integrand)>1:
-                integrand[-1] = integrand[-2]
-            else:
-                integrand = np.array([0])
+                density_function[i] = np.sqrt(eom_factor_dE) / np.pi * np.trapz(integrand, dx = theta_coord_half[1] - theta_coord_half[0])
+        
+                hamiltonian_coord[i] = potential_abel[i]
                 
-            density_function[i] = np.sqrt(eom_factor_dE) / np.pi * np.trapz(integrand, dx = theta_coord_half[1] - theta_coord_half[0])
+        if (half_option is 'second') or (half_option is 'both' and abel_index == 1):
+            for i in range(0, n_points_abel):
+                integrand = line_den_diff_abel[i:] / np.sqrt(potential_abel[i:] - potential_abel[i])
     
-            hamiltonian_coord[i] = potential_abel[i]
+                if len(integrand)>2:
+                    integrand[0] = integrand[1] + (integrand[2] - integrand[1])
+                if len(integrand)>1:
+                    integrand[0] = integrand[1]
+                else:
+                    integrand = np.array([0])
+    
+                density_function[i] = - np.sqrt(eom_factor_dE) / np.pi * np.trapz(integrand, dx = theta_coord_half[1] - theta_coord_half[0])
+                hamiltonian_coord[i] = potential_abel[i]
+        
+        warnings.filterwarnings("default")
+    
+        # Cleaning the density function from unphysical results
+        density_function[np.isnan(density_function)] = 0
+        density_function[density_function<0] = 0
+        
+        if half_option is 'both':
+            hamiltonian_average[:,abel_index] = hamiltonian_coord
+            density_function_average[:,abel_index] = density_function
             
-    if half_option is 'second':
-        for i in range(0, n_points_abel):
-            integrand = line_den_diff_abel[i:] / np.sqrt(potential_abel[i:] - potential_abel[i])
-
-            if len(integrand)>2:
-                integrand[0] = integrand[1] + (integrand[2] - integrand[1])
-            if len(integrand)>1:
-                integrand[0] = integrand[1]
-            else:
-                integrand = np.array([0])
-
-            density_function[i] = - np.sqrt(eom_factor_dE) / np.pi * np.trapz(integrand, dx = theta_coord_half[1] - theta_coord_half[0])
-            hamiltonian_coord[i] = potential_abel[i]
-    
-    warnings.filterwarnings("default")
-
-    # Cleaning the density function from unphysical results
-    density_function[np.isnan(density_function)] = 0
-    density_function[density_function<0] = 0
-    
+            
+    if half_option is 'both':
+        hamiltonian_coord = hamiltonian_average[:,0]
+        density_function = (density_function_average[:,0] + np.interp(hamiltonian_coord, hamiltonian_average[:,1], density_function_average[:,1])) / 2
+        
     # Compute deltaE frame corresponding to the separatrix
     max_potential = np.max(potential_half)
     max_deltaE = np.sqrt(max_potential / eom_factor_dE)
