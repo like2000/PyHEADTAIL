@@ -17,7 +17,7 @@ from longitudinal_plots.plot_slices import *
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
 N_b = 1.e9           # Intensity
-N_p = 10001          # Macro-particles
+N_p = 500000         # Macro-particles
 tau_0 = 0.4          # Initial bunch length, 4 sigma [ns]
 
 # Machine and RF parameters
@@ -31,8 +31,8 @@ gamma_t = 55.759505  # Transition gamma
 alpha = 1./gamma_t/gamma_t        # First order mom. comp. factor
 
 # Tracking details
-N_t = 2001           # Number of turns to track
-dt_plt = 200         # Time steps between plots
+N_t = 1000           # Number of turns to track
+dt_plt = 200       # Time steps between plots
 
 
 
@@ -42,7 +42,7 @@ print ""
 
 
 # Define general parameters
-general_params = GeneralParameters(N_t, C, alpha, np.linspace(p_i, p_f, 2002), 
+general_params = GeneralParameters(N_t, C, alpha, p_i, 
                                    'proton')
 
 # Define RF station parameters and corresponding tracker
@@ -94,7 +94,7 @@ for i in range(N_t):
         print "   Gaussian bunch length %.4e rad" %beam.bl_gauss
         print ""
         # In plots, you can choose following units: rad, ns, m  
-        plot_long_phase_space(beam, general_params, rf_params, 0, 0.0001763, -450, 450, separatrix_plot = True)
+        plot_long_phase_space(beam, general_params, rf_params, 0, 0.0001763, -400, 400, separatrix_plot = True)
 
     # Track
     for m in map_:

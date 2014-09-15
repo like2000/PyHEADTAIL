@@ -51,7 +51,7 @@ class RFSectionParameters(object):
         
         #: | *Counter to keep track of time step (used in momentum and voltage)*
         #: | *Definined as a list in order to be passed by reference.*
-        self.counter = [-1]
+        self.counter = [0]
                 
         #: | *Index of the RF section -- has to be unique*
         #: | *Counter for RF section is:* :math:`k`

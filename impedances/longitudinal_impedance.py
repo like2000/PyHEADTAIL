@@ -160,7 +160,7 @@ class InducedVoltageTime(object):
         if isinstance(length, int):
             max_length = len(induced_voltage)
             if length > max_length:
-                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+                induced_voltage = np.lib.pad(induced_voltage, (0,length - max_length), 'constant', constant_values=(0,0))
             return induced_voltage[0:length]
         
             
@@ -321,7 +321,7 @@ class InducedVoltageFreq(object):
         if isinstance(length, int):
             max_length = len(induced_voltage)
             if length > max_length:
-                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+                induced_voltage = np.lib.pad(induced_voltage, (0, length-max_length), 'constant', constant_values=(0,0))
             return induced_voltage[0:length]
     
     
@@ -344,7 +344,7 @@ class InductiveImpedance(object):
     in the calculation of n=f/f0 is changing (general_params as input ?).*
     '''
     
-    def __init__(self, Slices, Z_over_n, revolution_frequency, calc_domain = 'time', deriv_mode = 'filter1d'):
+    def __init__(self, Slices, Z_over_n, revolution_frequency, calc_domain = 'time', deriv_mode = 'gradient'):
         
         #: *Copy of the Slices object in order to access the profile info.*
         self.slices = Slices
@@ -409,11 +409,13 @@ class InductiveImpedance(object):
 #             self.slices.beam_spectrum_generation(self.n_fft_sampling, filter_option = None)
 #             self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
 #             self.induced_voltage = self.induced_voltage[0:self.slices.n_slices]
-
+        
+        self.induced_voltage = induced_voltage[0:self.slices.n_slices]
+        
         if isinstance(length, int):
             max_length = len(induced_voltage)
             if length > max_length:
-                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+                induced_voltage = np.lib.pad(self.induced_voltage, (0,length - max_length), 'constant', constant_values=(0,0))
             return induced_voltage[0:length]
                             
                             
@@ -451,18 +453,18 @@ class InputTable(object):
             self.wake_array = input_2
         else:
             #: *Frequency array of the impedance in [Hz]*
-            self.frequency_array_loaded = input_1
+            self.frequency_array = input_1
             #: *Real part of impedance in* [:math:`\Omega`]
-            self.Re_Z_array_loaded = input_2
+            self.Re_Z_array = input_2
             #: *Imaginary part of impedance in* [:math:`\Omega`]
-            self.Im_Z_array_loaded = input_3
+            self.Im_Z_array = input_3
             #: *Impedance array in* [:math:`\Omega`]
-            self.impedance_loaded = self.Re_Z_array_loaded + 1j * self.Im_Z_array_loaded
+            self.impedance = self.Re_Z_array + 1j * self.Im_Z_array
             
-            if self.frequency_array_loaded[0] != 0:
-                self.frequency_array_loaded = np.hstack((0, self.frequency_array_loaded))
-                self.Re_Z_array_loaded = np.hstack((0, self.Re_Z_array_loaded))
-                self.Im_Z_array_loaded = np.hstack((0, self.Im_Z_array_loaded))
+            if self.frequency_array[0] != 0:
+                self.frequency_array = np.hstack((0, self.frequency_array))
+                self.Re_Z_array = np.hstack((0, self.Re_Z_array))
+                self.Im_Z_array = np.hstack((0, self.Im_Z_array))
     
     
     def wake_calc(self, new_time_array):
@@ -482,9 +484,9 @@ class InputTable(object):
         array.*
         '''
 
-        Re_Z = np.interp(new_frequency_array, self.frequency_array_loaded, self.Re_Z_array_loaded, 
+        Re_Z = np.interp(new_frequency_array, self.frequency_array, self.Re_Z_array, 
                       right = 0)
-        Im_Z = np.interp(new_frequency_array, self.frequency_array_loaded, self.Im_Z_array_loaded, 
+        Im_Z = np.interp(new_frequency_array, self.frequency_array, self.Im_Z_array, 
                       right = 0)
         self.frequency_array = new_frequency_array
         self.Re_Z_array = Re_Z
