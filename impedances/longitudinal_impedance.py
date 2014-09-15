@@ -409,11 +409,13 @@ class InductiveImpedance(object):
 #             self.slices.beam_spectrum_generation(self.n_fft_sampling, filter_option = None)
 #             self.induced_voltage = - Beam.charge * Beam.intensity / Beam.n_macroparticles * irfft(self.impedance * self.slices.beam_spectrum) * self.slices.beam_spectrum_freq[1] * 2*(len(self.slices.beam_spectrum)-1) 
 #             self.induced_voltage = self.induced_voltage[0:self.slices.n_slices]
-
+        
+        self.induced_voltage = induced_voltage[0:self.slices.n_slices]
+        
         if isinstance(length, int):
             max_length = len(induced_voltage)
             if length > max_length:
-                induced_voltage = np.lib.pad(induced_voltage, (0,max_length - length), 'constant', constant_values=(0,0))
+                induced_voltage = np.lib.pad(self.induced_voltage, (0,length - max_length), 'constant', constant_values=(0,0))
             return induced_voltage[0:length]
                             
                             
