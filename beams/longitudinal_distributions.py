@@ -8,6 +8,7 @@ from __future__ import division
 import numpy as np
 import warnings
 import copy
+import matplotlib.pyplot as plt
 from scipy.constants import c
 from trackers.longitudinal_utilities import is_in_separatrix
 from slices import Slices
@@ -16,7 +17,8 @@ from scipy.integrate import cumtrapz
 
 def matched_from_line_density(Beam, FullRingAndRF, line_density_options, 
                               main_harmonic_option = 'lowest_freq', 
-                              TotalInducedVoltage = None):
+                              TotalInducedVoltage = None,
+                              plot_option = False, half_option = 'first'):
     '''
     *Function to generate a beam by inputing the line density. The distribution
     density is then reconstructed with the Abel transform and the particles
@@ -52,6 +54,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
         
         line_density = line_density / np.sum(line_density) * Beam.n_macroparticles
         line_density = line_density - np.min(line_density)
+
     elif line_density_options['type'] is 'user_input':
         # Theta coordinates for the line density
         theta_line_den = line_density_options['theta_line_den']
@@ -102,7 +105,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
         if TotalInducedVoltage is not None:
             # Interpolating the potential well
             induced_potential_final = np.interp(theta_coord_array, theta_induced_voltage, induced_potential)
-        
+            
         # Induced voltage contribution
         total_potential = potential_well_array + induced_potential_final
         
@@ -111,7 +114,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
         
         minmax_positions_potential, minmax_values_potential = minmax_location(theta_coord_sep, potential_well_sep)
         minmax_positions_profile, minmax_values_profile = minmax_location(theta_line_den[line_density != 0], line_density[line_density != 0])
-        
+
         n_minima_potential = len(minmax_positions_potential[0])
         n_maxima_profile = len(minmax_positions_profile[1])
         
@@ -121,68 +124,106 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
             max_profile_pos = minmax_positions_profile[1][np.where(minmax_values_profile[1] == np.max(minmax_values_profile[1]))]
         else:
             max_profile_pos = minmax_positions_profile[1]
-            
         if n_minima_potential > 1:
             print 'Warning: the potential well has serveral min, the deepest one is taken. The induced potential is probably splitting the potential well.'
             min_potential_pos = minmax_positions_potential[0][np.where(minmax_values_potential[0] == np.min(minmax_values_potential[0]))]
         else:
             min_potential_pos = minmax_positions_potential[0]
-            max_profile_pos = minmax_positions_profile[1][0]
         
         # Moving the bunch (not for the last iteration if intensity effects are present)
         if TotalInducedVoltage is None:
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
             max_profile_pos = max_profile_pos - (max_profile_pos - min_potential_pos)
-            
         if i != n_iterations - 1:
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
             theta_induced_voltage = np.linspace(theta_line_den[0], theta_line_den[0] + (induced_voltage_length - 1) * line_den_resolution, induced_voltage_length)           
+            
+    # Taking the first/second half of line density and potential
+    n_points_abel = int(1e4)
+    
+    abel_both_step = 1
+    if half_option is 'both':
+        abel_both_step = 2
+        density_function_average = np.zeros((n_points_abel,2))
+        hamiltonian_average = np.zeros((n_points_abel,2))
         
-        
-    # Normalizing line density
-    line_density_norm = line_density / np.trapz(line_density) / line_den_resolution
+    for abel_index in range(0, abel_both_step):
 
-    # Taking the first half of line density and potential inside separatrix
-    line_den_half = line_density_norm[np.where((theta_line_den > theta_line_den[0]) * (theta_line_den < max_profile_pos))]
-    n_points_abel = len(line_den_half)
-    theta_coord_half = np.linspace(theta_line_den[0], max_profile_pos, n_points_abel)
-    potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
-    potential_half = potential_half - np.min(potential_half)
-     
-    # Derivative of the line density
-    line_den_diff = np.diff(line_den_half) / (theta_coord_half[1] - theta_coord_half[0])
-    
-    theta_line_den_diff = theta_coord_half[:-1] + (theta_coord_half[1] - theta_coord_half[0]) / 2
-    line_den_diff = np.interp(theta_coord_half, theta_line_den_diff, line_den_diff, left = 0, right = 0) 
-    
-    # Abel transform
-    k = 0
-    density_function = np.zeros(n_points_abel)
-    hamiltonian_coord = np.zeros(n_points_abel) 
-    
-    warnings.filterwarnings("ignore")
-    
-    for i in xrange(n_points_abel,0,-1):
-        integrand = line_den_diff[0:i] / np.sqrt(potential_half[0:i] - potential_half[i-1])
+        if half_option is 'first':
+            half_indexes = np.where((theta_line_den >= theta_line_den[0]) * (theta_line_den <= max_profile_pos))
+        if half_option is 'second':
+            half_indexes = np.where((theta_line_den >= max_profile_pos) * (theta_line_den <= theta_line_den[-1]))
+        if half_option is 'both' and abel_index == 0:
+            half_indexes = np.where((theta_line_den >= theta_line_den[0]) * (theta_line_den <= max_profile_pos))
+        if half_option is 'both' and abel_index == 1:
+            half_indexes = np.where((theta_line_den >= max_profile_pos) * (theta_line_den <= theta_line_den[-1]))
         
-        if len(integrand)>1:
-            integrand[-1] = integrand[-2]
-        else:
-            integrand[-1] = 0
-          
-        primitive = - np.insert(cumtrapz(integrand, dx=theta_line_den_diff[1]-theta_line_den_diff[0]),0,0)
-
-        density_function[k] = - np.sqrt(eom_factor_dE/2) / np.pi * (primitive[-1] - primitive[0])
-          
-        hamiltonian_coord[k] = potential_half[i-1]
-          
-        k = k+1
-        
-    warnings.filterwarnings("default")
-        
-    density_function[density_function<0] = 0
-    density_function[np.isnan(density_function)] = 0
+        line_den_half = line_density[half_indexes]
+        theta_coord_half = theta_line_den[half_indexes]
+        potential_half = np.interp(theta_coord_half, theta_coord_sep, potential_well_sep)
+        potential_half = potential_half - np.min(potential_half)
     
+        # Derivative of the line density
+        line_den_diff = np.diff(line_den_half) / (theta_coord_half[1] - theta_coord_half[0])
+        
+        theta_line_den_diff = theta_coord_half[:-1] + (theta_coord_half[1] - theta_coord_half[0]) / 2
+        line_den_diff = np.interp(theta_coord_half, theta_line_den_diff, line_den_diff, left = 0, right = 0)
+    
+        # Interpolating the line density derivative and potential well for Abel transform
+        theta_abel = np.linspace(theta_coord_half[0], theta_coord_half[-1], n_points_abel)
+        line_den_diff_abel = np.interp(theta_abel, theta_coord_half, line_den_diff)
+        potential_abel = np.interp(theta_abel, theta_coord_half, potential_half)
+        
+        density_function = np.zeros(n_points_abel)
+        hamiltonian_coord = np.zeros(n_points_abel) 
+        
+        # Abel transform
+        warnings.filterwarnings("ignore")
+        
+        if (half_option is 'first') or (half_option is 'both' and abel_index == 0):
+            for i in range(0, n_points_abel):
+                integrand = line_den_diff_abel[0:i+1] / np.sqrt(potential_abel[0:i+1] - potential_abel[i])
+                        
+                if len(integrand)>2:
+                    integrand[-1] = integrand[-2] + (integrand[-2] - integrand[-3])
+                elif len(integrand)>1:
+                    integrand[-1] = integrand[-2]
+                else:
+                    integrand = np.array([0])
+                    
+                density_function[i] = np.sqrt(eom_factor_dE) / np.pi * np.trapz(integrand, dx = theta_coord_half[1] - theta_coord_half[0])
+        
+                hamiltonian_coord[i] = potential_abel[i]
+                
+        if (half_option is 'second') or (half_option is 'both' and abel_index == 1):
+            for i in range(0, n_points_abel):
+                integrand = line_den_diff_abel[i:] / np.sqrt(potential_abel[i:] - potential_abel[i])
+    
+                if len(integrand)>2:
+                    integrand[0] = integrand[1] + (integrand[2] - integrand[1])
+                if len(integrand)>1:
+                    integrand[0] = integrand[1]
+                else:
+                    integrand = np.array([0])
+    
+                density_function[i] = - np.sqrt(eom_factor_dE) / np.pi * np.trapz(integrand, dx = theta_coord_half[1] - theta_coord_half[0])
+                hamiltonian_coord[i] = potential_abel[i]
+        
+        warnings.filterwarnings("default")
+    
+        # Cleaning the density function from unphysical results
+        density_function[np.isnan(density_function)] = 0
+        density_function[density_function<0] = 0
+        
+        if half_option is 'both':
+            hamiltonian_average[:,abel_index] = hamiltonian_coord
+            density_function_average[:,abel_index] = density_function
+            
+            
+    if half_option is 'both':
+        hamiltonian_coord = hamiltonian_average[:,0]
+        density_function = (density_function_average[:,0] + np.interp(hamiltonian_coord, hamiltonian_average[:,1], density_function_average[:,1])) / 2
+        
     # Compute deltaE frame corresponding to the separatrix
     max_potential = np.max(potential_half)
     max_deltaE = np.sqrt(max_potential / eom_factor_dE)
@@ -190,28 +231,43 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     # Initializing the grids by reducing the resolution to a 
     # n_points_grid*n_points_grid frame.
     n_points_grid = int(1e3)
-    grid_indexes = np.arange(0,n_points_grid) * n_points_potential / n_points_grid
-    potential_well_indexes = np.arange(0, len(potential_well_sep))
+    grid_indexes = np.arange(0,n_points_grid) * len(theta_line_den) / n_points_grid
+    theta_coord_indexes = np.arange(0, len(theta_line_den))
+    theta_coord_for_grid = np.interp(grid_indexes, theta_coord_indexes, theta_line_den)
     deltaE_for_grid = np.linspace(-max_deltaE, max_deltaE, n_points_grid)
-    potential_well_for_grid = np.interp(grid_indexes, potential_well_indexes, potential_well_sep)
+    potential_well_for_grid = np.interp(theta_coord_for_grid, theta_coord_sep, potential_well_sep)
     potential_well_for_grid = potential_well_for_grid - np.min(potential_well_for_grid)
-    theta_coord_for_grid = np.interp(grid_indexes, potential_well_indexes, theta_coord_sep)
+    
     theta_grid, deltaE_grid = np.meshgrid(theta_coord_for_grid, deltaE_for_grid)
     potential_well_grid = np.meshgrid(potential_well_for_grid, potential_well_for_grid)[0]
     
     hamiltonian_grid = eom_factor_dE * deltaE_grid**2 + potential_well_grid
 
+    # Sort the density function and generate the density grid
+    hamiltonian_argsort = np.argsort(hamiltonian_coord)
+    hamiltonian_coord = hamiltonian_coord.take(hamiltonian_argsort)
+    density_function = density_function.take(hamiltonian_argsort)
     density_grid = np.interp(hamiltonian_grid, hamiltonian_coord, density_function)
     
     # Normalizing density
     density_grid = density_grid / np.sum(density_grid)
     
+    # Ploting the result
+    if plot_option:
+        plt.figure()
+        plt.plot(theta_line_den, line_density)
+        reconstructed_line_den = np.sum(density_grid, axis=0)
+        plt.plot(theta_coord_for_grid, reconstructed_line_den / np.max(reconstructed_line_den) * np.max(line_density))
+        plt.title('Line densities')
+        plt.show()
+    
     # Populating the bunch
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
     Beam.theta = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_for_grid[1]-theta_coord_for_grid[0])
     Beam.dE = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_for_grid[1]-deltaE_for_grid[0])
+    
+    return [hamiltonian_coord, density_function] 
 
-    return [hamiltonian_coord, density_function]
 
 def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
                                       main_harmonic_option = 'lowest_freq', 
@@ -234,7 +290,11 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     The user can input a custom distribution function by setting the parameter
     distribution_options['type'] = 'user_input' and passing the function in the
     parameter distribution_options['function'], with the following definition:
-    distribution_density_function(action_array, dist_type, length, exponent = None)*
+    distribution_density_function(action_array, dist_type, length, exponent = None).
+    The user can also add an input table by setting the parameter 
+    distribution_options['type'] = 'user_input_table', 
+    distribution_options['user_table_action'] = array of action (in H or in J)
+    and distribution_options['user_table_density']*
     '''
     
     if not distribution_options.has_key('exponent'):  
@@ -389,14 +449,20 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
                 H0 = X0
         
         # Computing the density grid
-        if density_variable_option is 'density_from_J':
-            if distribution_options.has_key('emittance'):
-                J0 = distribution_options['emittance']/ (2*np.pi)
-            density_grid = distribution_density_function(J_grid, distribution_options['type'], J0, distribution_options['exponent'])
-        elif density_variable_option is 'density_from_H':
-            if distribution_options.has_key('emittance'):
-                H0 = np.interp(distribution_options['emittance'] / (2*np.pi), sorted_J_dE0, sorted_H_dE0)
-            density_grid = distribution_density_function(H_grid, distribution_options['type'], H0, distribution_options['exponent'])
+        if distribution_options['type'] is not 'user_input_table':
+            if density_variable_option is 'density_from_J':
+                if distribution_options.has_key('emittance'):
+                    J0 = distribution_options['emittance']/ (2*np.pi)
+                density_grid = distribution_density_function(J_grid, distribution_options['type'], J0, distribution_options['exponent'])
+            elif density_variable_option is 'density_from_H':
+                if distribution_options.has_key('emittance'):
+                    H0 = np.interp(distribution_options['emittance'] / (2*np.pi), sorted_J_dE0, sorted_H_dE0)
+                density_grid = distribution_density_function(H_grid, distribution_options['type'], H0, distribution_options['exponent'])
+        else:
+            if density_variable_option is 'density_from_J':
+                density_grid = np.interp(J_grid, distribution_options['user_table_action'], distribution_options['user_table_density'])
+            elif density_variable_option is 'density_from_H':
+                density_grid = np.interp(H_grid, distribution_options['user_table_action'], distribution_options['user_table_density'])
         
         # Normalizing the grid
         density_grid = density_grid / np.sum(density_grid)
@@ -428,7 +494,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
             # Calculating the induced potential
             induced_potential_low_res = - eom_factor_potential * np.insert(cumtrapz(induced_voltage, dx=theta_induced_voltage[1]-theta_induced_voltage[0]),0,0)
             induced_potential = np.interp(theta_coord_array, theta_induced_voltage, induced_potential_low_res)
-            
+    
      
     # Populating the bunch
     indexes = np.random.choice(range(0,np.size(density_grid)), Beam.n_macroparticles, p=density_grid.flatten())
@@ -502,10 +568,15 @@ def minmax_location(x,f):
     '''
     
     f_derivative = np.diff(f)
+    x_derivative = x[0:-1] + (x[1]-x[0])/2
+    f_derivative = np.interp(x, x_derivative,f_derivative)
+    
     f_derivative_second = np.diff(f_derivative)
+    f_derivative_second = np.interp(x, x_derivative,f_derivative_second)
     
     warnings.filterwarnings("ignore")
-    f_derivative_zeros = np.append(np.where(f_derivative == 0), np.where(f_derivative[1:]/f_derivative[0:-1] < 0))
+    f_derivative_zeros = np.unique(np.append(np.where(f_derivative == 0), np.where(f_derivative[1:]/f_derivative[0:-1] < 0)))
+        
     min_x_position = (x[f_derivative_zeros[f_derivative_second[f_derivative_zeros]>0] + 1] + x[f_derivative_zeros[f_derivative_second[f_derivative_zeros]>0]])/2
     max_x_position = (x[f_derivative_zeros[f_derivative_second[f_derivative_zeros]<0] + 1] + x[f_derivative_zeros[f_derivative_second[f_derivative_zeros]<0]])/2
     

@@ -65,7 +65,7 @@ def plot_beam_profile(counter, general_params, slices, style = '-',
     # Save plot
     fign = dirname +'/beam_profile_' "%d" %counter + '.png'
     plt.savefig(fign)
-    plt.clf()
+    plt.close()
 
 
 
@@ -89,7 +89,7 @@ def plot_beam_profile_derivative(counter, general_params, slices, style = '-',
         plt.plot(x3, derivative3, style)
     fign = dirname +'/beam_profile_derivative_' "%d" %counter + '.png'
     plt.savefig(fign)
-    plt.clf()
+    plt.close()
          
     
 

@@ -57,7 +57,7 @@ def plot_noise_spectrum(frequency, spectrum, sampling = 1, dirname = 'fig'):
     ax.set_ylabel (r"Noise spectrum [$\frac{rad^2}{Hz}$]")
     fign = dirname +'/noise_spectrum.png'
     plt.savefig(fign)
-    plt.clf()
+    plt.close()
     
     
     
@@ -79,7 +79,7 @@ def plot_phase_noise(time, dphi, sampling = 1, dirname = 'fig'):
     ax.set_ylabel (r"Phase noise [rad]")
     fign = dirname +'/phase_noise.png'
     plt.savefig(fign)
-    plt.clf()     
+    plt.close()     
     
     
        

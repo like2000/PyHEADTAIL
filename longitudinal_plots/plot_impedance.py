@@ -63,7 +63,7 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
         fign = dirname +'/sum_imp_vs_freq_fft' "%d" %counter + '.png'
         plt.show()
         plt.savefig(fign, dpi=300)
-        plt.clf()
+        plt.close()
     
     elif option1 == "single":
         
@@ -99,7 +99,7 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
         plt.figure(0)
         
         plt.savefig(fign1, dpi=300)
-        plt.clf()
+        plt.close()
         fign2 = dirname +'/imag_imp_vs_'+option3+'_' "%d" %counter + '.png'
         
         if option2 == "spectrum":
@@ -111,10 +111,10 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
         plt.figure(1)
         
         plt.savefig(fign2, dpi=300)
-        plt.clf()
+        plt.close()
         
-   
-   
+        
+    
 def plot_induced_voltage_vs_bins_centers(counter, general_params, 
                                          total_voltage, style = '-', 
                                          dirname = 'fig'):
@@ -131,7 +131,4 @@ def plot_induced_voltage_vs_bins_centers(counter, general_params,
     # Save plot
     fign = dirname +'/induced_voltage_' "%d" %counter + '.png'
     plt.savefig(fign)
-    plt.clf()
-
-
-
+    plt.close()
