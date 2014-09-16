@@ -453,18 +453,18 @@ class InputTable(object):
             self.wake_array = input_2
         else:
             #: *Frequency array of the impedance in [Hz]*
-            self.frequency_array = input_1
+            self.frequency_array_loaded = input_1
             #: *Real part of impedance in* [:math:`\Omega`]
-            self.Re_Z_array = input_2
+            self.Re_Z_array_loaded = input_2
             #: *Imaginary part of impedance in* [:math:`\Omega`]
-            self.Im_Z_array = input_3
+            self.Im_Z_array_loaded = input_3
             #: *Impedance array in* [:math:`\Omega`]
-            self.impedance = self.Re_Z_array + 1j * self.Im_Z_array
+            self.impedance_loaded = self.Re_Z_array_loaded + 1j * self.Im_Z_array_loaded
             
-            if self.frequency_array[0] != 0:
-                self.frequency_array = np.hstack((0, self.frequency_array))
-                self.Re_Z_array = np.hstack((0, self.Re_Z_array))
-                self.Im_Z_array = np.hstack((0, self.Im_Z_array))
+            if self.frequency_array_loaded[0] != 0:
+                self.frequency_array_loaded = np.hstack((0, self.frequency_array_loaded))
+                self.Re_Z_array_loaded = np.hstack((0, self.Re_Z_array_loaded))
+                self.Im_Z_array_loaded = np.hstack((0, self.Im_Z_array_loaded))
     
     
     def wake_calc(self, new_time_array):
@@ -484,9 +484,9 @@ class InputTable(object):
         array.*
         '''
 
-        Re_Z = np.interp(new_frequency_array, self.frequency_array, self.Re_Z_array, 
+        Re_Z = np.interp(new_frequency_array, self.frequency_array_loaded, self.Re_Z_array_loaded, 
                       right = 0)
-        Im_Z = np.interp(new_frequency_array, self.frequency_array, self.Im_Z_array, 
+        Im_Z = np.interp(new_frequency_array, self.frequency_array_loaded, self.Im_Z_array_loaded, 
                       right = 0)
         self.frequency_array = new_frequency_array
         self.Re_Z_array = Re_Z

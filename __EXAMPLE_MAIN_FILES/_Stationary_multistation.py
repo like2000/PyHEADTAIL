@@ -65,9 +65,8 @@ print Vtot
 
 # Define beam and distribution
 beam = Beam(general_params, N_p, N_b)
-longitudinal_gaussian_matched(general_params, rf_params_tot, beam, tau_0, 
-                              unit='ns', reinsertion = 'on')
-
+longitudinal_bigaussian(general_params, rf_params_tot, beam, tau_0/4, 
+                              xunit = 'ns', reinsertion = 'on')
 print "Beam set and distribution generated..."
 
 

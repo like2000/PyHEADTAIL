@@ -17,7 +17,7 @@ from longitudinal_plots.plot_slices import *
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
 N_b = 1.e9           # Intensity
-N_p = 500000         # Macro-particles
+N_p = 50000         # Macro-particles
 tau_0 = 0.4          # Initial bunch length, 4 sigma [ns]
 
 # Machine and RF parameters
@@ -31,7 +31,7 @@ gamma_t = 55.759505  # Transition gamma
 alpha = 1./gamma_t/gamma_t        # First order mom. comp. factor
 
 # Tracking details
-N_t = 1000           # Number of turns to track
+N_t = 2001           # Number of turns to track
 dt_plt = 200       # Time steps between plots
 
 
@@ -42,7 +42,7 @@ print ""
 
 
 # Define general parameters
-general_params = GeneralParameters(N_t, C, alpha, p_i, 
+general_params = GeneralParameters(N_t, C, alpha, np.linspace(p_i, p_f, 2002), 
                                    'proton')
 
 # Define RF station parameters and corresponding tracker
@@ -54,8 +54,8 @@ print "General and RF parameters set..."
 
 # Define beam and distribution
 beam = Beam(general_params, N_p, N_b)
-longitudinal_gaussian_matched(general_params, rf_params, beam, tau_0, 
-                              unit='ns', reinsertion = 'on')
+longitudinal_bigaussian(general_params, rf_params, beam, tau_0/4, 
+                              xunit = 'ns', reinsertion = 'on')
 
 
 print "Beam set and distribution generated..."
