@@ -303,6 +303,8 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     # Loading the distribution function if provided by the user
     if distribution_options['type'] is 'user_input':
         distribution_density_function = distribution_options['function']
+    else:
+        from longitudinal_distributions import distribution_density_function
     
     # Initialize variables depending on the accelerator parameters
     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
