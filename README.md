@@ -48,7 +48,8 @@ v1.3.0 - Bunch generation from distribution function implemented, input is
          induced_voltage after the frame of the slicing.
        - Initialisation to 0 instead of empty for arrays.
        - Initial guess for gaussian fit corrected.
-       - n_macroparticles converted to int in beam class (solve some warnings)
+       - n_macroparticles converted to int in beam class (solve some warnings).
+       - Some changes in the plot functions.
 
 
 2014-08-17
