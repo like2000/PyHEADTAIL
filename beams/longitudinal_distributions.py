@@ -304,7 +304,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     if distribution_options['type'] is 'user_input':
         distribution_density_function = distribution_options['function']
     else:
-        from longitudinal_distributions import distribution_density_function
+        distribution_density_function = _distribution_density_function
     
     # Initialize variables depending on the accelerator parameters
     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
@@ -505,8 +505,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     Beam.dE = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_coord_array[1]-deltaE_coord_array[0])
     
 
-
-def distribution_density_function(action_array, dist_type, length, exponent = None):
+def _distribution_density_function(action_array, dist_type, length, exponent = None):
     '''
     *Distribution density (formulas from Laclare).*
     '''
@@ -531,6 +530,7 @@ def distribution_density_function(action_array, dist_type, length, exponent = No
 
     else:
         raise RuntimeError('The dist_type option was not recognized')
+
     
 def line_density_function(coord_array, dist_type, bunch_length, bunch_position = 0, exponent = None):
     '''
