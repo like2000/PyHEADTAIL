@@ -9,7 +9,6 @@ from __future__ import division
 import warnings
 import numpy as np
 from scipy.constants import c
-from trackers.longitudinal_tracker import *
 
 
 
@@ -142,5 +141,3 @@ def is_in_separatrix(GeneralParameters, RFSectionParameters, theta, dE, delta, t
     isin = np.fabs(hamiltonian(GeneralParameters, RFSectionParameters, theta, dE, delta, total_voltage = None)) < np.fabs(Hsep)
      
     return isin
-        
-        

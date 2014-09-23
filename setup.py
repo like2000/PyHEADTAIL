@@ -58,5 +58,3 @@ cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 
 setup(cmdclass={'build_ext': build_ext},
       ext_modules=cythonize(cy_ext, **cy_ext_options),)
-
-

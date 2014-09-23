@@ -111,10 +111,11 @@ class FullRingAndRF(object):
         '''
         *Loops over all the RingAndRFSection.track methods.*
         '''
-        
+
         for RingAndRFSectionElement in self.RingAndRFSection_list:
             RingAndRFSectionElement.track(beam)
-
+    
+    
 
 class RingAndRFSection(object):
     '''
@@ -192,9 +193,8 @@ class RingAndRFSection(object):
         #: | *Set to 'full' if higher orders of slippage factor eta*
         self.solver = solver
         if self.alpha_order == 1:
-            self.solver = 'simple'
-        
-        self.rf_params = RFSectionParameters         
+            self.solver = 'simple'         
+
         
                    
     def kick(self, beam):
@@ -251,21 +251,39 @@ class RingAndRFSection(object):
         
         '''
         
-        if self.solver == 'full': 
-           
+        if self.solver == 'full':
             beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
-                         + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(beam.delta) * 
+                         + 2 * np.pi * (1 / (1 - self.eta_tracking(beam.delta) * 
                                              beam.delta) - 1) * self.length_ratio
         elif self.solver == 'simple':
-            
             beam.theta = self.beta_ratio[self.counter[0]] *beam.theta \
                          + 2 * np.pi * self.eta_0[self.counter[0]] \
                          * beam.delta * self.length_ratio
         else:
             raise RuntimeError("ERROR: Choice of longitudinal solver not \
                                recognized! Aborting...")
-                
-                
+    
+    
+    def eta_tracking(self, delta):
+        '''
+        *The slippage factor is calculated as a function of the relative momentum
+        (delta) of the beam. By definition, the slippage factor is:*
+        
+        .. math:: 
+            \eta = \sum_{i}(\eta_i \, \delta^i)
+    
+        '''
+        
+        if self.alpha_order == 1:
+            return self.eta_0[self.counter[0]]
+        else:
+            eta = 0
+            for i in xrange( self.alpha_order ):
+                eta_i = getattr(self, 'eta_' + str(i))[self.counter[0]]
+                eta  += eta_i * (delta**i)
+            return eta  
+        
+        
     def track(self, beam):
         '''
         | *Tracking method for the section, applies the equations in this order:*
@@ -307,7 +325,7 @@ class LinearMap(object):
         self.Qs = Qs
         
         #: *Copy of the revolution angular frequency (from GeneralParameters)*
-        self.omega_0 = GeneralParameters.omega_rev[0]
+        self.omega_0 = GeneralParameters.omega_rev
         
         #: *Synchrotron angular frequency in [rad/s]* 
         #: :math:`: \quad \omega_s = Q_s \omega_0`
@@ -325,6 +343,3 @@ class LinearMap(object):
 
         beam.z = z0 * self.cosdQs - self.eta * c / self.omega_s * delta0 * self.sindQs
         beam.delta = delta0 * self.cosdQs + self.omega_s / self.eta / c * z0 * self.sindQs
-        
-        
-

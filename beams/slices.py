@@ -11,8 +11,6 @@ from scipy.constants import c
 from numpy.fft import rfft, rfftfreq
 from scipy import ndimage
 from scipy.optimize import curve_fit
-import warnings
-
 
 
 class Slices(object):
@@ -22,10 +20,10 @@ class Slices(object):
     derivative, and profile fitting) and the computation of statistics per
     slice.*
     '''
-    
+
     def __init__(self, Beam, n_slices, n_sigma = None, cut_left = None, 
                  cut_right = None, cuts_coord = 'tau', slicing_coord = 'tau', 
-                 mode = 'const_space', statistics_option = 'off', fit_option = 'off', slice_immediately = 'off'):
+                 mode = 'const_space', statistics_option = 'off', fit_option = 'off'):
         
         #: *Copy (reference) of the beam to be sliced (from Beam)*
         self.Beam = Beam
@@ -34,21 +32,20 @@ class Slices(object):
         self.n_slices = n_slices
         
         #: | *Slicing computation mode*
-        #: | *The options are: 'const_space' (default), 'const_space_hist' and 
-        #: 'const_charge'.*
+        #: | *The options are: 'const_space' (default), 'const_charge'.*
         self.mode = mode
         
-        #: *Left edge of the slicing (is an optional input, in case you use
+        #: *Left edge of the slicing (is an optionnal input, in case you use
         #: the 'const_space' mode, a default value will be set if no value is 
         #: given).*
         self.cut_left = cut_left
         
-        #: *Right edge of the slicing (is an optional input, in case you use
+        #: *Right edge of the slicing (is an optionnal input, in case you use
         #: the 'const_space' mode, a default value will be set if no value is 
         #: given).*
         self.cut_right = cut_right
         
-        #: *Optional input parameters, corresponding to the number of*
+        #: *Optionnal input parameters, corresponding to the number of*
         #: :math:`\sigma_{RMS}` *of the Beam to slice (this will overwrite
         #: any input of cut_left and cut_right).*
         self.n_sigma = n_sigma
@@ -99,7 +96,7 @@ class Slices(object):
             #: *RMS dE position of the particles in each slice (needs 
             #: the compute_statistics_option to be 'on').*
             self.eps_rms_l = np.zeros(n_slices)
-        
+            
         #: *Fit option allows to fit the Beam profile, with the options
         #: 'off' (default), 'gaussian'.*
         self.fit_option = fit_option
@@ -119,11 +116,10 @@ class Slices(object):
             self.bp_gauss = 0
             #: *Gaussian parameters list obtained from fit*
             self.pfit_gauss = 0
-                  
+                    
         # Use of track in order to pre-process the slicing at injection
-        if slice_immediately == 'on':
-            self.track(self.Beam)
-          
+#         self.track(self.Beam)
+        
         
     def sort_particles(self):
         '''
@@ -254,7 +250,7 @@ class Slices(object):
         This will update the beam properties (bunch length obtained from the
         fit, etc.).*
         '''
-        
+
         if self.mode == 'const_charge':
             self.slice_constant_charge()
         elif self.mode == 'const_space':
@@ -268,7 +264,7 @@ class Slices(object):
             self.gaussian_fit()
             self.Beam.bl_gauss = self.convert_coordinates(self.bl_gauss, self.slicing_coord, 'theta')
             self.Beam.bp_gauss = self.convert_coordinates(self.bp_gauss, self.slicing_coord, 'theta')
-           
+            
         if self.statistics_option is 'on':
             self.compute_statistics()
         
@@ -279,7 +275,7 @@ class Slices(object):
         position.*
         '''
             
-        if self.bl_gauss is 0 and self.bp_gauss is 0:
+        if self.bl_gauss == 0 and self.bp_gauss == 0:
             p0 = [max(self.n_macroparticles), np.mean(self.beam_coordinates), np.std(self.beam_coordinates)]
         else:
             p0 = [max(self.n_macroparticles), self.bp_gauss, self.bl_gauss/4]
@@ -287,27 +283,6 @@ class Slices(object):
         self.pfit_gauss = curve_fit(gauss, self.bins_centers, self.n_macroparticles, p0)[0] 
         self.bl_gauss = 4 * abs(self.pfit_gauss[2]) 
         self.bp_gauss = abs(self.pfit_gauss[1])
-        
-        
-        
-    def fwhm(self):
-        '''
-        * Computation of the bunch length and position from the FWHM
-        assuming Gaussian line density.*
-        '''
-
-        half_max = 0.5 * self.n_macroparticles.max()
-        time_resolution = self.bins_centers[1]-self.bins_centers[0]    
-        # First aproximation for the half maximum values
-        taux = np.where(self.n_macroparticles>=half_max)
-        taux1 = taux[0][0]
-        taux2 = taux[0][-1]
-        # Interpolation of the time where the line density is half the maximun
-        t1 = self.bins_centers[taux1] - (self.n_macroparticles[taux1]-half_max)/(self.n_macroparticles[taux1]-self.n_macroparticles[taux1-1]) * time_resolution
-        t2 = self.bins_centers[taux2] + (self.n_macroparticles[taux2]-half_max)/(self.n_macroparticles[taux2]-self.n_macroparticles[taux2+1]) * time_resolution
-        
-        self.bl_fwhm = 4 * (t2-t1)/ (2 * np.sqrt(2 * np.log(2)))
-        self.bp_fwhm = (t1+t2)/2
 
     
     
@@ -322,6 +297,7 @@ class Slices(object):
         
         if not only_rfft:
             self.beam_spectrum = rfft(self.n_macroparticles, n_sampling_fft)
+        
              
      
      
@@ -352,14 +328,13 @@ class Slices(object):
     def compute_statistics(self):
         '''
         *Compute statistics of each slice (average position of the particles
-        in a slice and sigma_rms. Notice that empty slices will
-        result with NaN values for the statistics but that doesn't cause any
-        problem.*
+        in a slice and sigma_rms.*
         
         *Improvement is needed in order to include losses, and link with 
-        transverse statistics calculation.*
+        transverse statistics calculation. Be also careful that empty slices will
+        result with NaN values for the statistics.*
         '''
-        warnings.filterwarnings("ignore")
+        
         index = np.cumsum(np.append(0, self.n_macroparticles))
 
         for i in xrange(self.n_slices):
@@ -375,7 +350,6 @@ class Slices(object):
 
             self.eps_rms_l[i] = np.pi * self.sigma_dE[i] * self.sigma_theta[i] \
                                 * self.Beam.ring_radius / (self.Beam.beta_r * c)
-        warnings.filterwarnings("always")
                                 
                                 
     def convert_coordinates(self, value, input_coord_type, output_coord_type):
@@ -425,5 +399,3 @@ def gauss(x, *p):
     
     A, x0, sx = p
     return A*np.exp(-(x-x0)**2/2./sx**2) 
-    
-        

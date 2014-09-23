@@ -172,6 +172,3 @@ class SlicesMonitor(object):
             
     def close(self):
         self.h5file.close()
-
-
-

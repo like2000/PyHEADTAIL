@@ -51,7 +51,7 @@ class RFSectionParameters(object):
         
         #: | *Counter to keep track of time step (used in momentum and voltage)*
         #: | *Definined as a list in order to be passed by reference.*
-        self.counter = [-1]
+        self.counter = [0]
                 
         #: | *Index of the RF section -- has to be unique*
         #: | *Counter for RF section is:* :math:`k`
@@ -131,10 +131,14 @@ class RFSectionParameters(object):
         # (the length of the arrays will then be checked)
         if n_rf == 1:
             self.harmonic = [harmonic] 
-            self.voltage = [voltage]
+            self.voltage = [voltage] 
             self.phi_offset = [phi_offset] 
         else:
-            
+            if (not n_rf == len(harmonic) == 
+                len(voltage) == len(phi_offset)):
+                raise RuntimeError('The RF parameters to define \
+                                    RFSectionParameters are not homogeneous \
+                                    (n_rf is not matching the input)')
             self.harmonic = harmonic
             self.voltage = voltage 
             self.phi_offset = phi_offset
@@ -152,26 +156,6 @@ class RFSectionParameters(object):
         #: *Synchronous phase for this section, calculated from the gamma
         #: transition and the momentum program.*
         self.phi_s = calc_phi_s(self)   
-    
-    
-    def eta_tracking(self, delta):
-        '''
-        *The slippage factor is calculated as a function of the relative momentum
-        (delta) of the beam. By definition, the slippage factor is:*
-        
-        .. math:: 
-            \eta = \sum_{i}(\eta_i \, \delta^i)
-    
-        '''
-        
-        if self.alpha_order == 1:
-            return self.eta_0[self.counter[0]]
-        else:
-            eta = 0
-            for i in xrange( self.alpha_order ):
-                eta_i = getattr(self, 'eta_' + str(i))[self.counter[0]]
-                eta  += eta_i * (delta**i)
-            return eta  
 
 
 def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):
@@ -188,10 +172,10 @@ def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):
     eta0 = RFSectionParameters.eta_0
          
     if RFSectionParameters.n_rf == 1:
-                     
+
         if np.sum(RFSectionParameters.p_increment) == 0:
             acceleration_ratio = np.zeros(RFSectionParameters.p_increment.shape)
-        else: 
+        else:             
             acceleration_ratio = RFSectionParameters.beta_av * RFSectionParameters.p_increment / \
                                  RFSectionParameters.voltage[0]
         
@@ -204,7 +188,7 @@ def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):
         
         eta0_average = (eta0[1:] + eta0[0:-1])/2
         phi_s[eta0_average > 0] = np.pi - phi_s
-
+        
         return phi_s 
      
     else:
@@ -231,11 +215,3 @@ def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):
             return np.pi*np.ones(RFSectionParameters.n_turns)
         elif eta0[0] < 0:
             return 0*np.ones(RFSectionParameters.n_turns)
-         
- 
-    
-            
-
-            
-            
-    

@@ -304,7 +304,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     if distribution_options['type'] is 'user_input':
         distribution_density_function = distribution_options['function']
     else:
-        distribution_density_function = distribution_density_function_
+        distribution_density_function = _distribution_density_function
     
     # Initialize variables depending on the accelerator parameters
     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
@@ -506,7 +506,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     
 
 
-def distribution_density_function_(action_array, dist_type, length, exponent = None):
+def _distribution_density_function(action_array, dist_type, length, exponent = None):
     '''
     *Distribution density (formulas from Laclare).*
     '''
@@ -531,6 +531,8 @@ def distribution_density_function_(action_array, dist_type, length, exponent = N
 
     else:
         raise RuntimeError('The dist_type option was not recognized')
+
+
     
 def line_density_function(coord_array, dist_type, bunch_length, bunch_position = 0, exponent = None):
     '''
@@ -562,6 +564,7 @@ def line_density_function(coord_array, dist_type, bunch_length, bunch_position =
         warnings.filterwarnings("default")
         density_function[np.abs(coord_array - bunch_position) > bunch_length/2 ] = 0
         return density_function   
+
 
 
 def minmax_location(x,f):
