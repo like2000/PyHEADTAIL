@@ -107,10 +107,10 @@ SPS_inductive = InductiveImpedance(slicing, Space_charge_Z_over_n + Steps_Z_over
 SPS_longitudinal_intensity = TotalInducedVoltage(slicing, [SPS_intensity_time]) # , SPS_inductive
 
 # Beam generation
-# emittance = 0.4
-# matched_from_distribution_density(SPS_beam, full_tracker, {'type':'parabolic_amplitude', 'emittance':emittance, 'density_variable':'density_from_H'}, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = SPS_longitudinal_intensity, n_iterations_input = 50)
+emittance = 0.4
+matched_from_distribution_density(SPS_beam, full_tracker, {'type':'parabolic_amplitude', 'emittance':emittance, 'density_variable':'density_from_H'}, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = SPS_longitudinal_intensity, n_iterations_input = 50)
 bunch_length = 2.e-9 / (SPS_beam.ring_radius / (SPS_beam.beta_r * c))
-matched_from_line_density(SPS_beam, full_tracker, {'type':'parabolic_amplitude', 'bunch_length':bunch_length}, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = SPS_longitudinal_intensity)
+#matched_from_line_density(SPS_beam, full_tracker, {'type':'parabolic_amplitude', 'bunch_length':bunch_length}, main_harmonic_option = 'lowest_freq', TotalInducedVoltage = SPS_longitudinal_intensity)
          
 # Total simulation map
 sim_map = [full_tracker] + [slicing] + [SPS_longitudinal_intensity]
