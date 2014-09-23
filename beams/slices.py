@@ -11,6 +11,8 @@ from scipy.constants import c
 from numpy.fft import rfft, rfftfreq
 from scipy import ndimage
 from scipy.optimize import curve_fit
+import cython_functions.histogram as histcython
+
 
 
 class Slices(object):
@@ -23,7 +25,7 @@ class Slices(object):
 
     def __init__(self, Beam, n_slices, n_sigma = None, cut_left = None, 
                  cut_right = None, cuts_coord = 'tau', slicing_coord = 'tau', 
-                 mode = 'const_space', statistics_option = 'off', fit_option = 'off'):
+                 mode = 'const_space', statistics_option = 'off', fit_option = 'off', slice_immediately = 'off'):
         
         #: *Copy (reference) of the beam to be sliced (from Beam)*
         self.Beam = Beam
@@ -118,9 +120,10 @@ class Slices(object):
             self.pfit_gauss = 0
                     
         # Use of track in order to pre-process the slicing at injection
-#         self.track(self.Beam)
-        
-        
+        if slice_immediately == 'on':
+            self.track(self.Beam)
+
+   
     def sort_particles(self):
         '''
         *Sort the particles with respect to their longitudinal position.*
@@ -205,9 +208,10 @@ class Slices(object):
         for high number of particles (~1e6).*
         '''
         
-        self.n_macroparticles = np.histogram(self.beam_coordinates, self.edges)[0]
+        self.n_macroparticles = histcython.histogram(self.beam_coordinates, self.n_slices, [self.cut_left, self.cut_right])
+        #self.n_macroparticles = np.histogram(self.beam_coordinates, self.edges)[0]
  
-        
+         
     def slice_constant_charge(self):
         '''
         *Constant charge slicing. This method consist in slicing with varying
@@ -284,8 +288,27 @@ class Slices(object):
         self.bl_gauss = 4 * abs(self.pfit_gauss[2]) 
         self.bp_gauss = abs(self.pfit_gauss[1])
 
-    
-    
+
+    def fwhm(self):
+        '''
+        * Computation of the bunch length and position from the FWHM
+        assuming Gaussian line density.*
+        '''
+
+        half_max = 0.5 * self.n_macroparticles.max()
+        time_resolution = self.bins_centers[1]-self.bins_centers[0]    
+        # First aproximation for the half maximum values
+        taux = np.where(self.n_macroparticles>=half_max)
+        taux1 = taux[0][0]
+        taux2 = taux[0][-1]
+        # Interpolation of the time where the line density is half the maximun
+        t1 = self.bins_centers[taux1] - (self.n_macroparticles[taux1]-half_max)/(self.n_macroparticles[taux1]-self.n_macroparticles[taux1-1]) * time_resolution
+        t2 = self.bins_centers[taux2] + (self.n_macroparticles[taux2]-half_max)/(self.n_macroparticles[taux2]-self.n_macroparticles[taux2+1]) * time_resolution
+        
+        self.bl_fwhm = 4 * (t2-t1)/ (2 * np.sqrt(2 * np.log(2)))
+        self.bp_fwhm = (t1+t2)/2
+
+
     def beam_spectrum_generation(self, n_sampling_fft, filter_option = None, only_rfft = False):
         '''
         *Beam spectrum calculation, to be extended (normalized profile, different
@@ -297,10 +320,8 @@ class Slices(object):
         
         if not only_rfft:
             self.beam_spectrum = rfft(self.n_macroparticles, n_sampling_fft)
-        
-             
-     
-     
+    
+    
     def beam_profile_derivative(self, mode = 'gradient', coord = 'theta'):      
         ''' 
         *The input is one of the two available methods for differentiating
@@ -318,9 +339,6 @@ class Slices(object):
             derivative = np.gradient(self.n_macroparticles, dist_centers)
         else:
             raise RuntimeError('Option for derivative is not recognized.')
-            
-#         elif mode is 'butterworth_filter':
-#             pass
              
         return x, derivative
     

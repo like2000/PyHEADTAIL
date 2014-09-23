@@ -37,7 +37,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     # Generate potential well
     n_points_potential = int(1e4)
     FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
-                                            theta_margin_percent = 0.05, 
+                                            theta_margin_percent = 0.25, 
                                             main_harmonic_option = main_harmonic_option)
     potential_well_array = FullRingAndRF.potential_well
     theta_coord_array = FullRingAndRF.potential_well_coordinates
@@ -533,7 +533,7 @@ def _distribution_density_function(action_array, dist_type, length, exponent = N
         raise RuntimeError('The dist_type option was not recognized')
 
 
-    
+
 def line_density_function(coord_array, dist_type, bunch_length, bunch_position = 0, exponent = None):
     '''
     *Line density*
@@ -670,8 +670,9 @@ def potential_well_cut(theta_coord_array, potential_array):
 
 
 
-def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_x,
-                             sigma_y, xunit=None, yunit=None, reinsertion = 'off'):
+def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, 
+                            sigma_x, sigma_y = None, xunit = None,
+                            yunit = None, seed = None, reinsertion = 'off'):
     '''
     *Method to generate a bigaussian distribution by manually input the sigma values.*
     '''
@@ -679,15 +680,17 @@ def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_
     warnings.filterwarnings("once")
     if GeneralParameters.n_sections > 1:
         warnings.warn("WARNING: longitudinal_bigaussian is not yet properly computed for several sections!")
-        
+
     if RFSectionParameters.n_rf > 1:
         warnings.warn("longitudinal_bigaussian for multiple RF is not yet implemented")
     
     counter = RFSectionParameters.counter[0]
-    
     harmonic = RFSectionParameters.harmonic[0,counter]
     energy = RFSectionParameters.energy[counter]
     beta = RFSectionParameters.beta_r[counter]
+    if sigma_y == None:
+        voltage = RFSectionParameters.voltage[0,counter]
+        eta0 = RFSectionParameters.eta_0[counter]
     
     if xunit == None or xunit == 'rad':
         sigma_theta = sigma_x
@@ -695,18 +698,25 @@ def longitudinal_bigaussian(GeneralParameters, RFSectionParameters, beam, sigma_
         sigma_theta = sigma_x / (- beam.ring_radius * harmonic) 
     elif xunit == 'ns':       
         sigma_theta = sigma_x * beta * c * 1.e-9 / beam.ring_radius
-        
-    if yunit == None or yunit == 'eV':
-        sigma_dE = sigma_y
-    elif yunit == '1':    
-        sigma_dE = sigma_y * beta**2 * energy
+
+    phi_s = RFSectionParameters.phi_s[counter]
+    
+    if sigma_y != None:    
+        if yunit == None or yunit == 'eV':
+            sigma_dE = sigma_y
+        elif yunit == '1':    
+            sigma_dE = sigma_y * beta**2 * energy
+    else:
+        phi_b = harmonic*sigma_theta + phi_s
+        sigma_dE = np.sqrt( voltage * energy * beta**2  
+             * (np.cos(phi_b) - np.cos(phi_s) + (phi_b - phi_s) * np.sin(phi_s)) 
+             / (np.pi * harmonic * eta0) )
         
     
     beam.sigma_theta = sigma_theta
     beam.sigma_dE = sigma_dE
-    phi_s = RFSectionParameters.phi_s[counter]
     
-    
+    np.random.seed(seed)
     beam.theta = sigma_theta * np.random.randn(beam.n_macroparticles) \
                         + phi_s/harmonic
     beam.dE = sigma_dE * np.random.randn(beam.n_macroparticles)

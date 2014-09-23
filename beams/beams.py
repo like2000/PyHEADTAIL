@@ -1,16 +1,13 @@
 '''
 **Module containing the fundamental beam class with methods to compute beam statistics**
 
-<<<<<<< HEAD
 :Authors: **Kevin Li**, **Danilo Quartullo**, **Helga Timko**, **ALexandre Lasheen**
-=======
-:Authors: **Kevin Li**, **Danilo Quartullo**, **Helga Timko**, **Alexandre Lasheen**
->>>>>>> origin/alasheen
 '''
 
 from __future__ import division
 import numpy as np
 from scipy.constants import c
+import cython_functions.stats as cp
 from trackers.longitudinal_utilities import is_in_separatrix
 
 
@@ -19,6 +16,7 @@ class Beam(object):
     def __init__(self, General_parameters, n_macroparticles, intensity):
         
         # Beam and ring-dependent properties
+  
         self.mass = General_parameters.mass
         self.charge = General_parameters.charge
         self.ring_radius = General_parameters.ring_radius
@@ -34,10 +32,21 @@ class Beam(object):
         self.momentum = General_parameters.momentum[0][0] 
 
         # Beam coordinates
-        self.theta = np.empty([n_macroparticles])
-        self.dE = np.empty([n_macroparticles])
-        
+        self.x = np.zeros([n_macroparticles])
+        self.xp = np.zeros([n_macroparticles])
+        self.y = np.zeros([n_macroparticles])
+        self.yp = np.zeros([n_macroparticles])
+        self.theta = np.zeros([n_macroparticles])
+        self.dE = np.zeros([n_macroparticles])
+     
         # Transverse and longitudinal properties, statistics       
+        
+        self.alpha_x = 0
+        self.beta_x = 0
+        self.epsn_x = 0
+        self.alpha_y = 0
+        self.beta_y = 0
+        self.epsn_y = 0
         self.mean_theta = 0
         self.mean_dE = 0
         self.sigma_theta = 0
@@ -49,37 +58,7 @@ class Beam(object):
         self.n_macroparticles_alive = self.n_macroparticles - self.n_macroparticles_lost
         self.id = np.arange(1, self.n_macroparticles + 1, dtype=int)
 
-    
-    def longit_statistics(self):
-        
-        # Statistics only for particles that are not flagged as lost
-        itemindex = np.where(self.id != 0)[0]
-        self.mean_theta = np.mean(self.theta[itemindex])
-        self.mean_dE = np.mean(self.dE[itemindex])
-        self.sigma_theta = np.std(self.theta[itemindex])
-        self.sigma_dE = np.std(self.dE[itemindex])
-       
-        ##### R.m.s. emittance in Gaussian approximation, other emittances to be defined
-        self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
-                        * self.ring_radius / (self.beta_r * c) # in eVs
 
-
-    def losses_separatrix(self, GeneralParameters, RFSectionParameters):
-        
-        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
-                                 self.theta, self.dE, self.delta) == False)[0]
-
-        if itemindex.size != 0:    
-            self.id[itemindex] = 0
-    
-    def losses_longitudinal_cut(self, theta_min, theta_max): 
-    
-        itemindex = np.where( (self.theta - theta_min)*(theta_max - self.theta) < 0 )[0]
-        
-        if itemindex.size != 0:          
-            self.id[itemindex] = 0
-            
-            
     # Coordinate conversions
     @property
     def z(self):
@@ -106,13 +85,14 @@ class Beam(object):
         self.theta = value * self.beta_r * c / self.ring_radius
 
     # Statistics
+    
     @property    
     def mean_z(self):
         return - self.mean_theta * self.ring_radius
     @mean_z.setter
     def mean_z(self, value):
         self.mean_theta = - value / self.ring_radius
-
+    
     @property
     def mean_delta(self):
         return self.mean_dE / (self.beta_r**2 * self.energy)
@@ -147,7 +127,7 @@ class Beam(object):
     @sigma_tau.setter
     def sigma_tau(self, value):
         self.sigma_theta = value * self.beta_r * c / self.ring_radius
-        
+    
     # Gaussian fit conversion   
     @property
     def bl_gauss_tau(self):
@@ -167,4 +147,47 @@ class Beam(object):
     @property
     def bp_gauss_z(self):
         '''*Gaussian bunch position converted to the z coordinate in [m]*'''
-        return - self.bp_gauss * self.ring_radius
+        return - self.bp_gauss * self.ring_radius      
+
+    
+    def longit_statistics(self):
+        
+        # Statistics only for particles that are not flagged as lost
+        itemindex = np.where(self.id != 0)[0]
+        self.mean_theta = np.mean(self.theta[itemindex])
+        self.mean_dE = np.mean(self.dE[itemindex])
+        self.sigma_theta = np.std(self.theta[itemindex])
+        self.sigma_dE = np.std(self.dE[itemindex])
+       
+        ##### R.m.s. emittance in Gaussian approximation, other emittances to be defined
+        self.epsn_rms_l = np.pi * self.sigma_dE * self.sigma_theta \
+                        * self.ring_radius / (self.beta_r * c) # in eVs
+
+        
+    def transv_statistics(self):
+        
+        self.mean_x = np.mean(self.x)
+        self.mean_xp = np.mean(self.xp)
+        self.mean_y = np.mean(self.y)
+        self.mean_yp = np.mean(self.yp)
+        self.sigma_x = np.std(self.x)
+        self.sigma_y = np.std(self.y)
+        self.epsn_x_xp = cp.emittance(self.x, self.xp) * self.gamma_r \
+                        * self.beta_r * 1e6
+        self.epsn_y_yp = cp.emittance(self.y, self.yp) * self.gamma_r \
+                        * self.beta_r * 1e6
+    
+    def losses_separatrix(self, GeneralParameters, RFSectionParameters):
+        
+        itemindex = np.where(is_in_separatrix(GeneralParameters, RFSectionParameters,
+                                 self.theta, self.dE, self.delta) == False)[0]
+
+        if itemindex.size != 0:    
+            self.id[itemindex] = 0
+    
+    def losses_longitudinal_cut(self, theta_min, theta_max): 
+    
+        itemindex = np.where( (self.theta - theta_min)*(theta_max - self.theta) < 0 )[0]
+        
+        if itemindex.size != 0:          
+            self.id[itemindex] = 0

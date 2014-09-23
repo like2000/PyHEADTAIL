@@ -51,10 +51,16 @@ cy_ext = [
                  include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
                  #extra_compile_args=["-g"],
                  #extra_link_args=["-g"],
-                 )
+                 ),
+        Extension("cython_functions.histogram",
+                 ["cython_functions/histogram.pyx"],
+                 include_dirs=[np.get_include()], library_dirs=[], libraries=["m"],
+                extra_compile_args=['-fopenmp'],
+                extra_link_args=['-fopenmp']
+                 )  
         ]
 
 cy_ext_options = {"compiler_directives": {"profile": True}, "annotate": True}
 
 setup(cmdclass={'build_ext': build_ext},
-      ext_modules=cythonize(cy_ext, **cy_ext_options),)
+      ext_modules=cythonize(cy_ext, **cy_ext_options))
