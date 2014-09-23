@@ -12,6 +12,7 @@ from numpy.fft import rfft, rfftfreq
 from scipy import ndimage
 from scipy.optimize import curve_fit
 import warnings
+import cython_functions.histogram as histcython
 
 
 
@@ -123,6 +124,7 @@ class Slices(object):
         # Use of track in order to pre-process the slicing at injection
         if slice_immediately == 'on':
             self.track(self.Beam)
+            
           
         
     def sort_particles(self):
@@ -209,9 +211,10 @@ class Slices(object):
         for high number of particles (~1e6).*
         '''
         
-        self.n_macroparticles = np.histogram(self.beam_coordinates, self.edges)[0]
+        self.n_macroparticles = histcython.histogram(self.beam_coordinates, self.n_slices, [self.cut_left, self.cut_right])
+        #self.n_macroparticles = np.histogram(self.beam_coordinates, self.edges)[0]
  
-        
+         
     def slice_constant_charge(self):
         '''
         *Constant charge slicing. This method consist in slicing with varying
