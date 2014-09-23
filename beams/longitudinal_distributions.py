@@ -303,6 +303,8 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     # Loading the distribution function if provided by the user
     if distribution_options['type'] is 'user_input':
         distribution_density_function = distribution_options['function']
+    else:
+        distribution_density_function = distribution_density_function_
     
     # Initialize variables depending on the accelerator parameters
     slippage_factor = abs(FullRingAndRF.RingAndRFSection_list[0].eta_0[0])
@@ -313,7 +315,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     # Generate potential well
     n_points_potential = int(1e5)
     FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
-                                            theta_margin_percent = 0.05, 
+                                            theta_margin_percent = 0.25, 
                                             main_harmonic_option = main_harmonic_option)
     potential_well_array = FullRingAndRF.potential_well
     theta_coord_array = FullRingAndRF.potential_well_coordinates
@@ -504,7 +506,7 @@ def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
     
 
 
-def distribution_density_function(action_array, dist_type, length, exponent = None):
+def distribution_density_function_(action_array, dist_type, length, exponent = None):
     '''
     *Distribution density (formulas from Laclare).*
     '''

@@ -73,6 +73,7 @@ class BunchMonitor(object):
             h5group.create_dataset("sigma_theta",  dims, compression="gzip", compression_opts=9)
             h5group.create_dataset("sigma_dE", dims, compression="gzip", compression_opts=9)
             h5group.create_dataset("epsn_rms_l",   dims, compression="gzip", compression_opts=9)
+            h5group.create_dataset("lost_particles",   dims, compression="gzip", compression_opts=9)
             if self.slices:
                 h5group.create_dataset("bunch_length_gauss_theta", dims, compression="gzip", compression_opts=9)
 
@@ -103,6 +104,7 @@ class BunchMonitor(object):
             h5group["sigma_theta"][i_steps]  = bunch.sigma_theta
             h5group["sigma_dE"][i_steps] = bunch.sigma_dE
             h5group["epsn_rms_l"][i_steps]   = bunch.epsn_rms_l
+            h5group["lost_particles"][i_steps]   = np.sum(bunch.id==0)
             if self.slices:
                 h5group["bunch_length_gauss_theta"][i_steps] = self.slices.bl_gauss
             
