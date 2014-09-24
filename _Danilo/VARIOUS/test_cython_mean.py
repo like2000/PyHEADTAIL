@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 import time
  
-l = np.linspace(1, 1000000, 100)
+l = np.linspace(1, 5000000, 100)
 
 res = np.empty(len(l))
 
@@ -16,17 +16,18 @@ for i in range(len(l)):
     x = np.random.randn(l[i])
     
     t0 = time.clock()
-    cp.mean(x)
+    aa=cp.std(x)
     
     a = time.clock() - t0
     
     t0 = time.clock()
-    np.mean(x)
+    bb=np.std(x)
     
     b = time.clock() - t0
 
     res[i] = a - b
 
+print aa, bb
 plt.plot(l, res)
 plt.show()
 

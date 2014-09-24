@@ -8,6 +8,8 @@ from __future__ import division
 import numpy as np
 from scipy.constants import c
 from scipy.integrate import cumtrapz
+import cython_functions.kick as cython_kick
+
 
 
 class FullRingAndRF(object):
@@ -274,7 +276,11 @@ class RingAndRFSection(object):
         | *Updates the relativistic information of the beam.*
         '''
         
-        self.kick(beam)
+        #self.kick(beam)
+        cython_kick.kick(self.n_rf, beam.dE, beam.theta, 
+                         self.voltage[:, self.counter[0]], 
+                         self.harmonic[:, self.counter[0]], 
+                         self.phi_offset[:, self.counter[0]])
         self.kick_acceleration(beam)
         self.drift(beam)
         
