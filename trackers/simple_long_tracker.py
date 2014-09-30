@@ -362,33 +362,33 @@ class RFSystems(LongitudinalOneTurnMap):
         """
         return hamiltonian(z, dp, beam) < 0
 
-class LinearMap(LongitudinalOneTurnMap):
-    '''
-    Linear Map represented by a Courant-Snyder transportation matrix.
-    self.alpha is the linear momentum compaction factor.
-    '''
 
-    def __init__(self, circumference, alpha, Qs):
-        """alpha is the linear momentum compaction factor,
-        Qs the synchroton tune."""
-        self.circumference = circumference
-        self.alpha = alpha
-        self.Qs = Qs
+# class LinearMap(LongitudinalOneTurnMap):
+#     '''
+#     Linear Map represented by a Courant-Snyder transportation matrix.
+#     self.alpha is the linear momentum compaction factor.
+#     '''
 
-    def track(self, beam):
+#     def __init__(self, circumference, alpha, Qs):
+#         """alpha is the linear momentum compaction factor,
+#         Qs the synchroton tune."""
+#         self.circumference = circumference
+#         self.alpha = alpha
+#         self.Qs = Qs
 
-        eta = self.alpha - beam.gamma ** -2
+#     def track(self, beam):
 
-        omega_0 = 2 * np.pi * beam.beta * c / self.circumference
-        omega_s = self.Qs * omega_0
+#         eta = self.alpha - beam.gamma ** -2
 
-        dQs = 2 * np.pi * self.Qs
-        cosdQs = cos(dQs)
-        sindQs = sin(dQs)
+#         omega_0 = 2 * np.pi * beam.beta * c / self.circumference
+#         omega_s = self.Qs * omega_0
 
-        z0 = beam.z
-        dp0 = beam.dp
+#         dQs = 2 * np.pi * self.Qs
+#         cosdQs = cos(dQs)
+#         sindQs = sin(dQs)
 
-        beam.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
-        beam.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
+#         z0 = beam.z
+#         dp0 = beam.dp
 
+#         beam.z = z0 * cosdQs - eta * c / omega_s * dp0 * sindQs
+#         beam.dp = dp0 * cosdQs + omega_s / eta / c * z0 * sindQs
