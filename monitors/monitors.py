@@ -19,7 +19,7 @@ class Monitor(object):
 
 class BunchMonitor(Monitor):
 
-    def __init__(self, filename, n_steps, dictionary=None):
+    def __init__(self, filename, n_steps, dictionary=None, write_buffer_to_file_every=512, buffer_size=4096):
 
         self.stats_to_store = [ 'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
                                 'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y', 'epsn_z',
@@ -99,7 +99,7 @@ class BunchMonitor(Monitor):
             
 class SliceMonitor(Monitor):
 
-    def __init__(self, filename, n_steps, dictionary=None, slices=None):
+    def __init__(self, filename, n_steps, dictionary=None, slices=None, write_buffer_to_file_every=512, buffer_size=4096):
         
         self.stats_to_store = [ 'mean_x', 'mean_xp', 'mean_y', 'mean_yp', 'mean_z', 'mean_dp',
                                 'sigma_x', 'sigma_y', 'sigma_z', 'sigma_dp', 'epsn_x', 'epsn_y', 'epsn_z',
