@@ -10,18 +10,49 @@ import numpy as np
 
 
 
+class PhaseLoop(object): 
+    '''
+    One-turn phase loop for different machines with different hardware. Phase 
+    loop is active only in certain turns, in which the frequency or the phase
+    in the longitudinal tracker is modified. 
+    '''    
+    def __init__(self, gain, sampling_frequency = 100, machine = 'LHC'):
+        self.gain = gain # feedback gain, can be an array depending on machine
+        self.dt = sampling_frequency # either in turns or in time, depending on machine
+        self.machine = machine # machine name
+        self.correction = 0 # PL correction in frequency or phase, depending on machine
+        self.dphi = 0 # phase difference between bunch/beam and RF
+            
+    def track(self, beam):
+        if timestep == correct:
+            call machine method
+        else:
+            pass
+      
+    def phase_difference(self, beam):
+        self.dphi = h * beam.mean_theta - phi_s
+        
+    def LHC(self, beam):
+        phase_difference(beam)
+        self.correction = multiply by k
+
+    def PSB(self, beam):
+        another transfer function
+    
+    
+
 class LHCNoiseFB(object): 
     
     # Feedback based on bunch length, acting on phase noise used for blow-up 
-    def __init__(self, bl_target, gain=0.1, factor=0.64, bl_update = 100, 
-                 self_statistics=False ):
+    def __init__(self, bl_target, gain = 0.1, factor = 0.64, 
+                 sampling_frequency = 100, self_statistics = False ):
 
         self.x = 1 # multiplication factor; initially 1
         self.bl_targ = bl_target # 4 sigma, in s
         self.bl_meas = bl_target # set initial value for measured bunch length
         self.g = gain # in inverse-turns
         self.a = factor
-        self.dt = bl_update # bunch length update frequency, in turns
+        self.dt = sampling_frequency # bunch length sampling frequency, in turns
         self.self_stat = self_statistics # using external/internal statistics
        
 
