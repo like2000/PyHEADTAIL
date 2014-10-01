@@ -82,35 +82,24 @@ def synchrotron_frequency_spread(Beam, FullRingAndRF, main_harmonic_option = 'lo
  
     # Computing the sync_freq_spread (if to handle cases where maximum is in 2 consecutive points)
     if len(synchronous_phase_index) > 1:
-        potential_well_sep_left = potential_well_sep[0:synchronous_phase_index[0]+1]
-        potential_well_sep_right = potential_well_sep[synchronous_phase_index[1]:]
-        J_left = J_array_dE0[0:synchronous_phase_index[0]+1]
-        J_right = J_array_dE0[synchronous_phase_index[1]:]
         delta_theta_left = theta_coord_sep[0:synchronous_phase_index[0]+1]
         delta_theta_right = theta_coord_sep[synchronous_phase_index[1]:]
     else:
-        potential_well_sep_left = potential_well_sep[0:synchronous_phase_index[0]+1]
-        potential_well_sep_right = potential_well_sep[synchronous_phase_index[0]:]
-        J_left = J_array_dE0[0:synchronous_phase_index[0]+1]
-        J_right = J_array_dE0[synchronous_phase_index[0]:]
         delta_theta_left = theta_coord_sep[0:synchronous_phase_index[0]+1]
         delta_theta_right = theta_coord_sep[synchronous_phase_index[0]:]   
         
     delta_theta_left = delta_theta_left[-1] - delta_theta_left
     delta_theta_right = delta_theta_right - delta_theta_right[0]
 
-    H_array = np.hstack((potential_well_sep_left, potential_well_sep_right))
-    J_array = np.hstack((J_left, J_right))
     delta_array = np.hstack((delta_theta_left, delta_theta_right))
     
-    H_index_sorted = np.argsort(H_array)
-    H_array = H_array.take(H_index_sorted)
-    J_array = J_array.take(H_index_sorted)
+    H_index_sorted = np.argsort(potential_well_sep)
+    H_array = potential_well_sep.take(H_index_sorted)
+    J_array = J_array_dE0.take(H_index_sorted)
     delta_array = delta_array.take(H_index_sorted)
     
     H_for_derivative = np.linspace(H_array[0], H_array[-1], int(1e4))
     J_for_derivative = np.interp(H_for_derivative, H_array, J_array)
-    
     delta_array = np.interp(H_for_derivative, H_array, delta_array)
     
     sync_freq_spread = np.diff(H_for_derivative)/np.diff(J_for_derivative) / (2*np.pi)
