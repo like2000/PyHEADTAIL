@@ -130,7 +130,8 @@ class GeneralParameters(object):
         self.beta_av = (self.beta_r[:,1:] + self.beta_r[:,0:-1])/2
         
         #: *Revolution period [s]* :math:`: \quad T_0 = \frac{C}{\beta c}`
-        self.t_rev = np.dot(self.ring_length, 1/self.beta_av) / c
+        #self.t_rev = np.dot(self.ring_length, 1/self.beta_av) / c
+        self.t_rev = np.dot(self.ring_length, self.beta_r[:,0:-1]) / c
  
         #: *Revolution frequency [Hz]* :math:`: \quad f_0 = \frac{1}{T_0}`
         self.f_rev = 1 / self.t_rev
