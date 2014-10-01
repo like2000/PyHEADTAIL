@@ -4,7 +4,8 @@ Implementation in this branch (longitudinal utilities with intensity effects)
 - Major
     - Implemented the synchrotron_frequency_spread method
 - Normal
-	- Moved potential_well_cut and minmax_location functions from longitudinal distribution generaiton to the longitudinal utilities
+	- Moved potential_well_cut and minmax_location functions from longitudinal distribution generation to the longitudinal utilities
+	- Added some returns in the longitudinal distribution generation to be used in the synchrotron_frequency_spread method
 - Minor
 
 

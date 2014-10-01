@@ -8,6 +8,7 @@
 from __future__ import division
 import warnings
 import numpy as np
+import copy
 from scipy.constants import c
 from scipy.integrate import cumtrapz
 
@@ -19,6 +20,10 @@ def synchrotron_frequency_spread(Beam, FullRingAndRF, main_harmonic_option = 'lo
     RF system and optional intensity effects. The potential well (and induced
     potential) are not updated by this function, thus it has to be called* 
     **after** *the potential well (and induced potential) generation.*
+    
+    *If used with induced potential, be careful that noise can be an issue. An
+    analytical line density can be inputed by inputing the output of the matched_from_line_density
+    function output in the longitudinal_distributions module.*
     '''
     
     # Initialize variables depending on the accelerator parameters
@@ -28,7 +33,7 @@ def synchrotron_frequency_spread(Beam, FullRingAndRF, main_harmonic_option = 'lo
     eom_factor_potential = np.sign(FullRingAndRF.RingAndRFSection_list[0].eta_0[0]) * (Beam.beta_r * c) / (FullRingAndRF.ring_circumference)
      
     # Generate potential well
-    n_points_potential = int(1e3)
+    n_points_potential = int(1e4)
     FullRingAndRF.potential_well_generation(n_points = n_points_potential, 
                                             theta_margin_percent = 0.05, 
                                             main_harmonic_option = main_harmonic_option)
@@ -36,11 +41,18 @@ def synchrotron_frequency_spread(Beam, FullRingAndRF, main_harmonic_option = 'lo
     theta_coord_array = FullRingAndRF.potential_well_coordinates
     
     induced_potential_final = 0
+    
     # Calculating the induced potential
     if TotalInducedVoltage is not None:
-        induced_voltage = TotalInducedVoltage.induced_voltage
+        
+        induced_voltage_object = copy.deepcopy(TotalInducedVoltage)
+        
+        induced_voltage = induced_voltage_object.induced_voltage
         theta_induced_voltage = TotalInducedVoltage.slices.convert_coordinates(TotalInducedVoltage.slices.bins_centers, TotalInducedVoltage.slices.slicing_coord, 'theta')
+        
+        # Computing induced potential
         induced_potential = - eom_factor_potential * np.insert(cumtrapz(induced_voltage, dx=theta_induced_voltage[1] - theta_induced_voltage[0]),0,0)
+        
         # Interpolating the potential well
         induced_potential_final = np.interp(theta_coord_array, theta_induced_voltage, induced_potential)
         
@@ -57,38 +69,46 @@ def synchrotron_frequency_spread(Beam, FullRingAndRF, main_harmonic_option = 'lo
     J_array_dE0 = np.zeros(len(potential_well_sep))
      
     warnings.filterwarnings("ignore")
-     
+
     for i in range(0, len(potential_well_sep)):
         dE_trajectory = np.sqrt((potential_well_sep[i] - potential_well_sep)/eom_factor_dE)
         dE_trajectory[np.isnan(dE_trajectory)] = 0
+        
         # Careful: Action is integrated over theta
-        J_array_dE0[i] = 2 / (2*np.pi) * np.trapz(dE_trajectory, dx=theta_resolution) 
+        J_array_dE0[i] = 2 / (2*np.pi) * np.trapz(dE_trajectory, dx=theta_resolution)
              
     warnings.filterwarnings("default")
+
  
     # Computing the sync_freq_spread
     if len(synchronous_phase_index) > 1:
-        sync_freq_spread_left = np.diff(potential_well_sep[0:synchronous_phase_index[0]+1]) / np.diff(J_array_dE0[0:synchronous_phase_index[0]+1])
-        sync_freq_spread_right = np.diff(potential_well_sep[synchronous_phase_index[1]:]) / np.diff(J_array_dE0[synchronous_phase_index[1]:])
-        delta_theta_coord_left = theta_coord_sep[0:synchronous_phase_index[0]+1]
-        delta_theta_coord_right = theta_coord_sep[synchronous_phase_index[1]:]
+        potential_well_sep_left = potential_well_sep[0:synchronous_phase_index[0]+1]
+        potential_well_sep_right = potential_well_sep[synchronous_phase_index[1]:]
+        J_left = J_array_dE0[0:synchronous_phase_index[0]+1]
+        J_right = J_array_dE0[synchronous_phase_index[1]:]
     else:
-        sync_freq_spread_left = np.diff(potential_well_sep[0:synchronous_phase_index[0]+1]) / np.diff(J_array_dE0[0:synchronous_phase_index[0]+1])
-        sync_freq_spread_right = np.diff(potential_well_sep[synchronous_phase_index[0]:]) / np.diff(J_array_dE0[synchronous_phase_index[0]:])
-        delta_theta_coord_left = theta_coord_sep[0:synchronous_phase_index[0]+1]
-        delta_theta_coord_right = theta_coord_sep[synchronous_phase_index[0]:]
+        potential_well_sep_left = potential_well_sep[0:synchronous_phase_index[0]+1]
+        potential_well_sep_right = potential_well_sep[synchronous_phase_index[0]:]
+        J_left = J_array_dE0[0:synchronous_phase_index[0]+1]
+        J_right = J_array_dE0[synchronous_phase_index[0]:]
         
-    # These theta coordinates are with respect to the synchronous phase (and taking the coordinates according to the derivative)
-    delta_theta_coord_left = delta_theta_coord_left[-1] - delta_theta_coord_left
-    delta_theta_coord_left = (delta_theta_coord_left + (delta_theta_coord_left[1] - delta_theta_coord_left[0])/2)[0:-1]
-    delta_theta_coord_right = delta_theta_coord_right - delta_theta_coord_right[0]
-    delta_theta_coord_right = (delta_theta_coord_right + (delta_theta_coord_right[1] - delta_theta_coord_right[0])/2)[0:-1]
+
+    H_array=np.hstack((potential_well_sep_left, potential_well_sep_right))
+    J_array=np.hstack((J_left, J_right))
     
-    # Converting the sync_freq in frequency in Hz
-    sync_freq_spread_left = sync_freq_spread_left / (2*np.pi)
-    sync_freq_spread_right = sync_freq_spread_right / (2*np.pi)
-     
-    return delta_theta_coord_right, sync_freq_spread_right, delta_theta_coord_left, sync_freq_spread_left
+    H_index_sorted = np.argsort(H_array)
+    H_array = H_array.take(H_index_sorted)
+    J_array = J_array.take(H_index_sorted)
+    
+    H_for_derivative = np.linspace(H_array[0], H_array[-1], int(1e4))
+    J_for_derivative = np.interp(H_for_derivative, H_array, J_array)
+    
+    sync_freq_spread = np.diff(H_for_derivative)/np.diff(J_for_derivative) / (2*np.pi)
+    
+    emittance_array = J_for_derivative * FullRingAndRF.ring_radius / (Beam.beta_r * c) * (2*np.pi)
+    emittance_array = (emittance_array + (emittance_array[1] - emittance_array[0])/2)[0:-1]
+
+    return emittance_array, sync_freq_spread
 
 
 

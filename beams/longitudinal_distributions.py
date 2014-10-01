@@ -45,7 +45,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     
     if line_density_options['type'] is not 'user_input':
         # Theta coordinates for the line density
-        n_points_line_den = int(1e3)
+        n_points_line_den = int(1e4)
         theta_line_den = np.linspace(theta_coord_array[0], theta_coord_array[-1], n_points_line_den)
         line_den_resolution = theta_line_den[1] - theta_line_den[0]
                         
@@ -131,9 +131,11 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
         # Moving the bunch (not for the last iteration if intensity effects are present)
         if TotalInducedVoltage is None:
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
+            induced_voltage_object.slices.bins_centers = theta_line_den * FullRingAndRF.ring_radius / (Beam.beta_r * c)
             max_profile_pos = max_profile_pos - (max_profile_pos - min_potential_pos)
         if i != n_iterations - 1:
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
+            induced_voltage_object.slices.bins_centers = theta_line_den * FullRingAndRF.ring_radius / (Beam.beta_r * c)
             theta_induced_voltage = np.linspace(theta_line_den[0], theta_line_den[0] + (induced_voltage_length - 1) * line_den_resolution, induced_voltage_length)           
             
     # Taking the first/second half of line density and potential
@@ -252,7 +254,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     
     # Ploting the result
     if plot_option:
-        plt.figure()
+        plt.figure('matched_from_line_density')
         plt.plot(theta_line_den, line_density)
         reconstructed_line_den = np.sum(density_grid, axis=0)
         plt.plot(theta_coord_for_grid, reconstructed_line_den / np.max(reconstructed_line_den) * np.max(line_density))
@@ -264,7 +266,7 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
     Beam.theta = theta_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (theta_coord_for_grid[1]-theta_coord_for_grid[0])
     Beam.dE = deltaE_grid.flatten()[indexes] + (np.random.rand(Beam.n_macroparticles) - 0.5) * (deltaE_for_grid[1]-deltaE_for_grid[0])
     
-    return [hamiltonian_coord, density_function] 
+    return [hamiltonian_coord, density_function], induced_voltage_object
 
 
 def matched_from_distribution_density(Beam, FullRingAndRF, distribution_options,
