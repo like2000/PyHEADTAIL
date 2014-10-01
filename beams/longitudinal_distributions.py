@@ -87,9 +87,6 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
         induced_voltage_object.reprocess(induced_voltage_object.slices)
         
         # Calculating the induced voltage
-        induced_voltage_object.induced_voltage_sum(Beam)
-        
-        # Calculating the induced voltage
         induced_voltage_length = int(1.5*n_points_line_den)
         induced_voltage = induced_voltage_object.induced_voltage_sum(Beam, length = induced_voltage_length)
         theta_induced_voltage = np.linspace(theta_line_den[0], theta_line_den[0] + (induced_voltage_length - 1) * line_den_resolution, induced_voltage_length)
