@@ -14,7 +14,7 @@ from scipy.integrate import cumtrapz
 
 
 def synchrotron_frequency_spread(Beam, FullRingAndRF, main_harmonic_option = 'lowest_freq', 
-                                 TotalInducedVoltage = None):
+                                 TotalInducedVoltage = None, smoothOption = None):
     '''
     *Function to compute the frequency spread of a distribution for a certain
     RF system and optional intensity effects. The potential well (and induced
@@ -24,6 +24,10 @@ def synchrotron_frequency_spread(Beam, FullRingAndRF, main_harmonic_option = 'lo
     *If used with induced potential, be careful that noise can be an issue. An
     analytical line density can be inputed by inputing the output of the matched_from_line_density
     function output in the longitudinal_distributions module.*
+    
+    *A smoothing function is included (running mean) in order to smooth
+    noise and numerical errors due to linear interpolation, the user can input the 
+    number of pixels to smooth with smoothOption = N.*
     '''
     
     # Initialize variables depending on the accelerator parameters
@@ -79,36 +83,46 @@ def synchrotron_frequency_spread(Beam, FullRingAndRF, main_harmonic_option = 'lo
              
     warnings.filterwarnings("default")
 
- 
     # Computing the sync_freq_spread (if to handle cases where maximum is in 2 consecutive points)
     if len(synchronous_phase_index) > 1:
+        H_array_left = potential_well_sep[0:synchronous_phase_index[0]+1]
+        H_array_right = potential_well_sep[synchronous_phase_index[1]:]
+        J_array_left = J_array_dE0[0:synchronous_phase_index[0]+1]
+        J_array_right = J_array_dE0[synchronous_phase_index[1]:]
         delta_theta_left = theta_coord_sep[0:synchronous_phase_index[0]+1]
         delta_theta_right = theta_coord_sep[synchronous_phase_index[1]:]
     else:
+        H_array_left = potential_well_sep[0:synchronous_phase_index[0]+1]
+        H_array_right = potential_well_sep[synchronous_phase_index[0]:]   
+        J_array_left = J_array_dE0[0:synchronous_phase_index[0]+1]
+        J_array_right = J_array_dE0[synchronous_phase_index[0]:]   
         delta_theta_left = theta_coord_sep[0:synchronous_phase_index[0]+1]
         delta_theta_right = theta_coord_sep[synchronous_phase_index[0]:]   
         
     delta_theta_left = delta_theta_left[-1] - delta_theta_left
     delta_theta_right = delta_theta_right - delta_theta_right[0]
-
-    delta_array = np.hstack((delta_theta_left, delta_theta_right))
     
-    H_index_sorted = np.argsort(potential_well_sep)
-    H_array = potential_well_sep.take(H_index_sorted)
-    J_array = J_array_dE0.take(H_index_sorted)
-    delta_array = delta_array.take(H_index_sorted)
+    delta_theta_left = (delta_theta_left + (delta_theta_left[1] - delta_theta_left[0])/2)[0:-1]
+    delta_theta_right = (delta_theta_right + (delta_theta_right[1] - delta_theta_right[0])/2)[0:-1]
     
-    H_for_derivative = np.linspace(H_array[0], H_array[-1], int(1e4))
-    J_for_derivative = np.interp(H_for_derivative, H_array, J_array)
-    delta_array = np.interp(H_for_derivative, H_array, delta_array)
+    if smoothOption is not None:
+        H_array_left = np.convolve(H_array_left, np.ones(smoothOption)/smoothOption, mode='valid')
+        J_array_left = np.convolve(J_array_left, np.ones(smoothOption)/smoothOption, mode='valid')
+        H_array_right = np.convolve(H_array_right, np.ones(smoothOption)/smoothOption, mode='valid')
+        J_array_right = np.convolve(J_array_right, np.ones(smoothOption)/smoothOption, mode='valid')
+        delta_theta_left = (delta_theta_left + (smoothOption/2-0.5) * (delta_theta_left[1] - delta_theta_left[0])/2)[0:1-smoothOption]
+        delta_theta_right = (delta_theta_right + (smoothOption/2-0.5) * (delta_theta_right[1] - delta_theta_right[0])/2)[0:1-smoothOption]
+        
+    sync_freq_spread_left = np.diff(H_array_left)/np.diff(J_array_left) / (2*np.pi)
+    sync_freq_spread_right = np.diff(H_array_right)/np.diff(J_array_right) / (2*np.pi)
+        
+    emittance_array_left = J_array_left * FullRingAndRF.ring_radius / (Beam.beta_r * c) * (2*np.pi)
+    emittance_array_left = (emittance_array_left + (emittance_array_left[1] - emittance_array_left[0])/2)[0:-1]
     
-    sync_freq_spread = np.diff(H_for_derivative)/np.diff(J_for_derivative) / (2*np.pi)
+    emittance_array_right = J_array_right * FullRingAndRF.ring_radius / (Beam.beta_r * c) * (2*np.pi)
+    emittance_array_right = (emittance_array_right + (emittance_array_right[1] - emittance_array_right[0])/2)[0:-1]
     
-    emittance_array = J_for_derivative * FullRingAndRF.ring_radius / (Beam.beta_r * c) * (2*np.pi)
-    emittance_array = (emittance_array + (emittance_array[1] - emittance_array[0])/2)[0:-1]
-    delta_array = (delta_array + (delta_array[1] - delta_array[0])/2)[0:-1]
-    
-    return sync_freq_spread, emittance_array, delta_array
+    return [sync_freq_spread_left, sync_freq_spread_right], [emittance_array_left, emittance_array_right], [delta_theta_left, delta_theta_right]
 
 
 
