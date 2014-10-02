@@ -131,7 +131,6 @@ def matched_from_line_density(Beam, FullRingAndRF, line_density_options,
         # Moving the bunch (not for the last iteration if intensity effects are present)
         if TotalInducedVoltage is None:
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
-            induced_voltage_object.slices.bins_centers = theta_line_den * FullRingAndRF.ring_radius / (Beam.beta_r * c)
             max_profile_pos = max_profile_pos - (max_profile_pos - min_potential_pos)
         if i != n_iterations - 1:
             theta_line_den = theta_line_den - (max_profile_pos - min_potential_pos)
