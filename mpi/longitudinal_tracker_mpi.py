@@ -60,12 +60,11 @@ class RingAndRFSection(object):
         #: | *... and derived relativistic quantities*
         self.beta_r = rf_params.beta_r
         
-        self.beta_av = rf_params.beta_av
         self.gamma_r = rf_params.gamma_r
         self.energy = rf_params.energy
-        #: *Acceleration kick* :math:`: \quad - <\beta> \Delta p`
         
-        self.acceleration_kick = - self.beta_av * self.p_increment  
+        #: *Acceleration kick* :math:`: \quad - <\beta> \Delta p`        
+        self.acceleration_kick = - self.beta_r[1:] * self.p_increment  
 
         #: *Beta ratio*  :math:`: \quad \frac{\beta_{n+1}}{\beta_{n}}`  
         self.beta_ratio = self.beta_r[1:] / self.beta_r[0:-1]
@@ -159,22 +158,22 @@ class RingAndRFSection(object):
         if self.solver == 'full': 
             if self.mpi_comm == None:    
                 beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
-                            + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(beam.delta) * 
+                            + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(self.counter[0]+1, beam.delta) * 
                                                 beam.delta) - 1) * self.length_ratio
             else:
                 delta = self.dE / (beam.beta_r**2 * beam.energy)
                 self.theta = self.beta_ratio[self.counter[0]] * self.theta \
-                            + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(delta) * 
+                            + 2 * np.pi * (1 / (1 - self.rf_params.eta_tracking(self.counter[0]+1, delta) * 
                                                 delta) - 1) * self.length_ratio                
         elif self.solver == 'simple':
             if self.mpi_comm == None: 
                 beam.theta = self.beta_ratio[self.counter[0]] * beam.theta \
-                            + 2 * np.pi * self.eta_0[self.counter[0]] \
+                            + 2 * np.pi * self.eta_0[self.counter[0]+1] \
                             * beam.delta * self.length_ratio
             else:
                 delta = self.dE / (beam.beta_r**2 * beam.energy)
                 self.theta = self.beta_ratio[self.counter[0]] * self.theta \
-                            + 2 * np.pi * self.eta_0[self.counter[0]] \
+                            + 2 * np.pi * self.eta_0[self.counter[0]+1] \
                             * delta * self.length_ratio                
         else:
             raise RuntimeError("ERROR: Choice of longitudinal solver not \
