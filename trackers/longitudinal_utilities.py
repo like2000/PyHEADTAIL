@@ -67,7 +67,7 @@ def hamiltonian(GeneralParameters, RFSectionParameters, theta, dE, delta,
     else: 
         V0 = total_voltage[counter]
     
-    c1 = RFSectionParameters.eta_tracking(delta) * c * np.pi / (GeneralParameters.ring_circumference * 
+    c1 = RFSectionParameters.eta_tracking(counter, delta) * c * np.pi / (GeneralParameters.ring_circumference * 
          RFSectionParameters.beta_r[counter] * RFSectionParameters.energy[counter] )
     c2 = c * RFSectionParameters.beta_r[counter] * V0 / (h0 * GeneralParameters.ring_circumference)
      

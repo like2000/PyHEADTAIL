@@ -8,24 +8,29 @@ from __future__ import division
 from scipy.constants import c
 import numpy as np
 
+from input_parameters.rf_parameters import calc_phi_s
+
 
 
 class PhaseLoop(object): 
     '''
     One-turn phase loop for different machines with different hardware. Phase 
     loop is active only in certain turns, in which the frequency or the phase
-    in the longitudinal tracker is modified. 
+    in the longitudinal tracker is modified. Note that phase shift is not yet
+    implemented in the tracker!
     '''    
     def __init__(self, general_params, gain, sampling_frequency = 100,
-                 machine = 'LHC'):
+                 machine = 'LHC', coefficients = None):
         
         self.gain = gain # feedback gain, can be an array depending on machine
         self.dt = sampling_frequency # either in turns or in time, depending on machine
         self.machine = machine # machine name
         
-        self.correction = 0 # PL correction in frequency or phase, depending on machine
+        self.domega_RF_next = 0 # PL correction in RF revolution frequency, next time step
+        self.domega_RF_prev = 0 # PL correction in RF revolution frequency, prev time step
+        self.omega_ratio = 0 # RF revolution frequency ratio (next/current time step)
         self.dphi = 0 # phase difference between bunch/beam and RF
-        self.PL_on = False # time step when PL is active
+        self.PL_on = False # state of the PL -- active or not
         
         # Pre-processing
         if self.machine == 'PSB':
@@ -34,35 +39,85 @@ class PhaseLoop(object):
        
             
     def track(self, beam, tracker):
+        
+        # For machines where the PL is not always measuring/acting
         if (self.machine == 'LHC' and tracker.counter % self.dt) \
         or (self.machine == 'PSB' and tracker.counter == self.on_time[self.counter]):
+        
+            print "In turn %d of RF section %d PL is active." %(tracker.counter, tracker.rf_params.section_index)
             getattr(self, self.machine)()
             self.PL_on = True
-        if (self.machine == 'LHC' and tracker.counter % (self.dt+1)) \
+            
+        elif (self.machine == 'LHC' and tracker.counter % (self.dt+1)) \
         or (self.machine == 'PSB' and tracker.counter == (self.on_time[self.counter]+1)):
+        
+            self.domega_RF_prev = self.domega_RF_next
+            self.domega_RF_next = 0.
             self.PL_on = True
+        
         else:
+        
             self.PL_on = False
 
     
     def precalculate_time(self, general_params):
+        # Any cleverer way to do this?
         n = 0
-        while n < general_params.t_rev.size:
+        while n < general_params.t_rev.size: 
             summa = 0
             while summa < self.dt:
                 summa += general_params.t_rev[n]
+                n += 1
             np.append(self.on_time, n)
             
       
-    def phase_difference(self, beam):
-        self.dphi = h * beam.mean_theta - phi_s
+    def phase_difference(self, beam, tracker):
+        # We compare the bunch COM phase with the actual synchronous phase (w/ intensity effects)
+        # Actually, we should compare a the RF harmonic component of the beam spectrum to the RF phase!
+        self.dphi = tracker.harmonic * beam.mean_theta - calc_phi_s(tracker.rf_params)
         
-    def LHC(self, beam):
-        phase_difference(beam)
-        self.correction = multiply by k
 
-    def PSB(self, beam):
-        another transfer function
+    def LHC(self, beam, tracker):
+        '''
+        Calculation of the LHC RF frequency correction from the phase difference
+        between beam and RF (actual synchronous phase). The transfer function is
+        
+        .. math::
+            \\Delta \\omega_{RF} = g (\\Delta\\Phi_{PL} + \\Delta\\Phi_{N}) 
+            
+        where the phase noise for the controlled blow-up can be optionally 
+        activated.       
+        '''
+        self.phase_difference(beam, tracker)
+        
+        if np.fabs(self.dphi) < 1.e-10 :
+            self.domega_RF_next = 0.
+        else:
+            self.domega_RF_next = self.gain * self.dphi
+
+
+    def PSB(self, beam, tracker):
+        '''
+        Calculation of the PSB RF frequency correction from the phase difference
+        between beam and RF (actual synchronous phase). The transfer function is
+        
+        .. math::
+            \\Delta \\omega_{RF} = 2 \\Pi g \\frac{a_0 \\Delta\\Phi_{PL}^2 + a_1 \\Delta\\Phi_{PL} + a_2 }{\\Delta\\Phi_{PL}^2 - b_1 \\Delta\\Phi_{PL} - b_2} 
+            
+        Input g through gain and [a_0, a_1, a_2, b_1, b_2] through coefficients.       
+        '''
+
+        self.phase_difference(beam, tracker)
+        
+        if np.fabs(self.dphi) < 1.e-10 :
+            self.domega_RF_next = 0.
+        else:
+            self.domega_RF_next = 2*np.pi * self.gain * \
+            (self.coefficients[0]*self.dphi*self.dpi + self.coefficients[1]*self.dphi 
+             + self.coefficients[2]) / (self.dphi*self.dpi + self.coefficients[3]*self.dphi 
+             + self.coefficients[4])
+             
+        # Counter to pick the next time step when the PL will be active
         self.counter += 1 
     
     

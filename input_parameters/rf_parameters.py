@@ -63,6 +63,9 @@ class RFSectionParameters(object):
         #: | *Counter for turns is:* :math:`n`
         self.n_turns = GeneralParameters.n_turns
         
+        #: *Copy of the ring circumference (from GeneralParameters)*
+        self.ring_cirumference = GeneralParameters.ring_circumference
+        
         #: *Length of the section in [m]* :math:`: \quad L_k`
         self.section_length = GeneralParameters.ring_length[self.section_index]
         
@@ -153,7 +156,7 @@ class RFSectionParameters(object):
         self.phi_s = calc_phi_s(self)   
     
     
-    def eta_tracking(self, delta):
+    def eta_tracking(self, counter, delta):
         '''
         *The slippage factor is calculated as a function of the relative momentum
         (delta) of the beam. By definition, the slippage factor is:*
@@ -164,11 +167,11 @@ class RFSectionParameters(object):
         '''
         
         if self.alpha_order == 1:
-            return self.eta_0[self.counter[0]]
+            return self.eta_0[counter]
         else:
             eta = 0
             for i in xrange( self.alpha_order ):
-                eta_i = getattr(self, 'eta_' + str(i))[self.counter[0]]
+                eta_i = getattr(self, 'eta_' + str(i))[counter]
                 eta  += eta_i * (delta**i)
             return eta  
 
