@@ -8,9 +8,6 @@ from __future__ import division
 from scipy.constants import c
 import numpy as np
 
-from input_parameters.rf_parameters import calc_phi_s
-
-
 
 class PhaseLoop(object): 
     '''
@@ -19,8 +16,8 @@ class PhaseLoop(object):
     in the longitudinal tracker is modified. Note that phase shift is not yet
     implemented in the tracker!
     '''    
-    def __init__(self, general_params, gain, sampling_frequency = 100,
-                 machine = 'LHC', coefficients = None):
+    def __init__(self, general_params, rf_params, gain, 
+                 sampling_frequency = 100, machine = 'LHC', coefficients = None):
         
         self.gain = gain # feedback gain, can be an array depending on machine
         self.dt = sampling_frequency # either in turns or in time, depending on machine
@@ -36,6 +33,8 @@ class PhaseLoop(object):
         if self.machine == 'PSB':
             self.counter = 0
             self.precalculate_time(general_params)
+            
+        self.phi_s_design = rf_params.phi_s
        
             
     def track(self, beam, tracker):
@@ -74,7 +73,7 @@ class PhaseLoop(object):
     def phase_difference(self, beam, tracker):
         # We compare the bunch COM phase with the actual synchronous phase (w/ intensity effects)
         # Actually, we should compare a the RF harmonic component of the beam spectrum to the RF phase!
-        self.dphi = tracker.harmonic * beam.mean_theta - calc_phi_s(tracker.rf_params)
+        self.dphi = tracker.harmonic * beam.mean_theta - self.phi_s_design[tracker.counter]
         
 
     def LHC(self, beam, tracker):
