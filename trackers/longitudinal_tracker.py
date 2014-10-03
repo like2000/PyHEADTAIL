@@ -164,15 +164,13 @@ class RingAndRFSection(object):
         self.p_increment = RFSectionParameters.p_increment
         #: *Copy of the relativistic beta (from RFSectionParameters)*
         self.beta_r = RFSectionParameters.beta_r
-        #: *Copy of the averaged relativistic beta (from RFSectionParameters)*
-        self.beta_av = RFSectionParameters.beta_av
         #: *Copy of the relativistic gamma (from RFSectionParameters)*        
         self.gamma_r = RFSectionParameters.gamma_r
         #: *Copy of the relativistic energy (from RFSectionParameters)*                
         self.energy = RFSectionParameters.energy
         
         #: *Acceleration kick* :math:`: \quad - <\beta> \Delta p`
-        self.acceleration_kick = - self.beta_av * self.p_increment  
+        self.acceleration_kick = - self.beta_r[1:] * self.p_increment  
         
         ### Import RF section parameters for the drift
         #: *Slippage factor (order 0) for the given RF section*

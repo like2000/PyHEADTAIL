@@ -91,9 +91,6 @@ class RFSectionParameters(object):
         #: GeneralParameters)* :math:`: \quad E_{k,n}`
         self.energy = GeneralParameters.energy[self.section_index]
         
-        #: *Copy of the average beta (from GeneralParameters)*
-        self.beta_av = GeneralParameters.beta_av[self.section_index]
-        
         #: *Slippage factor (order 0) for the given RF section*
         self.eta_0 = 0
         #: *Slippage factor (order 1) for the given RF section*
