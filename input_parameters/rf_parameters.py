@@ -195,8 +195,9 @@ def calc_phi_s(RFSectionParameters, accelerating_systems = 'all'):
                 
         if acceleration_test.size > 0:
             raise RuntimeError('Acceleration is not possible (momentum increment is too big or voltage too low) at index ' + str(acceleration_test))
-           
-        phi_s = np.arcsin(acceleration_ratio)
+        
+        # For the initial phi_s, add the first value a second time   
+        phi_s = np.arcsin(np.concatenate(acceleration_ratio[0], acceleration_ratio))
         
         index = np.where((eta0[1:] + eta0[0:-1])/2 > 0)       
         phi_s[index] = np.pi - phi_s
