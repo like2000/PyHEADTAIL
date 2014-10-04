@@ -5,6 +5,8 @@
 @brief Module for matching transverse and longitudinal distributions
 @copyright CERN
 '''
+
+
 from __future__ import division
 
 from abc import ABCMeta, abstractmethod
@@ -16,8 +18,6 @@ from scipy.constants import c, e
 from scipy.optimize import brentq, brenth, bisect, newton
 from scipy.interpolate import interp2d
 from scipy.integrate import quad, fixed_quad, dblquad, cumtrapz, romb
-
-#import pylab as plt
 
 
 class PhaseSpace(object):
