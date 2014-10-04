@@ -178,7 +178,9 @@ class RFBucketMatcher(PhaseSpace):
 
         # Maximum emittance
         self._set_psi_sigma(H.circumference)
+
         zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+        # ***********************************************************************
         # sigma_max = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
         # zc_left, zc_right = H.zs - 2*sigma_max, H.zs + 2*sigma_max
         # if zc_left > H.zleft:
@@ -193,9 +195,12 @@ class RFBucketMatcher(PhaseSpace):
             epsn_z = epsn_max*0.99
         print '\n*** Maximum RMS emittance', epsn_max, 'eV s.'
 
+        @profile
         def get_zc_for_epsn_z(ec):
             self._set_psi_epsn(ec)
+
             zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+            # ***********************************************************************
             # sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
             # zc_left, zc_right = H.zs - 2*sigma, H.zs + 2*sigma
             # if zc_left > H.zleft:
@@ -257,7 +262,7 @@ class RFBucketMatcher(PhaseSpace):
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
         self._set_psi_epsn(ec_bar)
         zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
+        # ***********************************************************************
         # zc_left, zc_right = H.zs - 2*sigma, H.zs + 2*sigma
         # if zc_left > H.zleft:
         #     zc = zc_left
@@ -266,6 +271,7 @@ class RFBucketMatcher(PhaseSpace):
         # else:
         #     raise ValueError
         emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
 
         print '\n--> Emittance:', emittance
         print '--> Bunch length:', sigma
