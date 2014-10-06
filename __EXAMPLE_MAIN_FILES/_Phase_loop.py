@@ -14,6 +14,7 @@ from beams.beams import *
 from beams.longitudinal_distributions import *
 from beams.slices import *
 from monitors.monitors import *
+from longitudinal_plots.plot_settings import *
 from longitudinal_plots.plot_beams import *
 from longitudinal_plots.plot_llrf import *
 from longitudinal_plots.plot_slices import *
@@ -23,7 +24,7 @@ from longitudinal_plots.plot_slices import *
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
 N_b = 1.e9           # Intensity
-N_p = 1001          # Macro-particles
+N_p = 10001          # Macro-particles
 tau_0 = 0.4          # Initial bunch length, 4 sigma [ns]
 
 # Machine and RF parameters
@@ -36,8 +37,9 @@ gamma_t = 55.759505  # Transition gamma
 alpha = 1./gamma_t/gamma_t        # First order mom. comp. factor
 
 # Tracking details
-N_t = 201           # Number of turns to track
+N_t = 1001           # Number of turns to track
 dt_plt = 200         # Time steps between plots
+dt_mon = 1           # Time steps between monitoring
 
 
 # Simulation setup -------------------------------------------------------------
@@ -47,14 +49,12 @@ print ""
 # Define general parameters
 general_params = GeneralParameters(N_t, C, alpha, p_s, 'proton')
 
-# Define RF station parameters and corresponding tracker
+# Define RF station parameters, phase loop, and corresponding tracker
 RF_params = RFSectionParameters(general_params, 1, h, V, dphi)
-long_tracker = RingAndRFSection(RF_params)
-
-# Define Phase Loop based on general and RF parameters
 PL_gain = 1/(10*general_params.t_rev[0])
 PL = PhaseLoop(general_params, RF_params, PL_gain, sampling_frequency = 10, 
                machine = 'LHC')
+long_tracker = RingAndRFSection(RF_params, PhaseLoop=PL)
 
 print "General and RF parameters set..."
 
@@ -77,11 +77,18 @@ bunchmonitor.track(beam)
 
 print "Statistics set..."
 
+# Initialize plots
+PlotSettings().set_plot_format()
 
 # Accelerator map
-map_ = [long_tracker] + [slice_beam] + [bunchmonitor] # No intensity effects, no aperture limitations
+map_ = [long_tracker] 
+map2_ = [slice_beam] + [bunchmonitor] # No intensity effects, no aperture limitations
 print "Map set"
 print ""
+
+
+# Initial injection kick
+beam.theta += 1.e-5
 
 
 
@@ -108,12 +115,16 @@ for i in range(N_t):
     # Track
     for m in map_:
         m.track(beam)
+    if (i % dt_mon) == 0:
+        for m in map2_:
+            m.track(beam)
         
     # These plots have to be done after the tracking
-    if (i % dt_plt) == 0:
-        plot_bunch_length_evol(beam, 'output_data', general_params, i, unit='ns')
+    if (i % dt_plt) == 0 and i > dt_mon:
+        plot_bunch_length_evol(beam, 'output_data', general_params, i, 
+                               output_freq=dt_mon, unit='ns')
         plot_bunch_length_evol_gaussian(beam, 'output_data', general_params, 
-                                        slice_beam, i, unit='ns')
+                                        slice_beam, i, output_freq=dt_mon, unit='ns')
 
     
     # Define losses according to separatrix and/or longitudinal position
