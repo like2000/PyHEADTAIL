@@ -37,9 +37,8 @@ def fig_folder(dirname):
             pass
         else:
             raise
-
-
-
+        
+        
 def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
                           xmax, ymin, ymax, xunit = None, yunit = None, 
                           sampling = 1, separatrix_plot = False, 
@@ -77,29 +76,35 @@ def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
     
     # Main plot: longitudinal distribution
     if xunit == None or xunit == 'rad':
-        axScatter.set_xlabel(r"theta [rad]", fontsize=20, fontweight='bold')
+        axScatter.set_xlabel(r"$\vartheta$ [rad]")
         if yunit == None or yunit == 'MeV':
-            axScatter.scatter(beam.theta[::sampling], beam.dE[::sampling]/1.e6, s=1, edgecolor='none')
-            axScatter.set_ylabel(r"$\Delta$E [MeV]", fontsize=20, fontweight='bold')
+            axScatter.scatter(beam.theta[::sampling], beam.dE[::sampling]/1.e6, 
+                              s=1, edgecolor='none')
+            axScatter.set_ylabel(r"$\Delta$E [MeV]")
         elif yunit == '1': 
-            axScatter.scatter(beam.theta[::sampling], beam.delta[::sampling], s=1, edgecolor='none') 
-            axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]", fontsize=20, fontweight='bold')           
+            axScatter.scatter(beam.theta[::sampling], beam.delta[::sampling], 
+                              s=1, edgecolor='none') 
+            axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]")           
     elif xunit == 'm':
-        axScatter.set_xlabel('z [m]', fontsize=14)
+        axScatter.set_xlabel('z [m]')
         if yunit == None or yunit == 'MeV':
-            axScatter.scatter(beam.z[::sampling], beam.dE[::sampling]/1.e6, s=1, edgecolor='none')
-            axScatter.set_ylabel(r"$\Delta$E [MeV]", fontsize=20, fontweight='bold')
+            axScatter.scatter(beam.z[::sampling], beam.dE[::sampling]/1.e6, 
+                              s=1, edgecolor='none')
+            axScatter.set_ylabel(r"$\Delta$E [MeV]")
         elif yunit == '1': 
-            axScatter.scatter(beam.z[::sampling], beam.delta[::sampling], s=1, edgecolor='none') 
-            axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]", fontsize=20, fontweight='bold')              
+            axScatter.scatter(beam.z[::sampling], beam.delta[::sampling], 
+                              s=1, edgecolor='none') 
+            axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]")              
     elif xunit == 'ns':
-        axScatter.set_xlabel('Time [ns]', fontsize=14)
+        axScatter.set_xlabel('Time [ns]')
         if yunit == None or yunit == 'MeV':
-            axScatter.scatter(beam.theta[::sampling]*coeff, beam.dE[::sampling]/1.e6, s=1, edgecolor='none')
-            axScatter.set_ylabel(r"$\Delta$E [MeV]", fontsize=20, fontweight='bold')
+            axScatter.scatter(beam.theta[::sampling]*coeff, 
+                              beam.dE[::sampling]/1.e6, s=1, edgecolor='none')
+            axScatter.set_ylabel(r"$\Delta$E [MeV]")
         elif yunit == '1': 
-            axScatter.scatter(beam.theta[::sampling]*coeff, beam.delta[::sampling], s=1, edgecolor='none') 
-            axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]", fontsize=20, fontweight='bold')           
+            axScatter.scatter(beam.theta[::sampling]*coeff, 
+                              beam.delta[::sampling], s=1, edgecolor='none') 
+            axScatter.set_ylabel(r"$\Delta$p/p$_0$ [1]")           
         
     axScatter.set_xlim(xmin, xmax)
     axScatter.set_ylim(ymin, ymax)
@@ -107,14 +112,9 @@ def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
     if xunit == None or xunit == 'rad':
         axScatter.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     axScatter.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.figtext(0.95,0.95,'%d turns' %RFSectionParameters.counter[0], fontsize=16, ha='right', 
-                va='center') 
-    for tick in axScatter.xaxis.get_major_ticks():
-        tick.label1.set_fontsize(10)
-        tick.label1.set_fontweight('bold')
-    for tick in axScatter.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(10)
-        tick.label1.set_fontweight('bold')      
+    plt.figtext(0.95,0.95,'%d turns' %RFSectionParameters.counter[0], 
+                fontsize=16, ha='right', va='center') 
+            
     # Separatrix
     if separatrix_plot:
         x_sep = np.linspace(xmin, xmax, 1000)
@@ -123,11 +123,11 @@ def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
         elif xunit == 'm' or xunit == 'ns':
             y_sep = separatrix(General_parameters, RFSectionParameters, x_sep/coeff)
         if yunit == None or yunit == 'MeV':
-            axScatter.plot(x_sep, y_sep/1.e6, 'r', linewidth = 4)
-            axScatter.plot(x_sep, -1.e-6*y_sep, 'r', linewidth = 4)       
+            axScatter.plot(x_sep, y_sep/1.e6, 'r')
+            axScatter.plot(x_sep, -1.e-6*y_sep, 'r')       
         else:
-            axScatter.plot(x_sep, y_sep/ycoeff, 'r', linewidth = 4)
-            axScatter.plot(x_sep, -1.*y_sep/ycoeff, 'r', linewidth = 4)
+            axScatter.plot(x_sep, y_sep/ycoeff, 'r')
+            axScatter.plot(x_sep, -1.*y_sep/ycoeff, 'r')
     
     # Phase and momentum histograms
     if histograms_plot:
@@ -137,15 +137,17 @@ def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
         yh = np.arange(ymin, ymax + ybin, ybin)
       
         if xunit == None or xunit == 'rad':
-            axHistx.hist(beam.theta[::sampling], bins=xh, histtype='step', linewidth = 4)
+            axHistx.hist(beam.theta[::sampling], bins=xh, histtype='step')
         elif xunit == 'm':
-            axHistx.hist(beam.z[::sampling], bins=xh, histtype='step', linewidth = 4)       
+            axHistx.hist(beam.z[::sampling], bins=xh, histtype='step')       
         elif xunit == 'ns':
-            axHistx.hist(beam.theta[::sampling]*coeff, bins=xh, histtype='step', linewidth = 4)
+            axHistx.hist(beam.theta[::sampling]*coeff, bins=xh, histtype='step')
         if yunit == None or yunit == 'MeV':
-            axHisty.hist(beam.dE[::sampling]/1.e6, bins=yh, histtype='step', orientation='horizontal', linewidth = 4)
+            axHisty.hist(beam.dE[::sampling]/1.e6, bins=yh, histtype='step', 
+                         orientation='horizontal')
         if yunit == '1':
-            axHisty.hist(beam.delta[::sampling], bins=yh, histtype='step', orientation='horizontal', linewidth = 4)
+            axHisty.hist(beam.delta[::sampling], bins=yh, histtype='step', 
+                         orientation='horizontal')
         axHistx.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
         axHisty.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
         axHistx.axes.get_xaxis().set_visible(False)
@@ -155,27 +157,14 @@ def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
         labels = axHisty.get_xticklabels()
         for label in labels:
             label.set_rotation(-90)
-        for tick in axHistx.xaxis.get_major_ticks():
-            tick.label1.set_fontsize(10)
-            tick.label1.set_fontweight('bold')
-        for tick in axHistx.yaxis.get_major_ticks():
-            tick.label1.set_fontsize(10)
-            tick.label1.set_fontweight('bold')
-        for tick in axHisty.xaxis.get_major_ticks():
-            tick.label1.set_fontsize(10)
-            tick.label1.set_fontweight('bold')
-        for tick in axHisty.yaxis.get_major_ticks():
-            tick.label1.set_fontsize(10)
-            tick.label1.set_fontweight('bold')        
- 
+                     
     # Save plot
     fign = dirname +'/long_distr_'"%d"%RFSectionParameters.counter[0]+'.png'
     plt.savefig(fign)
     plt.clf()
 
 
-
-def plot_bunch_length_evol(beam, h5file, General_parameters, 
+def plot_bunch_length_evol(beam, h5file, General_parameters, time_step, 
                            output_freq = 1, unit = None, dirname = 'fig'):
     """
     Plot of r.m.s. 4-sigma bunch length as a function of time.
@@ -186,10 +175,13 @@ def plot_bunch_length_evol(beam, h5file, General_parameters,
     fig_folder(dirname)
 
     # Get bunch length data in metres or nanoseconds
-    t = output_freq*range(1, General_parameters.n_turns + 1)
-    
+    if output_freq < 1:
+        output_freq = 1
+    ndata = int(time_step/output_freq) + 1
+    t = output_freq*range(1, ndata + 1)    
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/sigma_theta"], dtype = np.double)
+    
     if unit == None or unit == 'rad':
         bl *= 4 
     elif unit == 'ns':
@@ -202,8 +194,8 @@ def plot_bunch_length_evol(beam, h5file, General_parameters,
 
     # Plot
     plt.figure(1, figsize=(8,6))
-    ax = plt.axes([0.12, 0.1, 0.82, 0.8])
-    ax.plot(t, bl[0:General_parameters.n_turns], '.')
+    ax = plt.axes([0.15, 0.1, 0.8, 0.8])
+    ax.plot(t, bl[0:ndata], '.')
     ax.set_xlabel(r"No. turns [T$_0$]")
     if unit == None or unit == 'rad':
         ax.set_ylabel (r"Bunch length, $\vartheta_{4\sigma}$ r.m.s. [rad]")
@@ -219,9 +211,8 @@ def plot_bunch_length_evol(beam, h5file, General_parameters,
     plt.clf()
 
 
-
 def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices, 
-                                    output_freq = 1, unit = None,
+                                    time_step, output_freq = 1, unit = None,
                                     dirname = 'fig'):
 
     """
@@ -233,7 +224,10 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices,
     fig_folder(dirname)
 
     # Get bunch length data in metres or nanoseconds
-    t = output_freq*range(1, General_parameters.n_turns + 1) 
+    if output_freq < 1:
+        output_freq = 1
+    ndata = int(time_step/output_freq)
+    t = output_freq*range(1, ndata + 1)    
     storeddata = h5py.File(h5file + '.h5', 'r')
     bl = np.array(storeddata["/Bunch/bunch_length_gauss_theta"], dtype=np.double)
 
@@ -260,8 +254,8 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices,
 
     # Plot
     plt.figure(1, figsize=(8,6))
-    ax = plt.axes([0.12, 0.1, 0.82, 0.8])
-    ax.plot(t, bl[0:General_parameters.n_turns], '.')
+    ax = plt.axes([0.15, 0.1, 0.8, 0.8])
+    ax.plot(t, bl[0:ndata], '.')
     ax.set_xlabel(r"No. turns [T$_0$]")
     if unit == None or unit == 'rad':
         ax.set_ylabel (r"Bunch length, $\vartheta_{4\sigma}$ Gaussian fit [rad]")
@@ -277,8 +271,7 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices,
     plt.clf()
 
 
-
-def plot_position_evol(counter, beam, h5file, General_parameters, 
+def plot_position_evol(counter, beam, h5file, General_parameters, time_step,
                        output_freq = 1, unit = None, style = '-', 
                        dirname = 'fig'): 
  
@@ -286,21 +279,24 @@ def plot_position_evol(counter, beam, h5file, General_parameters,
     fig_folder(dirname) 
  
     # Get position data in metres or nanoseconds 
-    t = output_freq*range(1, General_parameters.n_turns + 1) 
-     
+    if output_freq < 1:
+        output_freq = 1
+    ndata = int(time_step/output_freq) + 1
+    t = output_freq*range(1, ndata + 1)    
     storeddata = h5py.File(h5file + '.h5', 'r') 
     pos = np.array(storeddata["/Bunch/mean_theta"], dtype = np.double) 
+    
     if unit == None or unit == 'ns': 
         pos *= 1.e9 / beam.beta_r / c * General_parameters.ring_radius 
     elif unit == 'm': 
         pos *= General_parameters.ring_radius 
          
-    pos[counter:] = np.nan 
+    pos[time_step:] = np.nan 
  
     # Plot 
     plt.figure(1, figsize=(8,6)) 
-    ax = plt.axes([0.12, 0.1, 0.82, 0.8]) 
-    ax.plot(t[0:counter], pos[0:counter], style) 
+    ax = plt.axes([0.15, 0.1, 0.8, 0.8]) 
+    ax.plot(t, pos[0:ndata], style) 
     ax.set_xlabel(r"No. turns [T$_0$]") 
     ax.set_xlim((1,General_parameters.n_turns + 1)) 
     if unit == None or unit == 'ns': 
