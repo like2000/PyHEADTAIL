@@ -44,5 +44,6 @@ class PlotSettings(object):
         
         # Set figure resolution, font
         plt.rc('figure', dpi=self.dpi)  
+        plt.rc('savefig', dpi=self.dpi)  
         plt.rc('font', family=self.ffamily)  
          

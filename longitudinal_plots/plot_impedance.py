@@ -64,7 +64,7 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
                      np.abs(ind_volt_from_imp.slices.beam_spectrum))
         fign = dirname +'/sum_imp_vs_freq_fft' "%d" %counter + '.png'
         plt.show()
-        plt.savefig(fign, dpi=300)
+        plt.savefig(fign)
         plt.clf()
     
     elif option1 == "single":
@@ -107,7 +107,7 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
         ax0.set_ylabel ("Real impedance [Ohm]")
         plt.figure(0)
         
-        plt.savefig(fign1, dpi=300)
+        plt.savefig(fign1)
         plt.clf()
         fign2 = dirname +'/imag_imp_vs_'+option3+'_' "%d" %counter + '.png'
         
@@ -120,7 +120,7 @@ def plot_impedance_vs_frequency(counter, general_params, ind_volt_from_imp,
             ax3.set_ylim(cut_up_down)
         plt.figure(1)
         
-        plt.savefig(fign2, dpi=300)
+        plt.savefig(fign2)
         plt.clf()
         
    
@@ -139,15 +139,9 @@ def plot_induced_voltage_vs_bins_centers(counter, general_params,
     
     fig0 = plt.figure(0)
     ax0 = fig0.add_subplot(111)
-    plt.plot(total_voltage.slices.bins_centers, total_voltage.induced_voltage, style, linewidth=4)
-    ax0.set_xlabel("Time [s]", fontsize=20, fontweight='bold')
-    ax0.set_ylabel ("Induced voltage [V]", fontsize=20, fontweight='bold')
-    for tick in ax0.xaxis.get_major_ticks():
-        tick.label1.set_fontsize(10)
-        tick.label1.set_fontweight('bold')
-    for tick in ax0.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(10)
-        tick.label1.set_fontweight('bold')         
+    plt.plot(total_voltage.slices.bins_centers, total_voltage.induced_voltage, style)
+    ax0.set_xlabel("Time [s]")
+    ax0.set_ylabel ("Induced voltage [V]")
 
     # Save plot
     fign = dirname +'/induced_voltage_' "%d" %counter + '.png'
