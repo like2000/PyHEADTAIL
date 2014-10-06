@@ -16,8 +16,8 @@ class PhaseLoop(object):
     in the longitudinal tracker is modified. Note that phase shift is not yet
     implemented in the tracker!
     '''    
-    def __init__(self, general_params, rf_params, gain, 
-                 sampling_frequency = 100, machine = 'LHC', coefficients = None):
+    def __init__(self, general_params, rf_params, gain, sampling_frequency = 10, 
+                 machine = 'LHC', coefficients = None, RF_noise = None):
         
         self.gain = gain # feedback gain, can be an array depending on machine
         self.dt = sampling_frequency # either in turns or in time, depending on machine
@@ -36,6 +36,9 @@ class PhaseLoop(object):
             
         self.phi_s_design = rf_params.phi_s
        
+        # Import phase noise class       
+        self.RF_noise = RF_noise
+        
             
     def track(self, beam, tracker):
         
@@ -74,6 +77,10 @@ class PhaseLoop(object):
         # We compare the bunch COM phase with the actual synchronous phase (w/ intensity effects)
         # Actually, we should compare a the RF harmonic component of the beam spectrum to the RF phase!
         self.dphi = tracker.harmonic * beam.mean_theta - self.phi_s_design[tracker.counter]
+        
+        # Possibility to add RF phase noise through the PL
+        if self.RF_noise != None:
+            self.dphi += self.RF_noise.dphi[tracker.counter]
         
 
     def LHC(self, beam, tracker):
