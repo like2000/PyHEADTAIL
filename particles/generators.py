@@ -178,105 +178,43 @@ class RFBucketMatcher(PhaseSpace):
 
         # Maximum emittance
         self._set_psi_sigma(H.circumference)
-
-        zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        # ***********************************************************************
-        # sigma_max = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
-        # zc_left, zc_right = H.zs - 2*sigma_max, H.zs + 2*sigma_max
-        # if zc_left > H.zleft:
-        #     zc = zc_left
-        # elif zc_right < H.zright:
-        #     zc = zc_right
-        # else:
-        #     raise ValueError
-        epsn_max = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+        # epsn_max = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        z, dp = self._generate(50000, self.psi)
+        epsn_max = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
         if epsn_z > epsn_max:
             print '\n*** RMS emittance larger than bucket; using full bucket emittance', epsn_max, ' [eV s].'
             epsn_z = epsn_max*0.99
         print '\n*** Maximum RMS emittance', epsn_max, 'eV s.'
 
-        @profile
+        # @profile
         def get_zc_for_epsn_z(ec):
             self._set_psi_epsn(ec)
-
-            zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-            # ***********************************************************************
-            # sigma = self._compute_std(psi, H.separatrix, H.zleft, H.zright)
-            # zc_left, zc_right = H.zs - 2*sigma, H.zs + 2*sigma
-            # if zc_left > H.zleft:
-            #     zc = zc_left
-            # elif zc_right < H.zright:
-            #     zc = zc_right
-            # else:
-            #     raise ValueError
-            emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+            # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+            # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+            z, dp = self._generate(50000, self.psi)
+            emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
             print '... distance to target emittance:', emittance-epsn_z
 
             return emittance-epsn_z
 
-        # def get_zcut_for_epsn(zcut):
-        #     if zcut > H.zright:
-        #         zcut = H.zright*0.95
-        #     if zcut < H.zleft:
-        #         zcut = H.zleft*0.95
-
-        #     zleft, zright = H.get_z_left_right(zcut)
-        #     eqh = H.equihamiltonian(zcut)
-        #     emittance = self._compute_zero_quad(lambda y, x: 1, eqh, zleft, zright) * 2*H.p0_reference/e
-        #     if np.isnan(emittance):
-        #         raise ValueError
-
-        #     return emittance-epsn_z
-
-        # # Width for emittance
-        # h_cut = 1 * np.exp(-2**2/2.)
-        # zz = np.linspace(H.zmin, H.zmax, 32)
-        # @profile
-        # def get_zc_for_zcut(zc):
-        #     psi_c.H0 = H.H0(zc)
-        #     linedensity = self._get_linedensity(psi, H.separatrix)
-        #     lmax = np.amax(linedensity(zz))
-        #     plt.plot(zz, linedensity(zz)/lmax, 'r', lw=2)
-        #     plt.plot(zz, psi(zz, 0))
-        #     plt.axhline(h_cut)
-        #     plt.axvline(zcut_bar)
-        #     plt.show()
-        #     zleft, zright = H._get_zero_crossings(lambda x: linedensity(x) - h_cut*lmax)
-        #     zleftttt, zrightttt = H._get_zero_crossings(lambda x: psi(x, 0) - h_cut)
-        #     print zright-zcut_bar, zrightttt-zcut_bar, psi_c.H0
-        #     if np.isnan(zright):
-        #         raise ValueError
-
-        #     if zcut_bar > 0:
-        #         return zright-zcut_bar
-        #     else:
-        #         return zleft-zcut_bar
-
-        # zcut_bar = newton(get_zcut_for_epsn, sigma)
-        # zc_bar = newton(get_zc_for_zcut, sigma)
-
         try:
-            ec_bar = newton(get_zc_for_epsn_z, epsn_z*1.2, tol=5e-3, maxiter=30)
+            ec_bar = newton(get_zc_for_epsn_z, epsn_z*1.2, tol=1e-4, maxiter=30)
         except RuntimeError:
             print '*** WARNING: failed to converge using Newton-Raphson method. Trying classic Brent method...'
             ec_bar = brentq(get_zc_for_epsn_z, epsn_z/2, 2*epsn_max)
+
         self._set_psi_epsn(ec_bar)
-        zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        # ***********************************************************************
-        # zc_left, zc_right = H.zs - 2*sigma, H.zs + 2*sigma
-        # if zc_left > H.zleft:
-        #     zc = zc_left
-        # elif zc_right < H.zright:
-        #     zc = zc_right
-        # else:
-        #     raise ValueError
-        emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+        # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        z, dp = self._generate(50000, self.psi)
+        emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
         sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
 
         print '\n--> Emittance:', emittance
         print '--> Bunch length:', sigma
-        H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
-        H.emittance, H.sigma = emittance, sigma
+        # H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
+        # H.emittance, H.sigma = emittance, sigma
 
     # @profile
     def psi_for_bunchlength_newton_method(self, sigma):
@@ -301,22 +239,18 @@ class RFBucketMatcher(PhaseSpace):
             return length-sigma
 
         zc_bar = newton(get_zc_for_sigma, sigma)
-        self._set_psi_sigma(zc_bar)
-        zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
-        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
-        # zc_left, zc_right = H.zs - 2*sigma, H.zs + 2*sigma
-        # if zc_left > H.zleft:
-        #     zc = zc_left
-        # elif zc_right < H.zright:
-        #     zc = zc_right
-        # else:
-        #     raise ValueError
-        emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
 
-        print '\n--> Bunch length:', sigma
+        self._set_psi_sigma(zc_bar)
+        # zc_left, zc_right = self._get_edges_for_cut(np.exp(-2**2/2.))
+        # emittance = self._compute_zero_quad(lambda y, x: 1, H.equihamiltonian(zc_left), H.zleft, H.zright) * 2*H.p0_reference/e
+        z, dp = self._generate(50000, self.psi)
+        emittance = self._compute_emittance(z, dp) * 4*np.pi*H.p0_reference/e
+        sigma = self._compute_std(self.psi, H.separatrix, H.zleft, H.zright)
+
         print '--> Emittance:', emittance
-        H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
-        H.emittance, H.sigma = emittance, sigma
+        print '\n--> Bunch length:', sigma
+        # H.zleft_for_eps, H.zright_for_eps = zc_left, zc_right
+        # H.emittance, H.sigma = emittance, sigma
 
     def generate(self, macroparticlenumber, particles=None):
         '''
@@ -335,11 +269,11 @@ class RFBucketMatcher(PhaseSpace):
         lx = (xmax - xmin)
         ly = (ymax - ymin)
 
-        xx = np.linspace(xmin, xmax, nx + 1)
-        yy = np.linspace(ymin, ymax, ny + 1)
-        XX, YY = np.meshgrid(xx, yy)
-        HH = self.psi(XX, YY)
-        psi_interp = interp2d(xx, yy, HH)
+        # xx = np.linspace(xmin, xmax, nx + 1)
+        # yy = np.linspace(ymin, ymax, ny + 1)
+        # XX, YY = np.meshgrid(xx, yy)
+        # HH = self.psi(XX, YY)
+        # psi_interp = interp2d(xx, yy, HH)
 
         # ================================================================
         # mask_out = ~self.is_accepted(z, dp)
@@ -426,6 +360,30 @@ class RFBucketMatcher(PhaseSpace):
 
         return 2*L
 
+    def _generate(self, macroparticlenumber, psi):
+
+        # Bin
+        i, j = 0, 0
+        nx, ny = 128, 128
+        xmin, xmax = self.H.zleft, self.H.zright
+        ymin, ymax = -self.H.p_max(self.H.zright), self.H.p_max(self.H.zright)
+        lx = (xmax - xmin)
+        ly = (ymax - ymin)
+
+        n_gen = macroparticlenumber
+        u = xmin + lx * np.random.random(n_gen)
+        v = ymin + ly * np.random.random(n_gen)
+        s = np.random.random(n_gen)
+        mask_out = ~(s<self.psi(u, v))
+        while mask_out.any():
+            n_gen = np.sum(mask_out)
+            u[mask_out] = xmin + lx * np.random.random(n_gen)
+            v[mask_out] = ymin + ly * np.random.random(n_gen)
+            s[mask_out] = np.random.random(n_gen)
+            mask_out = ~(s<self.psi(u, v))
+
+        return u, v
+
     def _set_psi_sigma(self, sigma):
         self.psi_object.H0 = self.H.H0_from_sigma(sigma)
 
@@ -443,6 +401,13 @@ class RFBucketMatcher(PhaseSpace):
         # plt.axvline(zcut_bar)
         # plt.show()
         return self.H._get_zero_crossings(lambda x: self.linedensity(x) - h_cut*lmax)
+
+    def _compute_emittance(self, z, dp):
+        var_z    = np.var(z)
+        var_dp   = np.var(dp)
+        mean_zdp = np.mean( (z-np.mean(z)) * (dp-np.mean(dp)) )
+
+        return np.sqrt(var_z*var_dp - mean_zdp**2)
 
     def _compute_zero_quad(self, psi, p_sep, xmin, xmax):
         '''
@@ -552,92 +517,6 @@ class RFBucketMatcher(PhaseSpace):
         V *= dx
 
         return np.sqrt(V/Q)
-
-class UniformX(PhaseSpace):
-    """
-    Horizontal uniform particle phase space distribution.
-    """
-
-    def __init__(self, x_min, x_max):
-
-        self.x_min, self.x_max = x_min, x_max
-
-    def generate(self, particles):
-        dx = self.x_max - self.x_min
-        particles.x = self.x_min + np.random.rand(particles.n_macroparticles) * dx
-        particles.xp = 0. * particles.x
-
-
-class UniformY(PhaseSpace):
-    """
-    Vertical uniform particle phase space distribution.
-    """
-
-    def __init__(self, y_min, y_max):
-
-        self.y_min, self.y_max = y_min, y_max
-
-    def generate(self, particles):
-        dy = self.y_max - self.y_min
-        particles.y = self.y_min + np.random.rand(particles.n_macroparticles) * dy
-        particles.yp = 0. * particles.y
-
-
-class UniformZ(PhaseSpace):
-    """
-    Longitudinal uniform particle phase space distribution.
-    """
-
-    def __init__(self, z_min, z_max):
-
-        self.z_min, self.z_max = z_min, z_max
-
-    def generate(self, particles):
-        dz = self.z_max - self.z_min
-        particles.z = self.z_min + np.random.rand(particles.n_macroparticles) * dz
-        particles.dp = 0. * particles.z
-
-
-class ImportX(PhaseSpace):
-
-    def __init__(self, x, xp):
-
-        self.x = np.array(x)
-        self.xp = np.array(xp)
-
-    def generate(self, particles):
-
-        assert(particles.n_macroparticles == len(self.x) == len(self.xp))
-        particles.x = self.x.copy()
-        particles.xp = self.xp.copy()
-
-
-class ImportY(PhaseSpace):
-
-    def __init__(self, y, yp):
-
-        self.y = np.array(y)
-        self.yp = np.array(yp)
-
-    def generate(self, particles):
-
-        assert(particles.n_macroparticles == len(self.y) == len(self.yp))
-        particles.y = self.y.copy()
-        particles.yp = self.yp.copy()
-
-
-class ImportZ(PhaseSpace):
-
-    def __init__(self, z, dp):
-
-        self.z = np.array(z)
-        self.dp = np.array(dp)
-
-    def generate(self, particles):
-
-        assert(particles.n_macroparticles == len(self.z) == len(self.dp))
-        particles.z = self.z.copy()
-        particles.dp = self.dp.copy()
 
 
 class StationaryExponential(object):
