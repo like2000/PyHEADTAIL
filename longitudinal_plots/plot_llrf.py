@@ -49,19 +49,15 @@ def plot_noise_spectrum(frequency, spectrum, sampling = 1, dirname = 'fig'):
     
     # Plot
     plt.figure(1, figsize=(8,6))
-    ax = plt.axes([0.12, 0.1, 0.82, 0.8])
+    ax = plt.axes([0.15, 0.1, 0.8, 0.8])
     ax.set_xlim([0, 300])    
     ax.plot(frequency[::sampling], spectrum[::sampling])
-    ax.set_xlabel("Frequency [Hz]", fontsize=20, fontweight='bold')
+    ax.set_xlabel("Frequency [Hz]")
     params = {'text.usetex': False, 'mathtext.default' : 'sf'}
     plt.rcParams.update(params)
-    ax.set_ylabel (r"Noise spectrum [$\frac{rad^2}{Hz}$]", fontsize=20, fontweight='bold')
-    for tick in ax.xaxis.get_major_ticks():
-        tick.label1.set_fontsize(10)
-        tick.label1.set_fontweight('bold')
-    for tick in ax.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(10)
-        tick.label1.set_fontweight('bold')
+    ax.set_ylabel (r"Noise spectrum [$\frac{rad^2}{Hz}$]")
+
+    # Save figure
     fign = dirname +'/noise_spectrum.png'
     plt.savefig(fign)
     plt.clf()
@@ -80,17 +76,12 @@ def plot_phase_noise(time, dphi, sampling = 1, dirname = 'fig'):
     
     # Plot
     plt.figure(1, figsize=(8,6))
-    ax = plt.axes([0.12, 0.1, 0.82, 0.8])
+    ax = plt.axes([0.15, 0.1, 0.8, 0.8])
     ax.plot(time[::sampling], dphi[::sampling])
-    ax.set_xlabel("Time [s]", fontsize=20, fontweight='bold')
-    
-    ax.set_ylabel (r"Phase noise [rad]", fontsize=20, fontweight='bold')
-    for tick in ax.xaxis.get_major_ticks():
-        tick.label1.set_fontsize(10)
-        tick.label1.set_fontweight('bold')
-    for tick in ax.yaxis.get_major_ticks():
-        tick.label1.set_fontsize(10)
-        tick.label1.set_fontweight('bold')
+    ax.set_xlabel("Time [s]")    
+    ax.set_ylabel (r"Phase noise [rad]")
+
+    # Save figure
     fign = dirname +'/phase_noise.png'
     plt.savefig(fign)
     plt.clf()     
