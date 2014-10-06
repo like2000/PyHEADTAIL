@@ -7,38 +7,13 @@
 
 from __future__ import division
 import h5py
-import os
-import subprocess
-import sys
-import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.constants import c
 from trackers.longitudinal_utilities import separatrix
+from longitudinal_plots.plot_settings import fig_folder
 
 
-if os.path.exists('fig'):    
-    if "lin" in sys.platform:
-        subprocess.Popen("rm -rf fig", shell = True, executable = "/bin/bash")
-    elif "win" in sys.platform:
-        os.system('del /s/q '+ os.getcwd() +'\\fig>null')
-    else:
-        warnings.warn("You have not a Windows or Linux operating system. Aborting...")
-
-    
-def fig_folder(dirname):
-    
-    # Try to create directory
-    try:
-        os.makedirs(dirname)
-    # Check whether already exists/creation failed
-    except OSError:
-        if os.path.exists(dirname):
-            pass
-        else:
-            raise
-        
-        
 def plot_long_phase_space(beam, General_parameters, RFSectionParameters, xmin,
                           xmax, ymin, ymax, xunit = None, yunit = None, 
                           sampling = 1, separatrix_plot = False, 

@@ -5,7 +5,33 @@
 
 '''
 
+import os
+import subprocess
+import sys
+import warnings
 import matplotlib.pyplot as plt
+
+
+if os.path.exists('fig'):    
+    if "lin" in sys.platform:
+        subprocess.Popen("rm -rf fig", shell = True, executable = "/bin/bash")
+    elif "win" in sys.platform:
+        os.system('del /s/q '+ os.getcwd() +'\\fig>null')
+    else:
+        warnings.warn("You have not a Windows or Linux operating system. Aborting...")
+
+    
+def fig_folder(dirname):
+    
+    # Try to create directory
+    try:
+        os.makedirs(dirname)
+    # Check whether already exists/creation failed
+    except OSError:
+        if os.path.exists(dirname):
+            pass
+        else:
+            raise
 
 
 class PlotSettings(object):
