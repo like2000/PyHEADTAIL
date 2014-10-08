@@ -257,10 +257,11 @@ class Slicer(object):
         return self._epsn(bunch.y, bunch.yp) * bunch.betagamma
 
     def epsn_z(self, bunch):
-        '''
-        Approximate epsn_z. Correct for Gaussian bunch.
-        '''
-        return (4. * np.pi * self.sigma_z(bunch) * self.sigma_dp(bunch) * bunch.p0 / bunch.charge)
+        # '''
+        # Approximate epsn_z. Correct for Gaussian bunch.
+        # '''
+        # return (4. * np.pi * self.sigma_z(bunch) * self.sigma_dp(bunch) * bunch.p0 / bunch.charge)
+        return (4.*np.pi * self._epsn(bunch.z, bunch.dp) * bunch.p0/e)
 
 
     '''

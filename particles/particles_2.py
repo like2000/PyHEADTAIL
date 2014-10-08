@@ -385,7 +385,8 @@ class Particles(object):
         return cp.emittance(self.y, self.yp) * self.betagamma
 
     def epsn_z(self):
-        return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
+        return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
+        # return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
 
 
 class StationaryExponential(object):
