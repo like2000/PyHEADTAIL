@@ -16,7 +16,7 @@ class PhaseLoop(object):
     in the longitudinal tracker is modified. Note that phase shift is not yet
     implemented in the tracker!
     '''    
-    def __init__(self, general_params, rf_params, gain, sampling_frequency = 10, 
+    def __init__(self, general_params, rf_params, gain, sampling_frequency = 1, 
                  machine = 'LHC', coefficients = None, RF_noise = None):
         
         self.gain = gain # feedback gain, can be an array depending on machine
@@ -43,15 +43,14 @@ class PhaseLoop(object):
     def track(self, beam, tracker):
         
         # For machines where the PL is not always measuring/acting
-        if (self.machine == 'LHC' and tracker.counter % self.dt) \
-        or (self.machine == 'PSB' and tracker.counter == self.on_time[self.counter]):
+        if (self.machine == 'LHC') \
+        or (self.machine == 'PSB' and tracker.counter[0] == self.on_time[self.counter]):
         
-            print "In turn %d of RF section %d PL is active." %(tracker.counter, tracker.rf_params.section_index)
-            getattr(self, self.machine)()
+            getattr(self, self.machine)(beam, tracker)
             self.PL_on = True
             
-        elif (self.machine == 'LHC' and tracker.counter % (self.dt+1)) \
-        or (self.machine == 'PSB' and tracker.counter == (self.on_time[self.counter]+1)):
+        elif (self.machine == 'LHC') \
+        or (self.machine == 'PSB' and tracker.counter[0] == (self.on_time[self.counter]+1)):
         
             self.domega_RF_prev = self.domega_RF_next
             self.domega_RF_next = 0.
@@ -76,11 +75,13 @@ class PhaseLoop(object):
     def phase_difference(self, beam, tracker):
         # We compare the bunch COM phase with the actual synchronous phase (w/ intensity effects)
         # Actually, we should compare a the RF harmonic component of the beam spectrum to the RF phase!
-        self.dphi = tracker.harmonic * beam.mean_theta - self.phi_s_design[tracker.counter]
+        self.dphi = tracker.harmonic[0,tracker.counter[0]] * beam.mean_theta - self.phi_s_design[tracker.counter[0]]
+        print "In dphicalc, h=%d, theta=%.4e, phi_s_design=%.4e, dphi=%.4e" \
+        %(tracker.harmonic[0,tracker.counter[0]], beam.mean_theta, self.phi_s_design[tracker.counter[0]],self.dphi)
         
         # Possibility to add RF phase noise through the PL
         if self.RF_noise != None:
-            self.dphi += self.RF_noise.dphi[tracker.counter]
+            self.dphi += self.RF_noise.dphi[tracker.counter[0]]
         
 
     def LHC(self, beam, tracker):

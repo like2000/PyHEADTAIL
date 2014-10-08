@@ -199,8 +199,8 @@ class RingAndRFSection(object):
         self.section_index = RFSectionParameters.section_index
         
         #: *Design RF frequency of the main RF system in the station*        
-        self.omega_RF = 2.*np.pi*self.beta_r*c/(self.harmonic[0]
-                        *RFSectionParameters.ring_cirumference)
+        self.omega_RF = 2.*np.pi*self.beta_r*c*self.harmonic[0]/ \
+                        (RFSectionParameters.ring_cirumference)
         
         #: *Phase Loop class*                
         self.PL = PhaseLoop         
@@ -261,11 +261,15 @@ class RingAndRFSection(object):
         '''
         
         # Determine frequency correction from feedback loops
-        if self.PL == None or self.PL.PL_on == False:
+        #if self.PL == None or self.PL.PL_on == False:
+        if self.PL == None:
             # No Phase Loop, no Radial Loop
             omega_ratio = self.beta_ratio[self.counter[0]]
             
         else:
+            #def track(self, beam, tracker):
+
+            self.PL.track(beam, self)
             # Sum up corrections from previous and current time step
             # Sum up corrections from PL, RL, etc. here
             corr_next = 0.
@@ -274,8 +278,8 @@ class RingAndRFSection(object):
                 corr_next += self.PL.domega_RF_next
                 corr_prev += self.PL.domega_RF_prev
                 
-            omega_ratio = (self.omega_RF[self.counter[0]+1] + corr_next) / \
-                          (self.omega_RF[self.counter[0]] + corr_prev)
+            omega_ratio = (self.omega_RF[self.counter[0]+1] - corr_next) / \
+                          (self.omega_RF[self.counter[0]] - corr_prev)
         
         # Choose solver
         if self.solver == 'full': 
