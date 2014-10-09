@@ -264,7 +264,8 @@ class RingAndRFSection(object):
         #if self.PL == None or self.PL.PL_on == False:
         if self.PL == None:
             # No Phase Loop, no Radial Loop
-            omega_ratio = self.beta_ratio[self.counter[0]]
+            omega_ratio1 = self.beta_ratio[self.counter[0]]
+            omega_ratio2 = 1.
             
         else:
             #def track(self, beam, tracker):
@@ -278,21 +279,22 @@ class RingAndRFSection(object):
                 corr_next += self.PL.domega_RF_next
                 corr_prev += self.PL.domega_RF_prev
                 
-            omega_ratio = (self.omega_RF[self.counter[0]+1] - corr_next) / \
-                          (self.omega_RF[self.counter[0]] - corr_prev)
+            omega_ratio1 = (self.omega_RF[self.counter[0]+1] - corr_next) / \
+                           (self.omega_RF[self.counter[0]] - corr_prev)
+            omega_ratio2 = 1. - corr_next/self.omega_RF[self.counter[0]]
         
         # Choose solver
         if self.solver == 'full': 
            
-            beam.theta = omega_ratio*beam.theta + 2*np.pi* \
+            beam.theta = omega_ratio1*beam.theta + 2*np.pi*omega_ratio2 \
                 (1/(1 - self.rf_params.eta_tracking(self.counter[0]+1, beam.delta) 
                 *beam.delta) - 1)*self.length_ratio
                                              
         elif self.solver == 'simple':
             
-            beam.theta = omega_ratio*beam.theta \
-                         + 2 * np.pi * self.eta_0[self.counter[0]+1] \
-                         * beam.delta * self.length_ratio
+            beam.theta = omega_ratio1*beam.theta \
+                         + 2*np.pi*omega_ratio2*self.eta_0[self.counter[0]+1] \
+                         *beam.delta*self.length_ratio
                          
         else:
             raise RuntimeError("ERROR: Choice of longitudinal solver not \
