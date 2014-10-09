@@ -73,7 +73,7 @@ slice_beam = Slices(beam, 100, slicing_coord = 'theta', fit_option = 'gaussian',
                     slice_immediately = 'on')
 
 # Define what to save in file
-bunchmonitor = BunchMonitor('output_data', N_t+1, "Longitudinal", slice_beam)
+bunchmonitor = BunchMonitor('output_data', N_t+1, "Longitudinal", slice_beam, PL)
 bunchmonitor.track(beam)
 
 print "Statistics set..."
@@ -127,6 +127,8 @@ for i in range(N_t):
                                output_freq=dt_mon, unit='ns')
         plot_bunch_length_evol_gaussian(beam, 'output_data', general_params, 
                                         slice_beam, i, output_freq=dt_mon, unit='ns')
+        plot_PL_phase_corr(PL, 'output_data', i, output_freq=dt_mon)
+        plot_PL_freq_corr(PL, 'output_data', i, output_freq=dt_mon)
 
     
     # Define losses according to separatrix and/or longitudinal position

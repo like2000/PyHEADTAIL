@@ -17,7 +17,8 @@ class BunchMonitor(object):
         Slices object has to have the fit_option set to 'gaussian').
     '''
     
-    def __init__(self, filename, n_steps, statistics = "All", slices = None):
+    def __init__(self, filename, n_steps, statistics = "All", slices = None, 
+                 PhaseLoop = None):
         
         self.h5file = hp.File(filename + '.h5', 'w')
         self.n_steps = n_steps
@@ -25,6 +26,7 @@ class BunchMonitor(object):
         self.statistics = statistics
         self.slices = slices
         self.h5file.create_group('Bunch')
+        self.PL = PhaseLoop
 
     
     def track(self, bunch):
@@ -75,6 +77,10 @@ class BunchMonitor(object):
             h5group.create_dataset("epsn_rms_l",   dims, compression="gzip", compression_opts=9)
             if self.slices:
                 h5group.create_dataset("bunch_length_gauss_theta", dims, compression="gzip", compression_opts=9)
+            if self.PL:
+                h5group.create_dataset("PL_phase_corr", dims, compression="gzip", compression_opts=9)
+                h5group.create_dataset("PL_omegaRF_corr", dims, compression="gzip", compression_opts=9)
+                
 
     
     def write_data(self, bunch, h5group, i_steps):
@@ -105,6 +111,9 @@ class BunchMonitor(object):
             h5group["epsn_rms_l"][i_steps]   = bunch.epsn_rms_l
             if self.slices:
                 h5group["bunch_length_gauss_theta"][i_steps] = self.slices.bl_gauss
+            if self.PL:
+                h5group["PL_phase_corr"][i_steps] = self.PL.dphi
+                h5group["PL_omegaRF_corr"][i_steps] = self.PL.domega_RF_next
             
         
     def close(self):
