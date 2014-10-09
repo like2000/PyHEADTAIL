@@ -76,8 +76,6 @@ class PhaseLoop(object):
         # We compare the bunch COM phase with the actual synchronous phase (w/ intensity effects)
         # Actually, we should compare a the RF harmonic component of the beam spectrum to the RF phase!
         self.dphi = tracker.harmonic[0,tracker.counter[0]] * beam.mean_theta - self.phi_s_design[tracker.counter[0]]
-        print "In dphicalc, h=%d, theta=%.4e, phi_s_design=%.4e, dphi=%.4e" \
-        %(tracker.harmonic[0,tracker.counter[0]], beam.mean_theta, self.phi_s_design[tracker.counter[0]],self.dphi)
         
         # Possibility to add RF phase noise through the PL
         if self.RF_noise != None:

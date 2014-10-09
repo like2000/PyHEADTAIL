@@ -37,8 +37,8 @@ gamma_t = 55.759505  # Transition gamma
 alpha = 1./gamma_t/gamma_t        # First order mom. comp. factor
 
 # Tracking details
-N_t = 10001           # Number of turns to track
-dt_plt = 2000         # Time steps between plots
+N_t = 101           # Number of turns to track
+dt_plt = 20         # Time steps between plots
 dt_mon = 1           # Time steps between monitoring
 
 
@@ -52,7 +52,7 @@ general_params = GeneralParameters(N_t, C, alpha, p_s, 'proton')
 # Define RF station parameters, phase loop, and corresponding tracker
 RF_params = RFSectionParameters(general_params, 1, h, V, dphi)
 #PL_gain = 1./10. 
-PL_gain = h*1./(10*general_params.t_rev[0])
+PL_gain = h*1./(30*general_params.t_rev[0])
 PL = PhaseLoop(general_params, RF_params, PL_gain, sampling_frequency = 1, 
                machine = 'LHC')
 long_tracker = RingAndRFSection(RF_params, PhaseLoop=PL)
@@ -119,7 +119,6 @@ for i in range(N_t):
     if (i % dt_mon) == 0:
         for m in map2_:
             m.track(beam)
-    print "PL correction %.4e in tracker %.4e w/ omega_RF %.4e" %(PL.dphi, long_tracker.PL.domega_RF_next, long_tracker.omega_RF[i])
         
     # These plots have to be done after the tracking
     if (i % dt_plt) == 0 and i > dt_mon:
@@ -127,6 +126,8 @@ for i in range(N_t):
                                output_freq=dt_mon, unit='ns')
         plot_bunch_length_evol_gaussian(beam, 'output_data', general_params, 
                                         slice_beam, i, output_freq=dt_mon, unit='ns')
+        plot_position_evol(beam, 'output_data', general_params, i,
+                           output_freq=dt_mon, unit = None, style = '.') 
         plot_PL_phase_corr(PL, 'output_data', i, output_freq=dt_mon)
         plot_PL_freq_corr(PL, 'output_data', i, output_freq=dt_mon)
 

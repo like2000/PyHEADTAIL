@@ -246,7 +246,7 @@ def plot_bunch_length_evol_gaussian(beam, h5file, General_parameters, slices,
     plt.clf()
 
 
-def plot_position_evol(counter, beam, h5file, General_parameters, time_step,
+def plot_position_evol(beam, h5file, General_parameters, time_step,
                        output_freq = 1, unit = None, style = '-', 
                        dirname = 'fig'): 
  
@@ -261,7 +261,7 @@ def plot_position_evol(counter, beam, h5file, General_parameters, time_step,
     storeddata = h5py.File(h5file + '.h5', 'r') 
     pos = np.array(storeddata["/Bunch/mean_theta"], dtype = np.double) 
     
-    if unit == None or unit == 'ns': 
+    if unit == 'ns': 
         pos *= 1.e9 / beam.beta_r / c * General_parameters.ring_radius 
     elif unit == 'm': 
         pos *= General_parameters.ring_radius 
@@ -274,13 +274,16 @@ def plot_position_evol(counter, beam, h5file, General_parameters, time_step,
     ax.plot(t, pos[0:ndata], style) 
     ax.set_xlabel(r"No. turns [T$_0$]") 
     ax.set_xlim((1,General_parameters.n_turns + 1)) 
-    if unit == None or unit == 'ns': 
-        ax.set_ylabel (r"Position [ns]") 
+    if unit == None or unit == 'rad': 
+        ax.set_ylabel (r"Bunch mean position, $\vartheta$ [rad]") 
+        ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    elif unit == 'ns': 
+        ax.set_ylabel (r"Bunch mean position, $\tau$ [ns]") 
     elif unit == 'm': 
-        ax.set_ylabel (r"Position [m]") 
+        ax.set_ylabel ("Bunch mean position, z [m]") 
      
     # Save plot 
-    fign = 'fig/position_evolution_' "%d" %counter + '.png' 
+    fign = 'fig/bunch_mean_position.png'
     plt.savefig(fign) 
     plt.clf() 
 
