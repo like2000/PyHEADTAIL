@@ -222,7 +222,7 @@ class RingAndRFSection(object):
             beam.dE += self.voltage[i,self.counter[0]] * \
                        np.sin(self.harmonic[i,self.counter[0]] * 
                               beam.theta + self.phi_offset[i,self.counter[0]])
-    
+   
     
     def kick_acceleration(self, beam):
         '''
@@ -278,23 +278,32 @@ class RingAndRFSection(object):
             if self.PL != None: # PL active in current or previous time step
                 corr_next += self.PL.domega_RF_next
                 corr_prev += self.PL.domega_RF_prev
-                
+               
             omega_ratio1 = (self.omega_RF[self.counter[0]+1] - corr_next) / \
-                           (self.omega_RF[self.counter[0]] - corr_prev)
-            omega_ratio2 = 1. - corr_next/self.omega_RF[self.counter[0]]
+                           (self.omega_RF[self.counter[0]]) #- corr_prev)
+            omega_ratio2 = 1. - corr_next/self.omega_RF[self.counter[0]+1]
         
         # Choose solver
         if self.solver == 'full': 
            
             beam.theta = omega_ratio1*beam.theta + 2*np.pi*omega_ratio2 \
                 (1/(1 - self.rf_params.eta_tracking(self.counter[0]+1, beam.delta) 
-                *beam.delta) - 1)*self.length_ratio
-                                             
+                *beam.delta) - 1)*self.length_ratio            
+                                            
         elif self.solver == 'simple':
-            
-            beam.theta = omega_ratio1*beam.theta \
-                         + 2*np.pi*omega_ratio2*self.eta_0[self.counter[0]+1] \
-                         *beam.delta*self.length_ratio
+#            beam.theta = omega_ratio1*beam.theta \
+#                         + 2*np.pi*omega_ratio2*self.eta_0[self.counter[0]+1] \
+#                         *beam.delta*self.length_ratio
+
+#            print "In turn %d, tracker correction = %.4e" %(self.counter[0],corr_next/self.omega_RF[self.counter[0]+1])   
+            beam.theta = self.beta_ratio[self.counter[0]]*beam.theta \
+                         + 2*np.pi*(omega_ratio2*self.eta_0[self.counter[0]+1] \
+                         *beam.delta*self.length_ratio - corr_next/self.omega_RF[self.counter[0]+1])
+                         
+#            beam.theta = self.beta_ratio[self.counter[0]]*beam.theta \
+#                         + 2*np.pi*(omega_ratio2*self.eta_0[self.counter[0]+1] \
+#                         *beam.delta*self.length_ratio)
+
                          
         else:
             raise RuntimeError("ERROR: Choice of longitudinal solver not \

@@ -37,8 +37,8 @@ gamma_t = 55.759505  # Transition gamma
 alpha = 1./gamma_t/gamma_t        # First order mom. comp. factor
 
 # Tracking details
-N_t = 101           # Number of turns to track
-dt_plt = 20         # Time steps between plots
+N_t = 1001           # Number of turns to track
+dt_plt = 200         # Time steps between plots
 dt_mon = 1           # Time steps between monitoring
 
 
@@ -51,8 +51,8 @@ general_params = GeneralParameters(N_t, C, alpha, p_s, 'proton')
 
 # Define RF station parameters, phase loop, and corresponding tracker
 RF_params = RFSectionParameters(general_params, 1, h, V, dphi)
-#PL_gain = 1./10. 
-PL_gain = h*1./(30*general_params.t_rev[0])
+PL_gain = 1./(10*general_params.t_rev[0])
+print "PL gain is %.4e 1/s, Trev = %.4e s" %(PL_gain, general_params.t_rev[0])
 PL = PhaseLoop(general_params, RF_params, PL_gain, sampling_frequency = 1, 
                machine = 'LHC')
 long_tracker = RingAndRFSection(RF_params, PhaseLoop=PL)
@@ -74,7 +74,7 @@ slice_beam = Slices(beam, 100, slicing_coord = 'theta', fit_option = 'gaussian',
 
 # Define what to save in file
 bunchmonitor = BunchMonitor('output_data', N_t+1, "Longitudinal", slice_beam, PL)
-bunchmonitor.track(beam)
+#
 
 print "Statistics set..."
 
@@ -82,15 +82,15 @@ print "Statistics set..."
 PlotSettings().set_plot_format()
 
 # Accelerator map
-map_ = [long_tracker] 
-map2_ = [slice_beam] + [bunchmonitor] # No intensity effects, no aperture limitations
+map_ = [slice_beam] + [bunchmonitor] +[long_tracker] 
+#map2_ = [bunchmonitor] # No intensity effects, no aperture limitations
 print "Map set"
 print ""
 
 
-# Initial injection kick
+# Initial injection kick/error
 beam.theta += 1.e-5
-
+bunchmonitor.track(beam)
 
 
 # Tracking ---------------------------------------------------------------------
@@ -114,11 +114,13 @@ for i in range(N_t):
         plot_beam_profile(i, general_params, slice_beam)
 
     # Track
-    for m in map_:
-        m.track(beam)
-    if (i % dt_mon) == 0:
-        for m in map2_:
-            m.track(beam)
+    #for m in map_:
+    #    m.track(beam)
+    #if (i % dt_mon) == 0:
+    #    bunchmonitor.track(beam)
+    slice_beam.track(beam)
+    long_tracker.track(beam)
+    bunchmonitor.track(beam)
         
     # These plots have to be done after the tracking
     if (i % dt_plt) == 0 and i > dt_mon:

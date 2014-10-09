@@ -76,16 +76,16 @@ def plot_PL_phase_corr(PhaseLoop, h5file, time_step, output_freq = 1,
     if output_freq < 1:
         output_freq = 1
     ndata = int(time_step/output_freq) + 1
-    t = output_freq*range(1, ndata + 1)    
+    t = output_freq*range(0, ndata + 1)    
     storeddata = h5py.File(h5file + '.h5', 'r')
     dphi = np.array(storeddata["/Bunch/PL_phase_corr"], dtype = np.double)
     
     # Plot
     plt.figure(1, figsize=(8,6))
     ax = plt.axes([0.15, 0.1, 0.8, 0.8])
-    ax.plot(t, dphi[0:ndata],'.')
+    ax.plot(t, dphi[0:ndata+1],'.')
     ax.set_xlabel(r"No. turns [T$_0$]")    
-    ax.set_ylabel (r"PL $\phi$ correction [$^{\circ}$]")
+    ax.set_ylabel (r"PL $\phi$ correction [rad]")
 
     # Save figure
     fign = dirname +'/PL_phase_corr.png'
@@ -108,14 +108,14 @@ def plot_PL_freq_corr(PhaseLoop, h5file, time_step, output_freq = 1,
     if output_freq < 1:
         output_freq = 1
     ndata = int(time_step/output_freq) + 1
-    t = output_freq*range(1, ndata + 1)    
+    t = output_freq*range(0, ndata + 1)    
     storeddata = h5py.File(h5file + '.h5', 'r')
     dphi = np.array(storeddata["/Bunch/PL_omegaRF_corr"], dtype = np.double)
     
     # Plot
     plt.figure(1, figsize=(8,6))
     ax = plt.axes([0.15, 0.1, 0.8, 0.8])
-    ax.plot(t, dphi[0:ndata],'.')
+    ax.plot(t, dphi[0:ndata+1],'.')
     ax.set_xlabel(r"No. turns [T$_0$]")    
     ax.set_ylabel (r"PL $\omega_{RF}$ correction [1/s]")
     ax.ticklabel_format(style='sci', axis='y', scilimits=(0,0))

@@ -27,7 +27,6 @@ class PhaseLoop(object):
         self.domega_RF_prev = 0 # PL correction in RF revolution frequency, prev time step
         self.omega_ratio = 0 # RF revolution frequency ratio (next/current time step)
         self.dphi = 0 # phase difference between bunch/beam and RF
-        self.PL_on = False # state of the PL -- active or not
         
         # Pre-processing
         if self.machine == 'PSB':
@@ -43,23 +42,23 @@ class PhaseLoop(object):
     def track(self, beam, tracker):
         
         # For machines where the PL is not always measuring/acting
-        if (self.machine == 'LHC') \
-        or (self.machine == 'PSB' and tracker.counter[0] == self.on_time[self.counter]):
-        
-            getattr(self, self.machine)(beam, tracker)
-            self.PL_on = True
-            
-        elif (self.machine == 'LHC') \
-        or (self.machine == 'PSB' and tracker.counter[0] == (self.on_time[self.counter]+1)):
-        
-            self.domega_RF_prev = self.domega_RF_next
-            self.domega_RF_next = 0.
-            self.PL_on = True
-        
-        else:
-        
-            self.PL_on = False
+#         if (self.machine == 'LHC') \
+#         or (self.machine == 'PSB' and tracker.counter[0] == self.on_time[self.counter]):
+#             getattr(self, self.machine)(beam, tracker)
+#             self.PL_on = True
+#         elif (self.machine == 'LHC') \
+#         or (self.machine == 'PSB' and tracker.counter[0] == (self.on_time[self.counter]+1)):
+#             self.domega_RF_prev = self.domega_RF_next
+#             self.domega_RF_next = 0.
+#             self.PL_on = True
 
+        
+        # Update the correction of the previous time step
+        self.domega_RF_prev = self.domega_RF_next
+
+        # Update the correction of the next time step    
+        getattr(self, self.machine)(beam, tracker)
+        
     
     def precalculate_time(self, general_params):
         # Any cleverer way to do this?
@@ -76,6 +75,8 @@ class PhaseLoop(object):
         # We compare the bunch COM phase with the actual synchronous phase (w/ intensity effects)
         # Actually, we should compare a the RF harmonic component of the beam spectrum to the RF phase!
         self.dphi = tracker.harmonic[0,tracker.counter[0]] * beam.mean_theta - self.phi_s_design[tracker.counter[0]]
+        print "In turn %d, mean theta = %.4e, dphi = %.4e" %(tracker.counter[0],beam.mean_theta,self.dphi)
+    
         
         # Possibility to add RF phase noise through the PL
         if self.RF_noise != None:
@@ -112,15 +113,19 @@ class PhaseLoop(object):
         Input g through gain and [a_0, a_1, a_2, b_1, b_2] through coefficients.       
         '''
 
-        self.phase_difference(beam, tracker)
+        # On turns when the PL is active
+        if tracker.counter[0] == self.on_time[self.counter]:
+            self.phase_difference(beam, tracker)
         
-        if np.fabs(self.dphi) < 1.e-10 :
-            self.domega_RF_next = 0.
+            if np.fabs(self.dphi) < 1.e-10 :
+                self.domega_RF_next = 0.
+            else:
+                self.domega_RF_next = 2*np.pi*self.gain*( self.coefficients[0]
+                *self.dphi*self.dpi + self.coefficients[1]*self.dphi 
+                + self.coefficients[2]) / (self.dphi*self.dpi 
+                + self.coefficients[3]*self.dphi + self.coefficients[4])
         else:
-            self.domega_RF_next = 2*np.pi * self.gain * \
-            (self.coefficients[0]*self.dphi*self.dpi + self.coefficients[1]*self.dphi 
-             + self.coefficients[2]) / (self.dphi*self.dpi + self.coefficients[3]*self.dphi 
-             + self.coefficients[4])
+            self.domega_RF_next = 0.
              
         # Counter to pick the next time step when the PL will be active
         self.counter += 1 
