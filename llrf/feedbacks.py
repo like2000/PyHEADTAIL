@@ -25,7 +25,6 @@ class PhaseLoop(object):
         
         self.domega_RF_next = 0 # PL correction in RF revolution frequency, next time step
         self.domega_RF_prev = 0 # PL correction in RF revolution frequency, prev time step
-        self.omega_ratio = 0 # RF revolution frequency ratio (next/current time step)
         self.dphi = 0 # phase difference between bunch/beam and RF
         
         # Pre-processing
@@ -40,18 +39,6 @@ class PhaseLoop(object):
         
             
     def track(self, beam, tracker):
-        
-        # For machines where the PL is not always measuring/acting
-#         if (self.machine == 'LHC') \
-#         or (self.machine == 'PSB' and tracker.counter[0] == self.on_time[self.counter]):
-#             getattr(self, self.machine)(beam, tracker)
-#             self.PL_on = True
-#         elif (self.machine == 'LHC') \
-#         or (self.machine == 'PSB' and tracker.counter[0] == (self.on_time[self.counter]+1)):
-#             self.domega_RF_prev = self.domega_RF_next
-#             self.domega_RF_next = 0.
-#             self.PL_on = True
-
         
         # Update the correction of the previous time step
         self.domega_RF_prev = self.domega_RF_next

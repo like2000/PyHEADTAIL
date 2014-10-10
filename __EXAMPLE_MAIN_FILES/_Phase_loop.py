@@ -24,7 +24,7 @@ from longitudinal_plots.plot_slices import *
 # Simulation parameters --------------------------------------------------------
 # Bunch parameters
 N_b = 1.e9           # Intensity
-N_p = 10001          # Macro-particles
+N_p = 1          # Macro-particles
 tau_0 = 0.4          # Initial bunch length, 4 sigma [ns]
 
 # Machine and RF parameters
@@ -37,8 +37,8 @@ gamma_t = 55.759505  # Transition gamma
 alpha = 1./gamma_t/gamma_t        # First order mom. comp. factor
 
 # Tracking details
-N_t = 1001           # Number of turns to track
-dt_plt = 200         # Time steps between plots
+N_t = 101           # Number of turns to track
+dt_plt = 20         # Time steps between plots
 dt_mon = 1           # Time steps between monitoring
 
 
@@ -69,11 +69,11 @@ print "Beam set and distribution generated..."
 
 
 # Need slices for the Gaussian fit; slice for the first plot
-slice_beam = Slices(beam, 100, slicing_coord = 'theta', fit_option = 'gaussian', 
-                    slice_immediately = 'on')
+slice_beam = Slices(beam, 100, slicing_coord = 'theta')#, #fit_option = 'gaussian', 
+                    #slice_immediately = 'on')
 
 # Define what to save in file
-bunchmonitor = BunchMonitor('output_data', N_t+1, "Longitudinal", slice_beam, PL)
+bunchmonitor = BunchMonitor('output_data', N_t+1, "Longitudinal", PhaseLoop=PL)#slice_beam, PL)
 #
 
 print "Statistics set..."
@@ -106,7 +106,7 @@ for i in range(N_t):
         print "   Beam beta %3.3f" %beam.beta_r
         print "   Beam energy %.6e eV" %beam.energy
         print "   Four-times r.m.s. bunch length %.4e rad" %(4.*beam.sigma_theta)
-        print "   Gaussian bunch length %.4e rad" %beam.bl_gauss
+        #print "   Gaussian bunch length %.4e rad" %beam.bl_gauss
         print ""
         # In plots, you can choose following units: rad, ns, m  
         plot_long_phase_space(beam, general_params, RF_params, 0, 0.0001763, 
@@ -118,7 +118,9 @@ for i in range(N_t):
     #    m.track(beam)
     #if (i % dt_mon) == 0:
     #    bunchmonitor.track(beam)
-    slice_beam.track(beam)
+    #slice_beam.track(beam)
+    beam.dE[0] = 0
+    slice_beam.mean_theta = beam.theta[0]
     long_tracker.track(beam)
     bunchmonitor.track(beam)
         
@@ -126,8 +128,8 @@ for i in range(N_t):
     if (i % dt_plt) == 0 and i > dt_mon:
         plot_bunch_length_evol(beam, 'output_data', general_params, i, 
                                output_freq=dt_mon, unit='ns')
-        plot_bunch_length_evol_gaussian(beam, 'output_data', general_params, 
-                                        slice_beam, i, output_freq=dt_mon, unit='ns')
+        #plot_bunch_length_evol_gaussian(beam, 'output_data', general_params, 
+        #                                slice_beam, i, output_freq=dt_mon, unit='ns')
         plot_position_evol(beam, 'output_data', general_params, i,
                            output_freq=dt_mon, unit = None, style = '.') 
         plot_PL_phase_corr(PL, 'output_data', i, output_freq=dt_mon)

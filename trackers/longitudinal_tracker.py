@@ -280,8 +280,11 @@ class RingAndRFSection(object):
                 corr_prev += self.PL.domega_RF_prev
                
             omega_ratio1 = (self.omega_RF[self.counter[0]+1] - corr_next) / \
-                           (self.omega_RF[self.counter[0]]) #- corr_prev)
+                           (self.omega_RF[self.counter[0]]- corr_prev)
             omega_ratio2 = 1. - corr_next/self.omega_RF[self.counter[0]+1]
+            
+#            omega_r_next = corr_next/self.omega_RF[self.counter[0]+1]
+#            omega_r_prev = self.beta_ratio[self.counter[0]]*corr_prev/self.omega_RF[self.counter[0]]
         
         # Choose solver
         if self.solver == 'full': 
@@ -296,13 +299,22 @@ class RingAndRFSection(object):
 #                         *beam.delta*self.length_ratio
 
 #            print "In turn %d, tracker correction = %.4e" %(self.counter[0],corr_next/self.omega_RF[self.counter[0]+1])   
-            beam.theta = self.beta_ratio[self.counter[0]]*beam.theta \
-                         + 2*np.pi*(omega_ratio2*self.eta_0[self.counter[0]+1] \
-                         *beam.delta*self.length_ratio - corr_next/self.omega_RF[self.counter[0]+1])
+#            beam.theta = self.beta_ratio[self.counter[0]]*beam.theta \
+#                         + 2*np.pi*(omega_ratio2*self.eta_0[self.counter[0]+1] \
+#                         *beam.delta*self.length_ratio - corr_next/self.omega_RF[self.counter[0]+1])
                          
 #            beam.theta = self.beta_ratio[self.counter[0]]*beam.theta \
 #                         + 2*np.pi*(omega_ratio2*self.eta_0[self.counter[0]+1] \
 #                         *beam.delta*self.length_ratio)
+
+#            beam.theta = self.beta_ratio[self.counter[0]]*beam.theta \
+#                         + 2*np.pi*self.length_ratio*(self.eta_0[self.counter[0]+1] \
+#                         *beam.delta + omega_r_next - omega_r_prev)
+
+            beam.theta = omega_ratio1*beam.theta \
+                         + 2*np.pi*self.length_ratio*(omega_ratio2*self.eta_0[self.counter[0]+1] \
+                         *beam.delta - corr_next/self.omega_RF[self.counter[0]+1])
+
 
                          
         else:
