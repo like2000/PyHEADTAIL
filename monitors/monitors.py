@@ -5,7 +5,6 @@
 '''
 
 import h5py as hp
-import numpy as np
 
 
 class BunchMonitor(object):
@@ -114,7 +113,6 @@ class BunchMonitor(object):
             if self.PL:
                 h5group["PL_phase_corr"][i_steps] = self.PL.dphi
                 h5group["PL_omegaRF_corr"][i_steps] = self.PL.domega_RF_next
-                print "In time step %d stored dphi %.4e" %(i_steps, self.PL.dphi)
 
         
     def close(self):
