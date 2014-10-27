@@ -1,18 +1,17 @@
 """
 @author Kevin Li, Michael Schenk
 @date 07. January 2014
-@brief Description of the transport of transverse phase spaces.
+@brief Description of the transport of transverse phase spaces using
+       Cython functions (prepared for OpenMP).
 @copyright CERN
 """
 from __future__ import division
 
 cimport cython
-from cython.parallel import prange
+from cython.parallel cimport prange
 import numpy as np
 cimport numpy as np
 from libc.math cimport cos, sin
-
-from .transverse_tracking import TransverseMap
 
 
 class TransverseSegmentMap(object):
@@ -51,7 +50,10 @@ class TransverseSegmentMap(object):
     Improve the interface between the TransverseSegmentMap class and the
     Cython tracking functions. Think of a way to make the whole
     TransverseSegmentMap class a Cython class.
-    Optimize the Cython functions. """
+    Optimize the Cython functions.
+    The number of threads num_threads in the cython.parallel.prange for-loops
+    is hard-coded to 1 for the moment. Find a good way to make it controllable
+    by the user. """
 
     def __init__(self,
             alpha_x_s0, beta_x_s0, D_x_s0, alpha_x_s1, beta_x_s1, D_x_s1,
@@ -183,26 +185,17 @@ class TransverseSegmentMap(object):
 
     def track_without_detuners(self, beam):
         """ This method is bound to the self.track(self, beam) method
-        in case the self.segment_detuners list is empty. The dphi_{x,y}
-        denote the phase advance in the horizontal and vertical plane
-        respectively for the given accelerator segment. They are
-        composed of the betatron tunes dQ_{x,y} only. They are scalar
-        values. For this case, the transport matrix self.M is a constant
-        and can be directly used. """
-
-        # Calculate phase advance for this segment (betatron motion in
-        # this segment and incoherent tune shifts introduced by detuning
-        # effects).
-        dphi_x = 2. * np.pi * self.dQ_x
-        dphi_y = 2. * np.pi * self.dQ_y
+        in case the self.segment_detuners list is empty. For this case,
+        the transport matrix self.M is a constant and can be directly
+        used. """
 
         # Call Cython method to do the tracking.
         cytrack_without_detuners(beam.x, beam.xp, beam.y, beam.yp,
-                                 dphi_x, dphi_y, self.M)
+                                 self.M)
 
 
 @cython.boundscheck(False)
-@cython.cdivision(True)
+@cython.wraparound(False)
 cpdef cytrack_with_detuners(double[::1] x, double[::1] xp, double[::1] y,
         double[::1] yp, double[::1] dphi_x, double[::1] dphi_y,
         double[:,::1] I, double[:,::1] J):
@@ -248,10 +241,9 @@ cpdef cytrack_with_detuners(double[::1] x, double[::1] xp, double[::1] y,
 
 
 @cython.boundscheck(False)
-@cython.cdivision(True)
+@cython.wraparound(False)
 cpdef cytrack_without_detuners(double[::1] x, double[::1] xp, double[::1] y,
-        double[::1] yp, double[::1] dphi_x, double[::1] dphi_y,
-        double[:,::1] M):
+        double[::1] yp, double[:,::1] M):
     """ Cython method to perform the transverse tracking / transport
     of the bunch for the case with an empty
     TransverseSegmentMap.segment_detuners list. In this case, the
@@ -261,7 +253,6 @@ cpdef cytrack_without_detuners(double[::1] x, double[::1] xp, double[::1] y,
     method.
     OpenMP is disabled for this case as it does not lead to any
     speedup. """
-
     # Store coordinates in temporary variables before tracking.
     # Imitate Python's a, b = b, a.
     cdef double x_tmp, xp_tmp, y_tmp, yp_tmp
@@ -360,13 +351,13 @@ class TransverseMap(object):
         SegmentDetuner objects which is achieved by calling the
         self.detuner_collections.generate_segment_detuner(...) method.
         The detuning strength given in a DetunerCollection is valid for
-        one complete turn around the accelerator. To determine the 
+        one complete turn around the accelerator. To determine the
         detuning strength of a SegmentDetuner, the one-turn detuning
         strength is scaled to the segment_length. Note that this
         quantity is given in relative units (i.e. it is normalized to
         the accelerator circumference s[-1]). """
         segment_length = np.diff(self.s) / self.s[-1]
-        
+
         # Betatron motion normalized to this particular segment.
         dQ_x = self.Q_x * segment_length
         dQ_y = self.Q_y * segment_length
@@ -380,7 +371,7 @@ class TransverseMap(object):
             for detuner in self.detuner_collections:
                 detuner.generate_segment_detuner(segment_length[s0],
                     beta_x=self.beta_x[s0], beta_y=self.beta_y[s0])
-            
+
             # Instantiate TransverseSegmentMap objects.
             transverse_segment_map = TransverseSegmentMap(
                 self.alpha_x[s0], self.beta_x[s0], self.D_x[s0],
