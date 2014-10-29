@@ -200,4 +200,3 @@ class Particles(object):
     def epsn_z(self):
         return (4 * np.pi * cp.emittance(self.z, self.dp) * self.p0 /
                 self.charge)
-        # return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)

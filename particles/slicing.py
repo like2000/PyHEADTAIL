@@ -210,10 +210,7 @@ class SliceSet(object):
         return self._epsn(beam.y, beam.yp) * beam.betagamma
 
     def epsn_z(self, beam):
-        '''
-        Approximate epsn_z. Correct for Gaussian beam.
-        '''
-        return (4. * np.pi * self.sigma_z(beam) * self.sigma_dp(beam) *
+        return (4. * np.pi * self._epsn(beam.z, beam.dp) *
                 beam.p0 / beam.charge)
 
 
