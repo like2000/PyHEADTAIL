@@ -28,6 +28,11 @@ class Particles(object):
         self.particlenumber_per_mp = particlenumber_per_mp
 
         self.charge = charge
+        if self.charge != e:
+            raise NotImplementedError('PyHEADTAIL currently features many "e" '
+                                      + 'all over the place, these need to be '
+                                      + 'consistently replaced by '
+                                      + '"self.charge"!')
         self.mass = mass
 
         self.circumference = circumference
@@ -193,5 +198,6 @@ class Particles(object):
         return cp.emittance(self.y, self.yp) * self.betagamma
 
     def epsn_z(self):
-        return (4*np.pi * cp.emittance(self.z, self.dp) * self.p0/e)
+        return (4 * np.pi * cp.emittance(self.z, self.dp) * self.p0 /
+                self.charge)
         # return (4 * np.pi * self.sigma_z() * self.sigma_dp() * self.p0 / self.charge)
