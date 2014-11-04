@@ -45,6 +45,9 @@ class ParticleGenerator(Printing):
         self.gamma_reference = gamma_reference
         self.coords_n_momenta = coords_n_momenta
 
+        self.is_accepted = kwargs.pop('is_accepted', False)
+        self.redistribute = kwargs.pop('redistribute', False)
+
     @abstractmethod
     def distribute(self):
         '''Implement the specific distribution of this generator.
@@ -52,6 +55,20 @@ class ParticleGenerator(Printing):
         Return a coords_n_momenta_dict to instantiate Particles.
         '''
         pass
+
+    def _redistribute(self, z, dp):
+        '''
+        We want to use distribute here, but distribute would take
+        particlenumber to generate... not so nice... can we do without?
+        '''
+        mask_out = ~self.is_accepted(*phase_space_coordinates)
+        while mask_out.any():
+            n_gen = np.sum(mask_out)
+            other.distribute(n_gen, *phase_space_coordinates)
+            # z[mask_out] = self.sigma_z * self.random_state.randn(n_gen)
+            # dp[mask_out] = self.sigma_dp * self.random_state.randn(n_gen)
+            mask_out = ~self.is_accepted(*phase_space_coordinates)
+            self.prints('Reiterate on non-accepted particles')
 
     def generate(self):
         '''Generate the Particles instance (factory method).'''
